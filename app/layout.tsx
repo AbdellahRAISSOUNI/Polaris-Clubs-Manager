@@ -7,8 +7,8 @@ import { Providers } from "./providers"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "ReserveSpace - Club Reservation System",
-  description: "A platform for clubs to make reservations and administrators to manage them",
+  title: 'Polaris Clubs Manager | Smart Club Management for Universities',
+  description: 'Polaris Clubs Manager - The ultimate platform for university clubs to manage spaces, schedule events, and collaborate seamlessly.',
   generator: 'v0.dev'
 }
 

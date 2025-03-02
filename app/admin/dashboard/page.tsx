@@ -27,10 +27,13 @@ import {
   ShieldCheck,
   Users,
   XCircle,
+  Calendar,
 } from "lucide-react"
 import { ReservationDetails } from "@/components/reservation-details"
 import { Progress } from "@/components/ui/progress"
 import { cn } from "@/lib/utils"
+import { AdminSidebar } from "@/components/admin-sidebar"
+import { AdminLayout } from "@/components/admin-layout"
 
 // Define the Reservation type
 interface Reservation {
@@ -364,376 +367,243 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-gray-50 dark:bg-gray-900">
-      <header className="bg-white dark:bg-gray-950 border-b sticky top-0 z-30">
-        <div className="container flex h-16 items-center justify-between px-4 sm:px-6">
-          <div className="flex items-center gap-2">
-            {isMobile && (
-              <Sheet>
-                <SheetTrigger asChild>
-                  <Button variant="ghost" size="icon">
-                    <Filter className="h-5 w-5" />
-                  </Button>
-                </SheetTrigger>
-                <SheetContent side="left">
-                  <div className="py-4 space-y-4">
-                    <div className="flex items-center gap-2">
-                      <ShieldCheck className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                      <h2 className="text-lg font-semibold">Admin Portal</h2>
-                    </div>
-
-                    <div className="space-y-1">
-                      <Link
-                        href="/admin/dashboard"
-                        className="flex items-center gap-2 p-2 rounded-md bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400"
-                      >
-                        <Home className="h-4 w-4" />
-                        Dashboard
-                      </Link>
-                      <Link
-                        href="/admin/clubs"
-                        className="flex items-center gap-2 p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800"
-                      >
-                        <Users className="h-4 w-4" />
-                        Manage Clubs
-                      </Link>
-                      <Link
-                        href="/admin/spaces"
-                        className="flex items-center gap-2 p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800"
-                      >
-                        <MapPin className="h-4 w-4" />
-                        Manage Spaces
-                      </Link>
-                      <Link
-                        href="/admin/analytics"
-                        className="flex items-center gap-2 p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800"
-                      >
-                        <PieChart className="h-4 w-4" />
-                        Analytics
-                      </Link>
-                      <Link
-                        href="/admin/settings"
-                        className="flex items-center gap-2 p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800"
-                      >
-                        <Settings className="h-4 w-4" />
-                        Settings
-                      </Link>
-                    </div>
-                  </div>
-                </SheetContent>
-              </Sheet>
-            )}
-            <Link href="/admin/dashboard" className="flex items-center gap-2">
-              <ShieldCheck className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-              <h1 className="text-lg font-semibold hidden sm:inline-block">Admin Portal</h1>
-            </Link>
-          </div>
-
-          <div className="flex-1 max-w-md mx-4 hidden md:block">
-            <div className="relative">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search reservations, clubs, venues..."
-                className="pl-8"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="rounded-full">
-                  <Avatar className="h-8 w-8">
-                    <AvatarImage src="/placeholder.svg?height=32&width=32" alt="Admin" />
-                    <AvatarFallback>AD</AvatarFallback>
-                  </Avatar>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem asChild>
-                  <Link href="/admin/profile">Profile</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/admin/settings">Settings</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/">Sign out</Link>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+    <AdminLayout>
+      {/* Mobile search - visible only on mobile */}
+      <div className="md:hidden mb-6">
+        <div className="relative">
+          <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search reservations..."
+            className="pl-8"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
         </div>
-      </header>
+      </div>
 
-      <div className="flex flex-1">
-        {/* Sidebar - hidden on mobile */}
-        <aside className="w-64 border-r bg-white dark:bg-gray-950 hidden md:block p-4 space-y-6">
-          <div className="space-y-1">
-            <Link
-              href="/admin/dashboard"
-              className="flex items-center gap-2 p-2 rounded-md bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400"
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-2xl font-bold tracking-tight">Admin Dashboard</h2>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <Button 
+            variant="outline" 
+            onClick={handleReservationStatusChange}
+            className="flex items-center gap-2 text-sm"
+            size="sm"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="h-4 w-4"
             >
-              <Home className="h-4 w-4" />
-              Dashboard
-            </Link>
-            <Link
-              href="/admin/clubs"
-              className="flex items-center gap-2 p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800"
-            >
-              <Users className="h-4 w-4" />
-              Manage Clubs
-            </Link>
-            <Link
-              href="/admin/spaces"
-              className="flex items-center gap-2 p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800"
-            >
-              <MapPin className="h-4 w-4" />
-              Manage Spaces
-            </Link>
-            <Link
-              href="/admin/analytics"
-              className="flex items-center gap-2 p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800"
-            >
-              <PieChart className="h-4 w-4" />
-              Analytics
-            </Link>
-            <Link
-              href="/admin/settings"
-              className="flex items-center gap-2 p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800"
-            >
-              <Settings className="h-4 w-4" />
-              Settings
-            </Link>
-          </div>
-        </aside>
+              <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
+              <path d="M21 3v5h-5" />
+            </svg>
+            Refresh
+          </Button>
+          <Button 
+            variant="destructive" 
+            onClick={async () => {
+              if (window.confirm('Are you sure you want to delete all rejected reservations? This action cannot be undone.')) {
+                try {
+                  const response = await fetch('/api/reservations/delete-rejected', {
+                    method: 'DELETE',
+                  });
+                  if (!response.ok) throw new Error('Failed to delete rejected reservations');
+                  await handleReservationStatusChange();
+                  alert('Rejected reservations have been deleted successfully');
+                } catch (error) {
+                  console.error('Error deleting rejected reservations:', error);
+                  alert('Failed to delete rejected reservations');
+                }
+              }
+            }}
+            className="flex items-center gap-2 text-sm"
+            size="sm"
+          >
+            <XCircle className="h-4 w-4" />
+            Delete Rejected
+          </Button>
+        </div>
+      </div>
 
-        <main className="flex-1 p-4 md:p-6 space-y-6">
-          {/* Mobile search - visible only on mobile */}
-          <div className="md:hidden">
-            <div className="relative">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search reservations..."
-                className="pl-8"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between space-x-4">
+              <div>
+                <p className="text-xs sm:text-sm font-medium text-muted-foreground">Total</p>
+                <p className="text-xl sm:text-3xl font-bold">{filteredReservations.length}</p>
+              </div>
+              <div className="p-1.5 sm:p-2 bg-blue-100 rounded-full dark:bg-blue-900/30">
+                <CalendarIcon className="h-4 w-4 sm:h-6 sm:w-6 text-blue-600 dark:text-blue-400" />
+              </div>
             </div>
-          </div>
+          </CardContent>
+        </Card>
 
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold tracking-tight">Admin Dashboard</h2>
-            <div className="flex flex-col sm:flex-row gap-2">
-              <Button 
-                variant="outline" 
-                onClick={handleReservationStatusChange}
-                className="flex items-center gap-2 text-sm"
-                size="sm"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="h-4 w-4"
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between space-x-4">
+              <div>
+                <p className="text-xs sm:text-sm font-medium text-muted-foreground">Pending</p>
+                <p className="text-xl sm:text-3xl font-bold">
+                  {filteredReservations.filter((r) => r.status === "pending").length}
+                </p>
+              </div>
+              <div className="p-1.5 sm:p-2 bg-yellow-100 rounded-full dark:bg-yellow-900/30">
+                <Clock className="h-4 w-4 sm:h-6 sm:w-6 text-yellow-600 dark:text-yellow-400" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between space-x-4">
+              <div>
+                <p className="text-xs sm:text-sm font-medium text-muted-foreground">Approved</p>
+                <p className="text-xl sm:text-3xl font-bold">
+                  {filteredReservations.filter((r) => r.status === "approved").length}
+                </p>
+              </div>
+              <div className="p-1.5 sm:p-2 bg-green-100 rounded-full dark:bg-green-900/30">
+                <CheckCircle2 className="h-4 w-4 sm:h-6 sm:w-6 text-green-600 dark:text-green-400" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between space-x-4">
+              <div>
+                <p className="text-xs sm:text-sm font-medium text-muted-foreground">Rejected</p>
+                <p className="text-xl sm:text-3xl font-bold">
+                  {filteredReservations.filter((r) => r.status === "rejected").length}
+                </p>
+              </div>
+              <div className="p-1.5 sm:p-2 bg-red-100 rounded-full dark:bg-red-900/30">
+                <XCircle className="h-4 w-4 sm:h-6 sm:w-6 text-red-600 dark:text-red-400" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <Card className="col-span-full lg:col-span-2">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Reservation Calendar</CardTitle>
+                <CardDescription>Overview of all club reservations</CardDescription>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button 
+                  variant="outline" 
+                  onClick={handleReservationStatusChange}
+                  className="flex items-center gap-2"
+                  size="sm"
                 >
-                  <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
-                  <path d="M21 3v5h-5" />
-                </svg>
-                Refresh
-              </Button>
-              <Button 
-                variant="destructive" 
-                onClick={async () => {
-                  if (window.confirm('Are you sure you want to delete all rejected reservations? This action cannot be undone.')) {
-                    try {
-                      const response = await fetch('/api/reservations/delete-rejected', {
-                        method: 'DELETE',
-                      });
-                      if (!response.ok) throw new Error('Failed to delete rejected reservations');
-                      await handleReservationStatusChange();
-                      alert('Rejected reservations have been deleted successfully');
-                    } catch (error) {
-                      console.error('Error deleting rejected reservations:', error);
-                      alert('Failed to delete rejected reservations');
-                    }
-                  }
-                }}
-                className="flex items-center gap-2 text-sm"
-                size="sm"
-              >
-                <XCircle className="h-4 w-4" />
-                Delete Rejected
-              </Button>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="h-4 w-4"
+                  >
+                    <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
+                    <path d="M21 3v5h-5" />
+                  </svg>
+                  Refresh
+                </Button>
+                <Button asChild size="sm">
+                  <Link href="/admin/all-reservations" className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4" />
+                    View All
+                  </Link>
+                </Button>
+              </div>
             </div>
-          </div>
+          </CardHeader>
+          <CardContent className="px-2 sm:px-6">
+            <CalendarComponent
+              mode="single"
+              selected={date}
+              onSelect={setDate}
+              className="rounded-md border"
+              showOutsideDays={true}
+              modifiers={{
+                booked: (date) => getDatesWithReservations(date),
+              }}
+              modifiersClassNames={{
+                booked: "relative after:absolute after:top-1 after:right-1 after:h-1.5 after:w-1.5 after:rounded-full after:bg-red-500"
+              }}
+            />
+          </CardContent>
+        </Card>
 
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between space-x-4">
-                  <div>
-                    <p className="text-xs sm:text-sm font-medium text-muted-foreground">Total</p>
-                    <p className="text-xl sm:text-3xl font-bold">{filteredReservations.length}</p>
-                  </div>
-                  <div className="p-1.5 sm:p-2 bg-blue-100 rounded-full dark:bg-blue-900/30">
-                    <CalendarIcon className="h-4 w-4 sm:h-6 sm:w-6 text-blue-600 dark:text-blue-400" />
-                  </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Selected Date Schedule</CardTitle>
+            <CardDescription>
+              {date
+                ? date.toLocaleDateString("en-US", {
+                    weekday: "long",
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                  })
+                : "Select a date"}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {reservationsForSelectedDate.length === 0 ? (
+                <div className="text-center py-8">
+                  <Clock className="h-8 w-8 mx-auto text-muted-foreground opacity-50 mb-2" />
+                  <p className="text-muted-foreground">No reservations for this date</p>
                 </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between space-x-4">
-                  <div>
-                    <p className="text-xs sm:text-sm font-medium text-muted-foreground">Pending</p>
-                    <p className="text-xl sm:text-3xl font-bold">
-                      {filteredReservations.filter((r) => r.status === "pending").length}
-                    </p>
-                  </div>
-                  <div className="p-1.5 sm:p-2 bg-yellow-100 rounded-full dark:bg-yellow-900/30">
-                    <Clock className="h-4 w-4 sm:h-6 sm:w-6 text-yellow-600 dark:text-yellow-400" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between space-x-4">
-                  <div>
-                    <p className="text-xs sm:text-sm font-medium text-muted-foreground">Approved</p>
-                    <p className="text-xl sm:text-3xl font-bold">
-                      {filteredReservations.filter((r) => r.status === "approved").length}
-                    </p>
-                  </div>
-                  <div className="p-1.5 sm:p-2 bg-green-100 rounded-full dark:bg-green-900/30">
-                    <CheckCircle2 className="h-4 w-4 sm:h-6 sm:w-6 text-green-600 dark:text-green-400" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between space-x-4">
-                  <div>
-                    <p className="text-xs sm:text-sm font-medium text-muted-foreground">Rejected</p>
-                    <p className="text-xl sm:text-3xl font-bold">
-                      {filteredReservations.filter((r) => r.status === "rejected").length}
-                    </p>
-                  </div>
-                  <div className="p-1.5 sm:p-2 bg-red-100 rounded-full dark:bg-red-900/30">
-                    <XCircle className="h-4 w-4 sm:h-6 sm:w-6 text-red-600 dark:text-red-400" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            <Card className="col-span-full lg:col-span-2">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle>Reservation Calendar</CardTitle>
-                    <CardDescription>Overview of all club reservations</CardDescription>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button 
-                      variant="outline" 
-                      onClick={handleReservationStatusChange}
-                      className="flex items-center gap-2"
-                      size="sm"
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="h-4 w-4"
-                      >
-                        <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
-                        <path d="M21 3v5h-5" />
-                      </svg>
-                      Refresh
-                    </Button>
-                    <Button>Create Reservation</Button>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="px-2 sm:px-6">
-                <CalendarComponent
-                  mode="single"
-                  selected={date}
-                  onSelect={setDate}
-                  className="rounded-md border"
-                  showOutsideDays={true}
-                  modifiers={{
-                    booked: (date) => getDatesWithReservations(date),
-                  }}
-                  modifiersClassNames={{
-                    booked: "relative after:absolute after:top-1 after:right-1 after:h-1.5 after:w-1.5 after:rounded-full after:bg-red-500"
-                  }}
-                />
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Today's Schedule</CardTitle>
-                <CardDescription>All activities scheduled for today</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {todaysReservations.length === 0 ? (
-                    <div className="text-center py-8">
-                      <Clock className="h-8 w-8 mx-auto text-muted-foreground opacity-50 mb-2" />
-                      <p className="text-muted-foreground">No reservations for today</p>
+              ) : (
+                reservationsForSelectedDate.map((reservation) => (
+                  <div
+                    key={reservation.id}
+                    className="flex items-center gap-4 p-2 rounded-lg hover:bg-accent transition-colors cursor-pointer"
+                    onClick={() => setSelectedReservation({
+                      ...reservation,
+                      isFullDay: reservation.isFullDay
+                    })}
+                  >
+                    <Avatar className="h-9 w-9">
+                      <AvatarImage src={reservation.clubLogo} alt={reservation.clubName} />
+                      <AvatarFallback>
+                        {reservation.clubName
+                          .split(" ")
+                          .map((n) => n[0])
+                          .join("")}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{reservation.title}</p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {reservation.clubName} • {reservation.venue} • {reservation.time}
+                      </p>
                     </div>
-                  ) : (
-                    todaysReservations.map((reservation) => (
-                      <div
-                        key={reservation.id}
-                        className="flex items-center gap-4 p-2 rounded-lg hover:bg-accent transition-colors cursor-pointer"
-                        onClick={() => setSelectedReservation({
-                          ...reservation,
-                          isFullDay: reservation.isFullDay
-                        })}
-                      >
-                        <Avatar className="h-9 w-9">
-                          <AvatarImage src={reservation.clubLogo} alt={reservation.clubName} />
-                          <AvatarFallback>
-                            {reservation.clubName
-                              .split(" ")
-                              .map((n) => n[0])
-                              .join("")}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">{reservation.title}</p>
-                          <p className="text-xs text-muted-foreground truncate">
-                            {reservation.clubName} • {reservation.venue} • {reservation.time}
-                          </p>
-                        </div>
-                        {getStatusBadge(reservation.status)}
-                      </div>
-                    ))
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </main>
+                    {getStatusBadge(reservation.status)}
+                  </div>
+                ))
+              )}
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {selectedReservation && (
@@ -743,7 +613,7 @@ export default function AdminDashboard() {
           onStatusChange={handleReservationStatusChange}
         />
       )}
-    </div>
+    </AdminLayout>
   )
 }
 

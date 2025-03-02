@@ -1,6 +1,7 @@
 "use client"
 
 import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
@@ -30,6 +31,9 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { getClubId } from "@/lib/storage"
 import { successNotification, errorNotification, infoNotification } from "@/lib/notifications"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { supabase } from "@/lib/supabase"
+import { toast } from "sonner"
 
 // Define the Reservation type
 interface Reservation {
@@ -69,6 +73,13 @@ export default function ClubDashboard() {
   const [spaces, setSpaces] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [selectedReservation, setSelectedReservation] = useState<any>(null)
+  const [isEditing, setIsEditing] = useState(false)
+  const [editedTitle, setEditedTitle] = useState("")
+  const [editedDescription, setEditedDescription] = useState("")
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+  const [reservationToDelete, setReservationToDelete] = useState<string | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   // Fetch reservations and spaces on mount
   useEffect(() => {
@@ -206,6 +217,84 @@ export default function ClubDashboard() {
         return <Badge variant="outline">{status}</Badge>
     }
   }
+
+  // Add these new functions for handling reservation actions
+  const handleViewDetails = (reservation: any) => {
+    setSelectedReservation(reservation);
+  };
+
+  const handleEditReservation = (reservation: any) => {
+    setSelectedReservation(reservation);
+    setEditedTitle(reservation.title);
+    setEditedDescription(reservation.description || "");
+    setIsEditing(true);
+  };
+
+  const handleCancelReservation = (reservationId: string) => {
+    setReservationToDelete(reservationId);
+    setDeleteConfirmOpen(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!selectedReservation) return;
+    
+    setIsSubmitting(true);
+    try {
+      const { error } = await supabase
+        .from('reservations')
+        .update({
+          title: editedTitle,
+          description: editedDescription
+        })
+        .eq('id', selectedReservation.id);
+
+      if (error) throw error;
+
+      // Update the local state
+      setReservations(prev => 
+        prev.map(res => 
+          res.id === selectedReservation.id 
+            ? {...res, title: editedTitle, description: editedDescription} 
+            : res
+        )
+      );
+      
+      successNotification({ description: "Reservation updated successfully" });
+      setIsEditing(false);
+      setSelectedReservation(null);
+    } catch (err) {
+      console.error('Error updating reservation:', err);
+      errorNotification({ description: "Failed to update reservation" });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!reservationToDelete) return;
+    
+    setIsSubmitting(true);
+    try {
+      const { error } = await supabase
+        .from('reservations')
+        .delete()
+        .eq('id', reservationToDelete);
+
+      if (error) throw error;
+
+      // Update the local state
+      setReservations(prev => prev.filter(res => res.id !== reservationToDelete));
+      
+      successNotification({ description: "Reservation cancelled successfully" });
+      setDeleteConfirmOpen(false);
+      setReservationToDelete(null);
+    } catch (err) {
+      console.error('Error cancelling reservation:', err);
+      errorNotification({ description: "Failed to cancel reservation" });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <div className="flex min-h-screen flex-col bg-gray-50 dark:bg-gray-900">
@@ -507,9 +596,16 @@ export default function ClubDashboard() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem>View Details</DropdownMenuItem>
-                              <DropdownMenuItem>Edit Reservation</DropdownMenuItem>
-                              <DropdownMenuItem className="text-red-600 dark:text-red-400">
+                              <DropdownMenuItem onClick={() => handleViewDetails(reservation)}>
+                                View Details
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleEditReservation(reservation)}>
+                                Edit Reservation
+                              </DropdownMenuItem>
+                              <DropdownMenuItem 
+                                className="text-red-600 dark:text-red-400"
+                                onClick={() => handleCancelReservation(reservation.id)}
+                              >
                                 Cancel Reservation
                               </DropdownMenuItem>
                             </DropdownMenuContent>
@@ -588,6 +684,135 @@ export default function ClubDashboard() {
           </Card>
         </div>
       </main>
+
+      {selectedReservation && !isEditing && (
+        <Dialog open={!!selectedReservation && !isEditing} onOpenChange={() => setSelectedReservation(null)}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle className="text-xl">{selectedReservation.title}</DialogTitle>
+              <DialogDescription>Reservation Details</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                {selectedReservation.status === "approved" ? (
+                  <CheckCircle2 className="h-5 w-5 text-green-600" />
+                ) : selectedReservation.status === "rejected" ? (
+                  <XCircle className="h-5 w-5 text-red-600" />
+                ) : (
+                  <Clock className="h-5 w-5 text-yellow-600" />
+                )}
+                {getStatusBadge(selectedReservation.status)}
+              </div>
+              <div className="grid gap-3">
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4" />
+                  <span>{selectedReservation.date.toLocaleDateString()}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Clock className="h-4 w-4" />
+                  <span>{selectedReservation.time}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <MapPin className="h-4 w-4" />
+                  <span>{selectedReservation.venue}</span>
+                </div>
+                {selectedReservation.description && (
+                  <div className="mt-2 text-sm text-muted-foreground">
+                    {selectedReservation.description}
+                  </div>
+                )}
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setSelectedReservation(null)}>
+                Close
+              </Button>
+              <Button onClick={() => setIsEditing(true)}>
+                Edit
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {selectedReservation && isEditing && (
+        <Dialog open={!!selectedReservation && isEditing} onOpenChange={() => {
+          setIsEditing(false);
+          setSelectedReservation(null);
+        }}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Edit Reservation</DialogTitle>
+              <DialogDescription>Update the details of your reservation</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="grid gap-2">
+                <Label htmlFor="title">Title</Label>
+                <Input 
+                  id="title" 
+                  value={editedTitle} 
+                  onChange={(e) => setEditedTitle(e.target.value)} 
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="description">Description</Label>
+                <Textarea 
+                  id="description" 
+                  value={editedDescription} 
+                  onChange={(e) => setEditedDescription(e.target.value)} 
+                  rows={4}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setIsEditing(false);
+                  setSelectedReservation(null);
+                }}
+                disabled={isSubmitting}
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleSaveEdit}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? "Saving..." : "Save Changes"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Cancel Reservation</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to cancel this reservation? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setDeleteConfirmOpen(false)}
+              disabled={isSubmitting}
+            >
+              No, Keep It
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={handleDeleteConfirm}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? "Cancelling..." : "Yes, Cancel It"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {showReservationForm && <ReservationForm selectedDate={date} onClose={() => setShowReservationForm(false)} />}
     </div>

@@ -142,6 +142,7 @@ export default function ClubsPage() {
       description: formData.get('club-description') as string,
       email: formData.get('club-email') as string,
       status: formData.get('club-status') as 'active' | 'inactive' || 'active',
+      members: parseInt(formData.get('club-members') as string) || 0,
     }
     
     try {
@@ -624,6 +625,19 @@ export default function ClubsPage() {
                   <option value="active">Active</option>
                   <option value="inactive">Inactive</option>
                 </select>
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="club-members">Number of Members</Label>
+                <Input 
+                  id="club-members" 
+                  name="club-members"
+                  type="number"
+                  min="0"
+                  defaultValue={selectedClub?.members || 0} 
+                  placeholder="Enter number of members" 
+                />
+                <p className="text-xs text-muted-foreground">Specify the total number of members in this club</p>
               </div>
             </div>
 

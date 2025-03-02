@@ -10,6 +10,7 @@ import { format, formatDistance } from "date-fns"
 import { Separator } from "@/components/ui/separator"
 import { AdminLayout } from "@/components/admin-layout"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { ReservationDetails } from "@/components/reservation-details"
 import {
   Table,
   TableBody,
@@ -66,9 +67,23 @@ export default function AdminAllReservationsPage() {
   }, [])
 
   const handleReservationSelect = (reservation: Reservation) => {
-    setSelectedReservation(reservation)
-    setReservationStatus(reservation.status)
-    setIsDetailsOpen(true)
+    // Format the reservation data for the ReservationDetails component
+    const formattedReservation = {
+      id: reservation.id,
+      title: reservation.title,
+      status: reservation.status,
+      date: new Date(reservation.start_time),
+      time: reservation.is_full_day 
+        ? "Full Day" 
+        : `${format(new Date(reservation.start_time), "h:mm a")} - ${format(new Date(reservation.end_time), "h:mm a")}`,
+      clubName: reservation.club_name || "Unknown Club",
+      clubLogo: `/api/clubs/${reservation.club_id}/image`,
+      isFullDay: reservation.is_full_day
+    };
+    
+    setSelectedReservation(reservation);
+    setReservationStatus(reservation.status);
+    setIsDetailsOpen(true);
   }
 
   const formatDateTime = (dateTimeStr: string) => {
@@ -122,15 +137,25 @@ export default function AdminAllReservationsPage() {
     
     setReservationStatus(newStatus)
     
-    // Here you would update the reservation status in your database
-    // For example:
-    // await updateReservationStatus(selectedReservation.id, newStatus)
-    
-    // For now, we'll just update the local state
-    setSelectedReservation({
-      ...selectedReservation,
-      status: newStatus
-    })
+    try {
+      const response = await fetch(`/api/reservations/${selectedReservation.id}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus })
+      });
+      
+      if (!response.ok) throw new Error('Failed to update status');
+      
+      // Update local state
+      const updatedReservations = reservations.map(r => 
+        r.id === selectedReservation.id ? { ...r, status: newStatus } : r
+      );
+      setReservations(updatedReservations);
+      setSelectedReservation({ ...selectedReservation, status: newStatus });
+      
+    } catch (error) {
+      console.error('Error updating reservation:', error);
+    }
   }
 
   return (
@@ -367,188 +392,44 @@ export default function AdminAllReservationsPage() {
           </div>
         )}
 
-        <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
-          <DialogContent className="max-w-md p-0 overflow-hidden bg-[#0B1120] text-white border-gray-800 max-h-[90vh] flex flex-col">
-            {selectedReservation && (
-              <>
-                {/* Fixed Header */}
-                <div className="flex items-start justify-between p-4 border-b border-gray-800 bg-[#0B1120] sticky top-0 z-20">
-                  <div>
-                    <h2 className="text-xl font-semibold mb-0.5">
-                      {selectedReservation.title}
-                    </h2>
-                    <p className="text-sm text-gray-400">
-                      Reservation #{selectedReservation.id.substring(0, 8)}
-                    </p>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="text-gray-400 hover:text-white -mr-2"
-                    onClick={() => setIsDetailsOpen(false)}
-                  >
-                    <X className="h-5 w-5" />
-                  </Button>
-                </div>
-
-                {/* Scrollable Content */}
-                <div className="overflow-y-auto flex-1">
-                  <div className="p-4 space-y-4">
-                    {/* Status Banner */}
-                    <div className={`p-3 rounded-lg border ${getStatusInfo(selectedReservation.status).color}`}>
-                      <div className="flex gap-3">
-                        <div className="mt-0.5">
-                          {getStatusInfo(selectedReservation.status).icon}
-                        </div>
-                        <div>
-                          <p className="font-semibold">
-                            {getStatusInfo(selectedReservation.status).label}
-                          </p>
-                          <p className="text-sm opacity-90">
-                            {getStatusInfo(selectedReservation.status).description}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Time Information */}
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2 text-sm text-gray-400">
-                          <Calendar className="h-4 w-4" />
-                          <span>Start Time</span>
-                        </div>
-                        <p className="font-medium">
-                          {format(new Date(selectedReservation.start_time), "MMM d, yyyy")}
-                        </p>
-                        {selectedReservation.is_full_day ? (
-                          <Badge variant="outline" className="mt-1">Full Day</Badge>
-                        ) : (
-                          <p className="text-sm text-gray-400">
-                            {format(new Date(selectedReservation.start_time), "h:mm a")}
-                          </p>
-                        )}
-                      </div>
-                      
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2 text-sm text-gray-400">
-                          <Clock className="h-4 w-4" />
-                          <span>End Time</span>
-                        </div>
-                        <p className="font-medium">
-                          {format(new Date(selectedReservation.end_time), "MMM d, yyyy")}
-                        </p>
-                        {!selectedReservation.is_full_day && (
-                          <p className="text-sm text-gray-400">
-                            {format(new Date(selectedReservation.end_time), "h:mm a")}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="bg-gray-900 rounded-lg p-2.5 text-sm">
-                      <span className="font-medium">Duration:</span>{" "}
-                      {getDuration(selectedReservation.start_time, selectedReservation.end_time, selectedReservation.is_full_day)}
-                    </div>
-
-                    <Separator className="bg-gray-800" />
-
-                    {/* Location & Club Information */}
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2 text-sm text-gray-400">
-                          <MapPin className="h-4 w-4" />
-                          <span>Space</span>
-                        </div>
-                        <p className="font-medium">
-                          {selectedReservation.space_name || 'Unknown Space'}
-                        </p>
-                      </div>
-                      
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2 text-sm text-gray-400">
-                          <Building className="h-4 w-4" />
-                          <span>Club</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <img
-                            src={`/api/clubs/${selectedReservation.club_id}/image`}
-                            alt={selectedReservation.club_name || 'Club logo'}
-                            className="h-8 w-8 rounded-full object-cover bg-gray-900"
-                            onError={(e) => {
-                              e.currentTarget.src = '/default-club-image.png'
-                            }}
-                          />
-                          <p className="font-medium">
-                            {selectedReservation.club_name || 'Unknown Club'}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Description */}
-                    {selectedReservation.description && (
-                      <>
-                        <Separator className="bg-gray-800" />
-                        <div className="space-y-1.5">
-                          <h3 className="font-medium">Description</h3>
-                          <p className="text-sm text-gray-400 whitespace-pre-line">
-                            {selectedReservation.description}
-                          </p>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                </div>
-
-                {/* Fixed Footer */}
-                <div className="border-t border-gray-800 p-4 bg-[#0B1120] sticky bottom-0 z-20">
-                  <div className="flex gap-3">
-                    <Select 
-                      value={reservationStatus} 
-                      onValueChange={setReservationStatus}
-                    >
-                      <SelectTrigger className="flex-1 bg-gray-900 border-gray-800">
-                        <SelectValue placeholder="Select status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="pending">Pending</SelectItem>
-                        <SelectItem value="approved">Approved</SelectItem>
-                        <SelectItem value="rejected">Rejected</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <Button 
-                      className="px-8" 
-                      onClick={async () => {
-                        try {
-                          const response = await fetch(`/api/reservations/${selectedReservation.id}/status`, {
-                            method: 'PATCH',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ status: reservationStatus })
-                          });
-                          
-                          if (!response.ok) throw new Error('Failed to update status');
-                          
-                          // Update local state
-                          const updatedReservations = reservations.map(r => 
-                            r.id === selectedReservation.id ? { ...r, status: reservationStatus } : r
-                          );
-                          setReservations(updatedReservations);
-                          setSelectedReservation({ ...selectedReservation, status: reservationStatus });
-                          
-                        } catch (error) {
-                          console.error('Error updating reservation:', error);
-                        }
-                      }}
-                    >
-                      Save
-                    </Button>
-                  </div>
-                </div>
-              </>
-            )}
-          </DialogContent>
-        </Dialog>
+        {isDetailsOpen && selectedReservation && (
+          <ReservationDetails
+            reservation={{
+              id: selectedReservation.id,
+              title: selectedReservation.title,
+              status: selectedReservation.status,
+              date: new Date(selectedReservation.start_time),
+              time: selectedReservation.is_full_day 
+                ? "Full Day" 
+                : `${format(new Date(selectedReservation.start_time), "h:mm a")} - ${format(new Date(selectedReservation.end_time), "h:mm a")}`,
+              clubName: selectedReservation.club_name || "Unknown Club",
+              clubLogo: `/api/clubs/${selectedReservation.club_id}/image`,
+              isFullDay: selectedReservation.is_full_day
+            }}
+            onClose={() => setIsDetailsOpen(false)}
+            onStatusChange={async (newStatus) => {
+              try {
+                const response = await fetch(`/api/reservations/${selectedReservation.id}/status`, {
+                  method: 'PATCH',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ status: newStatus })
+                });
+                
+                if (!response.ok) throw new Error('Failed to update status');
+                
+                // Update local state
+                const updatedReservations = reservations.map(r => 
+                  r.id === selectedReservation.id ? { ...r, status: newStatus } : r
+                );
+                setReservations(updatedReservations);
+                setSelectedReservation({ ...selectedReservation, status: newStatus });
+                
+              } catch (error) {
+                console.error('Error updating reservation:', error);
+              }
+            }}
+          />
+        )}
       </div>
     </AdminLayout>
   )
