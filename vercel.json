@@ -1,0 +1,26 @@
+{
+  "version": 2,
+  "buildCommand": "npm run build",
+  "devCommand": "npm run dev",
+  "installCommand": "npm install",
+  "framework": "nextjs",
+  "outputDirectory": ".next",
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "/api/$1",
+      "methods": ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+      "headers": {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "Origin, X-Requested-With, Content-Type, Accept, Authorization",
+        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, PATCH, OPTIONS"
+      }
+    }
+  ],
+  "env": {
+    "NEXT_PUBLIC_SUPABASE_URL": "https://lqzfrqezbrufcccmtnvo.supabase.co",
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxxemZycWV6YnJ1ZmNjY210bnZvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDA3ODYxMTksImV4cCI6MjA1NjM2MjExOX0.81KWQyCZkUW5jF8xm3TIH1XsOQPId7eSnDEUfR0jysM",
+    "NEXTAUTH_SECRET": "your-secret-key-change-this-in-production",
+    "NEXTAUTH_URL": "https://polaris-clubs-manager.vercel.app"
+  }
+} 
