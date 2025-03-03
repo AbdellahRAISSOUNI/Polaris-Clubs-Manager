@@ -34,6 +34,7 @@ import { successNotification, errorNotification, infoNotification } from "@/lib/
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { supabase } from "@/lib/supabase"
 import { toast } from "sonner"
+import { format } from "date-fns"
 
 // Define the Reservation type
 interface Reservation {
@@ -70,10 +71,11 @@ export default function ClubDashboard() {
   const [viewMode, setViewMode] = useState("calendar")
   const [isMobile, setIsMobile] = useState(false)
   const [reservations, setReservations] = useState<Reservation[]>([])
+  const [clubReservations, setClubReservations] = useState<Reservation[]>([])
   const [spaces, setSpaces] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [selectedReservation, setSelectedReservation] = useState<any>(null)
+  const [selectedReservation, setSelectedReservation] = useState<any | null>(null)
   const [isEditing, setIsEditing] = useState(false)
   const [editedTitle, setEditedTitle] = useState("")
   const [editedDescription, setEditedDescription] = useState("")
@@ -87,7 +89,6 @@ export default function ClubDashboard() {
       setIsLoading(true)
       try {
         // Get the club ID from localStorage or context
-        // For now, we'll use a placeholder - in a real app, you'd get this from auth
         const clubId = getClubId()
         
         // Fetch reservations for this club
@@ -96,7 +97,13 @@ export default function ClubDashboard() {
           throw new Error('Failed to fetch reservations')
         }
         const reservationsData = await reservationsResponse.json()
-        setReservations(reservationsData)
+        
+        // Fetch all reservations (for showing other clubs' bookings)
+        const allReservationsResponse = await fetch('/api/reservations')
+        if (!allReservationsResponse.ok) {
+          throw new Error('Failed to fetch all reservations')
+        }
+        const allReservationsData = await allReservationsResponse.json()
         
         // Fetch spaces
         const spacesResponse = await fetch('/api/spaces')
@@ -104,12 +111,14 @@ export default function ClubDashboard() {
           throw new Error('Failed to fetch spaces')
         }
         const spacesData = await spacesResponse.json()
+        
+        setReservations(allReservationsData)
+        setClubReservations(reservationsData)
         setSpaces(spacesData)
-      } catch (err) {
-        console.error('Error fetching data:', err)
-        const errorMsg = err instanceof Error ? err.message : 'Failed to load data'
-        setError(errorMsg)
-        errorNotification({ description: errorMsg })
+      } catch (error) {
+        console.error('Error fetching data:', error)
+        setError(error instanceof Error ? error.message : 'An error occurred')
+        errorNotification({ description: error instanceof Error ? error.message : 'An error occurred' })
       } finally {
         setIsLoading(false)
       }
@@ -132,31 +141,36 @@ export default function ClubDashboard() {
     }
   }, [])
 
-  // Helper function to format reservation data for display
+  // Format reservations for display
   const formatReservations = (reservations: Reservation[]) => {
     return reservations.map(reservation => {
-      const startTime = new Date(reservation.start_time)
-      const endTime = new Date(reservation.end_time)
-      const space = spaces.find(s => s.id === reservation.space_id)
+      const startTime = new Date(reservation.start_time);
+      const endTime = new Date(reservation.end_time);
       
-      // Check if it's a full day reservation (either from the property or by checking times)
+      // Check if it's a full day reservation
       const isFullDay = reservation.is_full_day || 
-                        (startTime.getHours() === 0 && 
-                         startTime.getMinutes() === 0 && 
-                         endTime.getHours() === 23 && 
-                         endTime.getMinutes() === 59);
+                       (startTime.getHours() === 0 && 
+                        startTime.getMinutes() === 0 && 
+                        endTime.getHours() === 23 && 
+                        endTime.getMinutes() === 59);
       
       return {
         id: reservation.id,
-        date: startTime,
         title: reservation.title,
+        date: new Date(reservation.start_time),
         status: reservation.status,
-        venue: space?.name || 'Unknown Venue',
-        time: isFullDay ? "Full Day" : `${startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}-${endTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
-        color: getStatusColor(reservation.status),
-        isFullDay
-      }
-    })
+        venue: spaces.find(space => space.id === reservation.space_id)?.name || "Unknown Venue",
+        time: isFullDay ? "Full Day" : `${format(startTime, 'h:mm a')} - ${format(endTime, 'h:mm a')}`,
+        description: reservation.description,
+        space_id: reservation.space_id,
+        start_time: reservation.start_time,
+        end_time: reservation.end_time,
+        club_id: reservation.club_id,
+        created_at: reservation.created_at,
+        isFullDay: isFullDay,
+        color: getStatusColor(reservation.status)
+      };
+    });
   }
 
   // Get status color
@@ -174,7 +188,7 @@ export default function ClubDashboard() {
   }
 
   // Filter reservations based on search, venue, and status
-  const filteredReservations = isLoading ? [] : formatReservations(reservations).filter((reservation) => {
+  const filteredReservations = isLoading ? [] : formatReservations(clubReservations).filter((reservation) => {
     const matchesSearch =
       reservation.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       reservation.venue.toLowerCase().includes(searchQuery.toLowerCase())
@@ -194,14 +208,37 @@ export default function ClubDashboard() {
       )
     : []
 
-  // Function to determine which dates have reservations
+  // Function to determine which dates have the club's own reservations
+  const getOwnReservationDates = (date: Date) => {
+    return clubReservations.some(reservation => {
+      const resDate = new Date(reservation.start_time);
+      return (
+        resDate.getDate() === date.getDate() &&
+        resDate.getMonth() === date.getMonth() &&
+        resDate.getFullYear() === date.getFullYear()
+      );
+    });
+  }
+  
+  // Function to determine which dates have other clubs' reservations
+  const getOtherReservationDates = (date: Date) => {
+    const clubId = getClubId();
+    return reservations.some(reservation => {
+      // Skip the club's own reservations
+      if (reservation.club_id === clubId) return false;
+      
+      const resDate = new Date(reservation.start_time);
+      return (
+        resDate.getDate() === date.getDate() &&
+        resDate.getMonth() === date.getMonth() &&
+        resDate.getFullYear() === date.getFullYear()
+      );
+    });
+  }
+
+  // Function to determine which dates have any reservations (own or other)
   const getDatesWithReservations = (date: Date) => {
-    return filteredReservations.some(
-      (reservation) =>
-        reservation.date.getDate() === date.getDate() &&
-        reservation.date.getMonth() === date.getMonth() &&
-        reservation.date.getFullYear() === date.getFullYear(),
-    )
+    return getOwnReservationDates(date) || getOtherReservationDates(date);
   }
 
   // Function to get status badge variant
@@ -491,18 +528,33 @@ export default function ClubDashboard() {
             </CardHeader>
           <CardContent className="p-2 sm:p-4">
               {viewMode === "calendar" ? (
-                <CalendarComponent
-                  mode="single"
-                  selected={date}
-                  onSelect={setDate}
-                  className="rounded-md border"
-                  modifiers={{
-                    booked: (date) => getDatesWithReservations(date),
-                  }}
-                  modifiersClassNames={{
-                  booked: "relative after:absolute after:top-1 after:right-1 after:h-1.5 after:w-1.5 after:rounded-full after:bg-red-500"
-                  }}
-                />
+                <div className="space-y-2">
+                  <CalendarComponent
+                    mode="single"
+                    selected={date}
+                    onSelect={setDate}
+                    className="rounded-md border"
+                    modifiers={{
+                      ownBooked: (date) => getOwnReservationDates(date),
+                      otherBooked: (date) => getOtherReservationDates(date),
+                    }}
+                    modifiersClassNames={{
+                      ownBooked: "relative after:absolute after:top-1 after:right-1 after:h-1.5 after:w-1.5 after:rounded-full after:bg-blue-500",
+                      otherBooked: "relative before:absolute before:top-1 before:right-3.5 before:h-1.5 before:w-1.5 before:rounded-full before:bg-red-500"
+                    }}
+                  />
+                  
+                  <div className="flex items-center justify-center gap-4 mt-4 text-xs text-muted-foreground">
+                    <div className="flex items-center gap-1.5">
+                      <div className="h-2 w-2 rounded-full bg-blue-500"></div>
+                      <span>Your Club's Reservations</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <div className="h-2 w-2 rounded-full bg-red-500"></div>
+                      <span>Other Clubs' Reservations</span>
+                    </div>
+                  </div>
+                </div>
               ) : (
                 <div className="space-y-4">
                   {filteredReservations.length === 0 ? (

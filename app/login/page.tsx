@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { storeClubId, storeIsAdmin } from "@/lib/storage"
+import { storeClubId, storeIsAdmin, storeAdminId } from "@/lib/storage"
 import { supabase } from "@/lib/supabase"
 import { toast } from "@/components/ui/use-toast"
 import { AlertCircle, CheckCircle, Loader2, LogIn } from "lucide-react"
@@ -16,11 +16,12 @@ import Link from "next/link"
 
 export default function LoginPage() {
   const router = useRouter()
-  const [isLoading, setIsLoading] = useState(false)
+  const [activeTab, setActiveTab] = useState("club")
   const [clubEmail, setClubEmail] = useState("")
   const [clubPassword, setClubPassword] = useState("")
   const [adminEmail, setAdminEmail] = useState("")
   const [adminPassword, setAdminPassword] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [isVisible, setIsVisible] = useState(false)
@@ -28,6 +29,54 @@ export default function LoginPage() {
   useEffect(() => {
     setIsVisible(true)
   }, [])
+
+  // Create a mock admin user if one doesn't exist
+  useEffect(() => {
+    async function createMockAdminIfNeeded() {
+      try {
+        // Check if any admin exists
+        const { data, error } = await supabase
+          .from('users')
+          .select('*')
+          .eq('role', 'admin')
+          .limit(1);
+          
+        if (error) {
+          console.error("Error checking for admin:", error);
+          return;
+        }
+        
+        // If no admin exists, create one
+        if (!data || data.length === 0) {
+          console.log("No admin found, creating mock admin");
+          
+          const mockAdmin = {
+            email: "admin@example.com",
+            name: "Admin User",
+            password: "admin123",
+            role: "admin"
+          };
+          
+          const { data: newAdmin, error: createError } = await supabase
+            .from('users')
+            .insert(mockAdmin)
+            .select();
+            
+          if (createError) {
+            console.error("Error creating mock admin:", createError);
+          } else {
+            console.log("Mock admin created:", newAdmin);
+          }
+        } else {
+          console.log("Admin already exists:", data[0]);
+        }
+      } catch (err) {
+        console.error("Error in createMockAdminIfNeeded:", err);
+      }
+    }
+    
+    createMockAdminIfNeeded();
+  }, []);
 
   const handleClubLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -140,13 +189,22 @@ export default function LoginPage() {
         throw new Error('Admin not found. Please check your credentials.')
       }
       
+      // Log the full admin object to see its structure
+      console.log("Admin object:", admin)
+      
       // In a real app, you'd verify the password properly
-      // For demo purposes, we'll just check if it matches the stored password
       if (admin.password !== adminPassword) {
         throw new Error('Invalid password. Please try again.')
       }
       
+      // Store admin ID and admin status
+      console.log("Storing admin ID:", admin.id)
+      storeAdminId(admin.id)
       storeIsAdmin(true)
+      
+      // Verify storage
+      console.log("Stored admin ID:", localStorage.getItem('adminId'))
+      console.log("Is admin:", localStorage.getItem('isAdmin'))
       
       setSuccess(`Welcome back, ${admin.name || 'Admin'}!`)
       

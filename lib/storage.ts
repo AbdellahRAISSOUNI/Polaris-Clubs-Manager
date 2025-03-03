@@ -22,6 +22,26 @@ export const getClubId = (): string | null => {
   return null; // Default for SSR
 };
 
+// Store admin ID
+export const storeAdminId = (adminId: string) => {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('adminId', adminId);
+  }
+};
+
+// Get admin ID
+export const getAdminId = (): string | null => {
+  if (typeof window !== 'undefined') {
+    const storedAdminId = localStorage.getItem('adminId');
+    if (!storedAdminId) {
+      console.warn('No admin ID found in storage');
+      return null;
+    }
+    return storedAdminId;
+  }
+  return null; // Default for SSR
+};
+
 // Store admin status
 export const storeIsAdmin = (isAdmin: boolean) => {
   if (typeof window !== 'undefined') {
@@ -41,6 +61,7 @@ export const isAdmin = (): boolean => {
 export const clearStorage = () => {
   if (typeof window !== 'undefined') {
     localStorage.removeItem('clubId');
+    localStorage.removeItem('adminId');
     localStorage.removeItem('isAdmin');
   }
 }; 
