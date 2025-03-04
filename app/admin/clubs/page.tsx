@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Search, MoreHorizontal, Mail, Key, UserPlus, Edit, Trash2, CheckCircle, XCircle, Plus, X } from "lucide-react"
+import { Search, MoreHorizontal, Mail, Key, UserPlus, Edit, Trash2, CheckCircle, XCircle, Plus, X, Users, CalendarPlus, Clock } from "lucide-react"
 import { AdminLayout } from "@/components/admin-layout"
 import { supabase } from "@/lib/supabase"
 import { toast } from "@/components/ui/use-toast"
@@ -36,6 +36,7 @@ interface Club {
   last_login: string | null;
   members: number;
   created_at: string;
+  password: string;
 }
 
 export default function ClubsPage() {
@@ -375,93 +376,164 @@ export default function ClubsPage() {
           <p className="text-muted-foreground">Manage club accounts and access</p>
         </div>
         <Button onClick={() => setShowAddClub(true)} className="gap-2">
-          <UserPlus className="h-4 w-4" />
+          <Plus className="h-4 w-4" />
           Add New Club
         </Button>
       </div>
 
-      <Card>
-        <CardHeader>
+      {/* Stats Overview */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <h3 className="text-sm font-medium">Total Clubs</h3>
+              <Users className="h-4 w-4 text-muted-foreground" />
+            </div>
+            <div className="flex items-baseline gap-2">
+              <div className="text-2xl font-bold">{clubs.length}</div>
+              <p className="text-xs text-muted-foreground">registered clubs</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <h3 className="text-sm font-medium">Active Clubs</h3>
+              <CheckCircle className="h-4 w-4 text-muted-foreground" />
+            </div>
+            <div className="flex items-baseline gap-2">
+              <div className="text-2xl font-bold">{clubs.filter(club => club.status === 'active').length}</div>
+              <p className="text-xs text-muted-foreground">currently active</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <h3 className="text-sm font-medium">Total Members</h3>
+              <UserPlus className="h-4 w-4 text-muted-foreground" />
+            </div>
+            <div className="flex items-baseline gap-2">
+              <div className="text-2xl font-bold">{clubs.reduce((acc, club) => acc + (club.members || 0), 0)}</div>
+              <p className="text-xs text-muted-foreground">across all clubs</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <h3 className="text-sm font-medium">New This Month</h3>
+              <CalendarPlus className="h-4 w-4 text-muted-foreground" />
+            </div>
+            <div className="flex items-baseline gap-2">
+              <div className="text-2xl font-bold">
+                {clubs.filter(club => {
+                  const createdDate = new Date(club.created_at);
+                  const now = new Date();
+                  return createdDate.getMonth() === now.getMonth() && createdDate.getFullYear() === now.getFullYear();
+                }).length}
+              </div>
+              <p className="text-xs text-muted-foreground">clubs added</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card className="shadow-sm">
+        <CardHeader className="border-b bg-muted/40 p-6">
           <div className="flex items-center justify-between">
             <div>
               <CardTitle>Registered Clubs</CardTitle>
               <CardDescription>View and manage club accounts</CardDescription>
             </div>
-            <div className="relative w-64">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search clubs..."
-                className="pl-8"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
+            <div className="flex items-center gap-2">
+              <div className="relative w-64">
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search clubs..."
+                  className="pl-8"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
             </div>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           {isLoading ? (
             <div className="flex justify-center items-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-gray-100"></div>
             </div>
           ) : (
-            <div className="rounded-md border">
-              <div className="grid grid-cols-6 gap-4 p-4 text-sm font-medium text-muted-foreground border-b">
-                <div className="col-span-2">Club</div>
-                <div>Status</div>
-                <div>Last Login</div>
-                <div>Members</div>
-                <div className="text-right">Actions</div>
+            <div className="relative">
+              <div className="sticky top-0 border-b bg-muted/50 backdrop-blur-sm">
+                <div className="grid grid-cols-6 gap-4 p-4 text-sm font-medium text-muted-foreground">
+                  <div className="col-span-2">Club</div>
+                  <div>Status</div>
+                  <div>Last Login</div>
+                  <div>Description</div>
+                  <div className="text-right">Actions</div>
+                </div>
               </div>
               <div className="divide-y">
                 {filteredClubs.map((club) => (
-                  <div key={club.id} className="grid grid-cols-6 gap-4 p-4 items-center">
+                  <div key={club.id} className="grid grid-cols-6 gap-4 p-4 items-center hover:bg-muted/50 transition-colors">
                     <div className="col-span-2 flex items-center gap-3">
-                      <Avatar className="h-10 w-10">
+                      <Avatar className="h-10 w-10 border">
                         <AvatarImage src={club.logo || ""} alt={club.name} />
-                        <AvatarFallback>{club.name.substring(0, 2).toUpperCase()}</AvatarFallback>
+                        <AvatarFallback className="bg-primary/10">{club.name.substring(0, 2).toUpperCase()}</AvatarFallback>
                       </Avatar>
                       <div>
                         <p className="font-medium text-foreground">{club.name}</p>
-                        <p className="text-sm text-muted-foreground">{club.email}</p>
+                        <p className="text-sm text-muted-foreground flex items-center gap-1">
+                          <Mail className="h-3 w-3" />
+                          {club.email}
+                        </p>
                       </div>
                     </div>
                     <div>
                       {club.status === "active" ? (
-                        <Badge variant="default" className="flex w-fit items-center gap-1 bg-green-500 hover:bg-green-600">
+                        <Badge variant="default" className="flex w-fit items-center gap-1 bg-green-500/15 text-green-600 hover:bg-green-500/25 hover:text-green-600">
                           <CheckCircle className="h-3 w-3" />
                           Active
                         </Badge>
                       ) : (
-                        <Badge variant="secondary" className="flex w-fit items-center gap-1">
+                        <Badge variant="secondary" className="flex w-fit items-center gap-1 bg-gray-500/15 text-gray-600 hover:bg-gray-500/25 hover:text-gray-600">
                           <XCircle className="h-3 w-3" />
                           Inactive
                         </Badge>
                       )}
                     </div>
                     <div className="text-sm text-muted-foreground">
-                      {club.last_login ? new Date(club.last_login).toLocaleDateString() : "Never"}
+                      {club.last_login ? (
+                        <div className="flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          {new Date(club.last_login).toLocaleDateString()}
+                        </div>
+                      ) : (
+                        "Never"
+                      )}
                     </div>
-                    <div>
-                      <Badge variant="outline" className="font-mono">
-                        {club.members || 0}
-                      </Badge>
+                    <div className="text-sm text-muted-foreground line-clamp-2">
+                      {club.description || "No description provided"}
                     </div>
                     <div className="text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
+                          <Button variant="ghost" size="icon" className="hover:bg-muted">
                             <MoreHorizontal className="h-4 w-4" />
                             <span className="sr-only">Open menu</span>
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
+                        <DropdownMenuContent align="end" className="w-48">
                           <DropdownMenuItem
                             onClick={() => {
                               setSelectedClub(club)
                               setShowAddClub(true)
                             }}
+                            className="gap-2"
                           >
-                            <Edit className="h-4 w-4 mr-2" />
+                            <Edit className="h-4 w-4" />
                             Edit Details
                           </DropdownMenuItem>
                           <DropdownMenuItem
@@ -471,18 +543,19 @@ export default function ClubsPage() {
                               setConfirmPassword("")
                               setShowResetPassword(true)
                             }}
+                            className="gap-2"
                           >
-                            <Key className="h-4 w-4 mr-2" />
+                            <Key className="h-4 w-4" />
                             Reset Password
                           </DropdownMenuItem>
                           <DropdownMenuItem 
-                            className="text-red-600 dark:text-red-400"
+                            className="text-red-600 dark:text-red-400 gap-2"
                             onClick={() => {
                               setSelectedClub(club)
                               setShowDeleteConfirm(true)
                             }}
                           >
-                            <Trash2 className="h-4 w-4 mr-2" />
+                            <Trash2 className="h-4 w-4" />
                             Delete Club
                           </DropdownMenuItem>
                         </DropdownMenuContent>
@@ -492,7 +565,13 @@ export default function ClubsPage() {
                 ))}
 
                 {filteredClubs.length === 0 && (
-                  <div className="p-4 text-center text-muted-foreground">No clubs found matching your search.</div>
+                  <div className="p-8 text-center">
+                    <div className="mx-auto w-fit rounded-full bg-muted p-3 mb-3">
+                      <Search className="h-6 w-6 text-muted-foreground" />
+                    </div>
+                    <p className="text-muted-foreground font-medium mb-1">No clubs found</p>
+                    <p className="text-sm text-muted-foreground">Try adjusting your search query</p>
+                  </div>
                 )}
               </div>
             </div>
@@ -671,6 +750,21 @@ export default function ClubsPage() {
 
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
+                <Label htmlFor="current-password">Current Password</Label>
+                <div className="relative">
+                  <Key className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input 
+                    id="current-password" 
+                    type="text" 
+                    className="pl-8 font-mono text-sm"
+                    value={selectedClub?.password || ""}
+                    readOnly
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">This is the current stored password</p>
+              </div>
+
+              <div className="grid gap-2">
                 <Label htmlFor="new-password">New Password</Label>
                 <div className="relative">
                   <Key className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -687,7 +781,7 @@ export default function ClubsPage() {
               </div>
 
               <div className="grid gap-2">
-                <Label htmlFor="confirm-password">Confirm Password</Label>
+                <Label htmlFor="confirm-password">Confirm New Password</Label>
                 <div className="relative">
                   <Key className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
