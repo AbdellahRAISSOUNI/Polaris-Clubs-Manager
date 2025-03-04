@@ -2,16 +2,17 @@ import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 
 // Mock data for initial setup - will be used if Supabase connection fails
-export const mockReservations = [
+const mockReservations = [
   {
     id: "1",
     space_id: "1",
     club_id: "1",
-    title: "Annual Club Meeting",
-    description: "Yearly planning meeting for club activities",
-    start_time: "2023-11-15T14:00:00Z",
-    end_time: "2023-11-15T16:00:00Z",
+    title: "Weekly Meeting",
+    description: "Regular club meeting",
+    start_time: "2024-03-20T14:00:00Z",
+    end_time: "2024-03-20T16:00:00Z",
     status: "approved",
+    club_name: "Computer Science Club"
   },
   {
     id: "2",
@@ -38,57 +39,53 @@ export const mockReservations = [
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const clubId = searchParams.get("clubId");
-    const spaceId = searchParams.get("spaceId");
-    const status = searchParams.get("status");
-    
-    // Start building the query
-    let query = supabase.from('reservations').select('*');
-    
-    // Add filters if provided
+    const clubId = searchParams.get('clubId');
+    const spaceId = searchParams.get('spaceId');
+    const status = searchParams.get('status');
+
+    // First, get all reservations
+    let query = supabase
+      .from('reservations')
+      .select('*');
+
+    // Apply filters if provided
     if (clubId) {
       query = query.eq('club_id', clubId);
     }
-    
     if (spaceId) {
       query = query.eq('space_id', spaceId);
     }
-    
     if (status) {
       query = query.eq('status', status);
     }
-    
-    // Execute the query
-    const { data, error } = await query;
-    
-    if (error) {
-      console.error("Error fetching reservations:", error);
-      
-      // Filter mock data if Supabase fails
-      let filteredReservations = [...mockReservations];
-      
-      if (clubId) {
-        filteredReservations = filteredReservations.filter(
-          (reservation) => reservation.club_id === clubId
-        );
-      }
-      
-      if (spaceId) {
-        filteredReservations = filteredReservations.filter(
-          (reservation) => reservation.space_id === spaceId
-        );
-      }
-      
-      if (status) {
-        filteredReservations = filteredReservations.filter(
-          (reservation) => reservation.status === status
-        );
-      }
-      
-      return NextResponse.json(filteredReservations);
+
+    const { data: reservationsData, error: reservationsError } = await query;
+
+    if (reservationsError) {
+      console.error("Error fetching reservations:", reservationsError);
+      return NextResponse.json(mockReservations);
     }
-    
-    return NextResponse.json(data);
+
+    // Get all clubs to create a mapping
+    const { data: clubsData, error: clubsError } = await supabase
+      .from('clubs')
+      .select('id, name');
+
+    if (clubsError) {
+      console.error("Error fetching clubs:", clubsError);
+      return NextResponse.json(mockReservations);
+    }
+
+    // Create a map of club IDs to club names
+    const clubMap = new Map(clubsData.map(club => [club.id, club.name]));
+
+    // Transform the reservations data to include club names
+    const transformedData = reservationsData.map(reservation => ({
+      ...reservation,
+      club_name: clubMap.get(reservation.club_id) || 'Unknown Club'
+    }));
+
+    return NextResponse.json(transformedData);
   } catch (error) {
     console.error("Error in reservations API:", error);
     return NextResponse.json(mockReservations);

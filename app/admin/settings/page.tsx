@@ -4,18 +4,21 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { AdminLayout } from "@/components/admin-layout"
-import { AlertCircle, Linkedin, Eye, EyeOff } from "lucide-react"
+import { AlertCircle, Linkedin, Eye, EyeOff, Upload } from "lucide-react"
 import Link from "next/link"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { supabase } from "@/lib/supabase"
 import { getAdminId, storeAdminId, storeIsAdmin } from "@/lib/storage"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { toast } from "@/components/ui/use-toast"
 
 export default function SettingsPage() {
   const [adminInfo, setAdminInfo] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [showPassword, setShowPassword] = useState(false)
   const [currentAdminId, setCurrentAdminId] = useState<string | null>(null)
+  const [uploading, setUploading] = useState(false)
 
   // Use useEffect to safely access localStorage on the client side only
   useEffect(() => {
@@ -59,6 +62,72 @@ export default function SettingsPage() {
     fetchAdminInfo()
   }, [])
 
+  const handleProfilePictureUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    try {
+      setUploading(true)
+      const file = e.target.files?.[0]
+      if (!file) return
+
+      const adminId = getAdminId()
+      if (!adminId) {
+        toast({
+          title: "Error",
+          description: "Admin ID not found. Please try logging in again.",
+          variant: "destructive",
+        })
+        return
+      }
+
+      // Upload file to Supabase storage
+      const fileExt = file.name.split('.').pop()
+      const fileName = `${adminId}.${fileExt}`
+      const filePath = `admin-profiles/${fileName}`
+
+      const { error: uploadError } = await supabase.storage
+        .from('admin-profiles')
+        .upload(filePath, file, { upsert: true })
+
+      if (uploadError) {
+        throw uploadError
+      }
+
+      // Get the public URL
+      const { data: urlData } = supabase.storage
+        .from('admin-profiles')
+        .getPublicUrl(filePath)
+
+      // Update the user record with the new avatar URL
+      const { error: updateError } = await supabase
+        .from('users')
+        .update({ avatar_url: urlData.publicUrl })
+        .eq('id', adminId)
+
+      if (updateError) {
+        throw updateError
+      }
+
+      // Update local state
+      setAdminInfo(prev => ({
+        ...prev,
+        avatar_url: urlData.publicUrl
+      }))
+
+      toast({
+        title: "Success",
+        description: "Profile picture updated successfully",
+      })
+    } catch (error: any) {
+      console.error('Error uploading profile picture:', error)
+      toast({
+        title: "Error",
+        description: error.message || "Failed to upload profile picture",
+        variant: "destructive",
+      })
+    } finally {
+      setUploading(false)
+    }
+  }
+
   return (
     <AdminLayout>
       <div className="flex flex-col gap-6 p-6">
@@ -81,7 +150,6 @@ export default function SettingsPage() {
                   size="sm"
                   onClick={async () => {
                     try {
-                      // Get the first admin from the database
                       const { data, error } = await supabase
                         .from('users')
                         .select('*')
@@ -110,6 +178,33 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
         )}
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Profile Picture</CardTitle>
+            <CardDescription>Upload or change your profile picture</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-6">
+              <Avatar className="h-24 w-24">
+                <AvatarImage src={adminInfo?.avatar_url || "/placeholder.svg"} alt="Profile" />
+                <AvatarFallback>AD</AvatarFallback>
+              </Avatar>
+              <div className="flex flex-col gap-4">
+                <Input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleProfilePictureUpload}
+                  disabled={uploading}
+                  className="w-full max-w-xs"
+                />
+                <p className="text-sm text-muted-foreground">
+                  Recommended: Square image, at least 128x128px
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         <Card>
           <CardHeader>

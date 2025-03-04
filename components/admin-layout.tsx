@@ -14,55 +14,82 @@ import { supabase } from "@/lib/supabase"
 import { useToast } from "@/components/ui/use-toast"
 import { AdminSidebar } from "@/components/admin-sidebar"
 import { ThemeToggle } from "@/components/ui/theme-toggle"
+import { getAdminId } from "@/lib/storage"
 
 interface AdminLayoutProps {
   children: React.ReactNode
 }
 
+interface AdminUser {
+  id: string;
+  name: string;
+  email: string;
+  avatar_url?: string;
+}
+
 export function AdminLayout({ children }: AdminLayoutProps) {
   const [isMobile, setIsMobile] = useState(false)
   const [isLoggingOut, setIsLoggingOut] = useState(false)
-  const pathname = usePathname()
+  const [adminUser, setAdminUser] = useState<AdminUser | null>(null)
   const router = useRouter()
+  const pathname = usePathname()
   const { toast } = useToast()
 
-  // Check if mobile on mount
   useEffect(() => {
-    const checkIfMobile = () => {
+    const checkMobile = () => {
       setIsMobile(window.innerWidth < 768)
     }
 
-    checkIfMobile()
-    window.addEventListener("resize", checkIfMobile)
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
 
     return () => {
-      window.removeEventListener("resize", checkIfMobile)
+      window.removeEventListener('resize', checkMobile)
     }
   }, [])
 
-  // Force re-render on client side
   useEffect(() => {
-    // This empty effect ensures the component re-renders on the client side
-    // which will make sure all navigation links are properly displayed
+    const fetchAdminUser = async () => {
+      try {
+        const adminId = getAdminId()
+        if (!adminId) {
+          console.error("No admin ID found")
+          return
+        }
+
+        const { data, error } = await supabase
+          .from('users')
+          .select('id, name, email, avatar_url')
+          .eq('id', adminId)
+          .eq('role', 'admin')
+          .single()
+
+        if (error) {
+          console.error("Error fetching admin user:", error)
+          return
+        }
+
+        setAdminUser(data)
+      } catch (error) {
+        console.error("Error in fetchAdminUser:", error)
+      }
+    }
+
+    fetchAdminUser()
   }, [])
 
   const handleLogout = async () => {
     try {
       setIsLoggingOut(true)
-      const { error } = await supabase.auth.signOut()
-      if (error) throw error
-      
+      localStorage.removeItem('adminId')
+      localStorage.removeItem('isAdmin')
+      router.push('/login')
+    } catch (error) {
+      console.error('Logout error:', error)
       toast({
-        title: "Logged out successfully",
-        description: "You have been logged out of your account."
-      })
-      
-      router.push("/")
-    } catch (err: any) {
-      toast({
-        title: "Error logging out",
-        description: err.message,
-        variant: "destructive"
+        title: "Error",
+        description: "Failed to log out. Please try again.",
+        variant: "destructive",
       })
     } finally {
       setIsLoggingOut(false)
@@ -105,8 +132,8 @@ export function AdminLayout({ children }: AdminLayoutProps) {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="rounded-full">
                   <Avatar className="h-8 w-8">
-                    <AvatarImage src="/placeholder.svg?height=32&width=32" alt="Admin" />
-                    <AvatarFallback>AD</AvatarFallback>
+                    <AvatarImage src={adminUser?.avatar_url || "/placeholder.svg"} alt={adminUser?.name || 'Admin'} />
+                    <AvatarFallback>{adminUser?.name?.charAt(0) || 'A'}</AvatarFallback>
                   </Avatar>
                 </Button>
               </DropdownMenuTrigger>

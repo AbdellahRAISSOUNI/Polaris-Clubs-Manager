@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS users (
   name TEXT,
   password TEXT, -- In a real app, you'd use Supabase Auth and not store passwords
   role TEXT NOT NULL CHECK (role IN ('admin', 'club')),
+  avatar_url TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -14,6 +15,10 @@ ON CONFLICT (id) DO NOTHING;
 
 -- Create storage bucket for space images
 INSERT INTO storage.buckets (id, name, public) VALUES ('spaces', 'spaces', true)
+ON CONFLICT (id) DO NOTHING;
+
+-- Create storage bucket for admin profiles
+INSERT INTO storage.buckets (id, name, public) VALUES ('admin-profiles', 'admin-profiles', true)
 ON CONFLICT (id) DO NOTHING;
 
 -- Set up storage policies for club logos
@@ -49,6 +54,23 @@ CREATE POLICY "Anyone can update space images" ON storage.objects
 -- Allow anyone to delete space images (we'll handle authorization in our app)
 CREATE POLICY "Anyone can delete space images" ON storage.objects
   FOR DELETE USING (bucket_id = 'spaces');
+
+-- Set up storage policies for admin profile pictures
+-- Allow anyone to view admin profile pictures
+CREATE POLICY "Anyone can view admin profile pictures" ON storage.objects
+  FOR SELECT USING (bucket_id = 'admin-profiles');
+
+-- Allow anyone to upload admin profile pictures (we'll handle authorization in our app)
+CREATE POLICY "Anyone can upload admin profile pictures" ON storage.objects
+  FOR INSERT WITH CHECK (bucket_id = 'admin-profiles');
+
+-- Allow anyone to update admin profile pictures (we'll handle authorization in our app)
+CREATE POLICY "Anyone can update admin profile pictures" ON storage.objects
+  FOR UPDATE USING (bucket_id = 'admin-profiles');
+
+-- Allow anyone to delete admin profile pictures (we'll handle authorization in our app)
+CREATE POLICY "Anyone can delete admin profile pictures" ON storage.objects
+  FOR DELETE USING (bucket_id = 'admin-profiles');
 
 -- Create clubs table
 CREATE TABLE IF NOT EXISTS clubs (
