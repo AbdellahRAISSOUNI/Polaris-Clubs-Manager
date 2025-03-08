@@ -174,9 +174,8 @@ export default function LandingPage() {
           <div className="container mx-auto px-4">
             <div className="flex justify-between items-center">
               <div className="flex items-center space-x-2">
-                <div className="relative h-6 w-6 flex items-center justify-center">
-                  <Star className="h-6 w-6 text-blue-500 absolute" />
-                  <Sparkles className="h-3 w-3 text-indigo-400 absolute" />
+                <div className="relative h-8 w-8">
+                  <img src="/images/polaris-logo.png" alt="Polaris Logo" className="h-8 w-8" />
                 </div>
                 <div className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent">
                   Polaris Clubs Manager
@@ -237,9 +236,8 @@ export default function LandingPage() {
         <div className="container mx-auto px-4 py-6 h-full flex flex-col">
           <div className="flex justify-between items-center">
             <div className="flex items-center space-x-2">
-              <div className="relative h-6 w-6 flex items-center justify-center">
-                <Star className="h-6 w-6 text-blue-500 dark:text-blue-400 absolute" />
-                <Sparkles className="h-3 w-3 text-indigo-400 dark:text-indigo-300 absolute" />
+              <div className="relative h-8 w-8">
+                <img src="/images/polaris-logo.svg" alt="Polaris Logo" className="h-8 w-8" />
               </div>
               <div className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent">
                 Polaris Clubs Manager
@@ -1015,9 +1013,8 @@ export default function LandingPage() {
           <div className="grid md:grid-cols-4 gap-8">
             <div>
               <div className="flex items-center space-x-2 mb-4">
-                <div className="relative h-6 w-6 flex items-center justify-center">
-                  <Star className="h-6 w-6 text-blue-500 dark:text-blue-400 absolute" />
-                  <Sparkles className="h-3 w-3 text-indigo-400 dark:text-indigo-300 absolute" />
+                <div className="relative h-8 w-8">
+                  <img src="/images/polaris-logo.svg" alt="Polaris Logo" className="h-8 w-8" />
                 </div>
                 <div className="text-xl font-bold text-gray-900 dark:text-white">Polaris Clubs Manager</div>
               </div>

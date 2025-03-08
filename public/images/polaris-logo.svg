@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500">
+  <style>
+    .gold-star { fill: #D4AF37; }
+    .gold-text { fill: #D4AF37; font-family: Arial, sans-serif; font-weight: bold; }
+    .gold-laurel { fill: #D4AF37; }
+  </style>
+  <circle cx="250" cy="250" r="120" fill="none" stroke="#D4AF37" stroke-width="4"/>
+  <circle cx="250" cy="250" r="110" fill="none" stroke="#D4AF37" stroke-width="2" stroke-dasharray="5,3"/>
+  <path class="gold-star" d="M250 150 l29 89h94l-76 55 29 89-76-55-76 55 29-89-76-55h94z"/>
+  <text class="gold-text" x="250" y="380" text-anchor="middle" font-size="48">POLARIS</text>
+  <text class="gold-text" x="250" y="420" text-anchor="middle" font-size="28">TEAM</text>
+  <g class="gold-laurel">
+    <path d="M130,250 C100,200 110,150 130,120 C110,150 100,200 80,220" stroke="#D4AF37" fill="none" stroke-width="2"/>
+    <path d="M370,250 C400,200 390,150 370,120 C390,150 400,200 420,220" stroke="#D4AF37" fill="none" stroke-width="2"/>
+  </g>
+</svg> 
