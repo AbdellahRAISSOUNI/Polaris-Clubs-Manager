@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -92,7 +92,7 @@ export default function AnalyticsPage() {
     return date.toLocaleString('default', { weekday: 'short' });
   }
 
-  const fetchAnalytics = async () => {
+  const fetchAnalytics = useCallback(async () => {
     try {
       // Fetch total reservations
       const { data: reservations, error: reservationsError } = await supabase
@@ -221,16 +221,16 @@ export default function AnalyticsPage() {
       })
 
       setError(null)
-      } catch (err) {
+    } catch (err) {
       console.error('Error fetching analytics:', err)
       setError('Failed to load analytics data. Please try again.')
     }
-  }
+  }, [])
 
   useEffect(() => {
     setIsLoading(true)
     fetchAnalytics().finally(() => setIsLoading(false))
-  }, [timeRange])
+  }, [fetchAnalytics])
 
   const handleRefresh = async () => {
     setIsRefreshing(true)
@@ -622,7 +622,7 @@ export default function AnalyticsPage() {
                       <Legend />
                     </AreaChart>
                   </ResponsiveContainer>
-          </div>
+                </div>
               )}
             </CardContent>
           </Card>
@@ -691,7 +691,7 @@ export default function AnalyticsPage() {
             <CardHeader>
               <CardTitle className="text-lg">Quick Stats</CardTitle>
               <CardDescription>Key performance indicators</CardDescription>
-              </CardHeader>
+            </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -704,21 +704,21 @@ export default function AnalyticsPage() {
                   </div>
                   <div className="text-xs text-gray-500">
                     {analyticsData?.timeAnalysis.peakDays[0]?.count || 0} reservations
-                      </div>
-                    </div>
+                  </div>
+                </div>
 
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
                     <Clock3 className="h-4 w-4 text-blue-500" />
                     <span className="text-sm font-medium">Peak Hour</span>
-                            </div>
+                  </div>
                   <div className="text-2xl font-bold">
                     {analyticsData?.timeAnalysis.peakHours[0]?.hour || 'N/A'}
-                          </div>
+                  </div>
                   <div className="text-xs text-gray-500">
                     {analyticsData?.timeAnalysis.peakHours[0]?.count || 0} reservations
-                      </div>
-                    </div>
+                  </div>
+                </div>
 
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
@@ -744,10 +744,10 @@ export default function AnalyticsPage() {
                   <div className="text-xs text-gray-500">
                     {analyticsData?.overview.mostUsedSpace.reservations || 0} reservations
                   </div>
-                  </div>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Detailed Analytics */}
@@ -757,14 +757,14 @@ export default function AnalyticsPage() {
             <CardHeader>
               <CardTitle className="text-lg">Reservation Status</CardTitle>
               <CardDescription>Current reservation distribution</CardDescription>
-                </CardHeader>
+            </CardHeader>
             <CardContent>
-                  {isLoading ? (
+              {isLoading ? (
                 <div className="space-y-2">
                   {[1, 2, 3].map(i => (
                     <div key={i} className="animate-pulse h-8 bg-gray-200 dark:bg-gray-800 rounded" />
                   ))}
-                      </div>
+                </div>
               ) : (
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
@@ -774,13 +774,13 @@ export default function AnalyticsPage() {
                     </div>
                     <span className="font-semibold">{analyticsData?.reservations.pending || 0}</span>
                   </div>
-                          <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <div className="h-3 w-3 rounded-full bg-green-500" />
                       <span>Approved</span>
-                          </div>
+                    </div>
                     <span className="font-semibold">{analyticsData?.reservations.approved || 0}</span>
-                        </div>
+                  </div>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <div className="h-3 w-3 rounded-full bg-red-500" />
@@ -788,19 +788,19 @@ export default function AnalyticsPage() {
                     </div>
                     <span className="font-semibold">{analyticsData?.reservations.rejected || 0}</span>
                   </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
           {/* Most Active Clubs */}
           <Card className="bg-white dark:bg-gray-950">
             <CardHeader>
               <CardTitle className="text-lg">Most Active Clubs</CardTitle>
               <CardDescription>Top clubs by reservation count</CardDescription>
-                </CardHeader>
+            </CardHeader>
             <CardContent>
-                  {isLoading ? (
+              {isLoading ? (
                 <div className="space-y-2">
                   {[1, 2, 3].map(i => (
                     <div key={i} className="animate-pulse h-8 bg-gray-200 dark:bg-gray-800 rounded" />
@@ -820,77 +820,77 @@ export default function AnalyticsPage() {
                         <div className="flex items-center gap-1 text-sm">
                           <CheckCircle2 className="h-4 w-4 text-green-500" />
                           {club.approved}
-                    </div>
+                        </div>
                         <div className="flex items-center gap-1 text-sm">
                           <XCircle className="h-4 w-4 text-red-500" />
                           {club.rejected}
-                            </div>
-                          </div>
                         </div>
-                      ))}
+                      </div>
                     </div>
-                  )}
-                </CardContent>
-              </Card>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
           {/* Space Utilization */}
           <Card className="bg-white dark:bg-gray-950">
             <CardHeader>
               <CardTitle className="text-lg">Space Utilization</CardTitle>
               <CardDescription>Usage statistics for each space</CardDescription>
-              </CardHeader>
+            </CardHeader>
             <CardContent>
-                {isLoading ? (
+              {isLoading ? (
                 <div className="space-y-2">
                   {[1, 2, 3].map(i => (
                     <div key={i} className="animate-pulse h-8 bg-gray-200 dark:bg-gray-800 rounded" />
                   ))}
-                  </div>
-                ) : (
+                </div>
+              ) : (
                 <div className="space-y-4">
                   {analyticsData?.spaceUtilization.map((space, index) => (
                     <div key={index} className="space-y-2">
                       <div className="flex items-center justify-between text-sm">
                         <span>{space.name}</span>
-                            <span className="font-medium">{space.utilization}%</span>
-                          </div>
-                      <Progress value={space.utilization} className="h-2" />
+                        <span className="font-medium">{space.utilization}%</span>
                       </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                      <Progress value={space.utilization} className="h-2" />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
           {/* Peak Hours */}
           <Card className="bg-white dark:bg-gray-950">
             <CardHeader>
               <CardTitle className="text-lg">Peak Hours</CardTitle>
               <CardDescription>Most popular reservation times</CardDescription>
-              </CardHeader>
+            </CardHeader>
             <CardContent>
-                {isLoading ? (
+              {isLoading ? (
                 <div className="space-y-2">
                   {[1, 2, 3].map(i => (
                     <div key={i} className="animate-pulse h-8 bg-gray-200 dark:bg-gray-800 rounded" />
                   ))}
-                  </div>
-                ) : (
+                </div>
+              ) : (
                 <div className="space-y-4">
                   {analyticsData?.timeAnalysis.peakHours.slice(0, 5).map((hour, index) => (
                     <div key={index} className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <Clock3 className="h-4 w-4 text-[#FF6B00]" />
                         <span>{hour.hour}</span>
-                          </div>
-                      <Badge variant="secondary">{hour.count} reservations</Badge>
                       </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-                  </div>
+                      <Badge variant="secondary">{hour.count} reservations</Badge>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </AdminLayout>
   )
