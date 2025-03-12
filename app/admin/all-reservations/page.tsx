@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Calendar, Clock, MapPin, Users, Building, CheckCircle2, Clock3, AlertCircle, X, TableIcon, CalendarIcon, Search, ArrowUpDown, Filter, Eye, FileDown } from "lucide-react"
@@ -249,8 +249,51 @@ export default function AdminAllReservationsPage() {
   const searchParams = useSearchParams()
   const reservationIdFromUrl = searchParams.get('reservationId')
 
-  // Define handleReservationSelect before fetchReservations
-  const handleReservationSelect = useCallback((reservation: Reservation) => {
+  // Fetch reservations on mount
+  useEffect(() => {
+    const fetchReservations = async () => {
+      setIsLoading(true)
+      try {
+        const response = await fetch('/api/reservations')
+        if (!response.ok) {
+          throw new Error('Failed to fetch reservations')
+        }
+        const data = await response.json()
+        setReservations(data)
+        
+        // Extract unique clubs for filtering
+        const clubs = Array.from(new Set(data.map((r: Reservation) => r.club_id)))
+          .map(clubId => {
+            const reservation = data.find((r: Reservation) => r.club_id === clubId);
+            return {
+              id: clubId as string,
+              name: reservation?.club_name || 'Unknown Club'
+            };
+          });
+        setUniqueClubs(clubs);
+        
+        // If there's a reservation ID in the URL, highlight it and open its details
+        if (reservationIdFromUrl) {
+          setHighlightedReservationId(reservationIdFromUrl)
+          const reservation = data.find((r: Reservation) => r.id === reservationIdFromUrl)
+          if (reservation) {
+            handleReservationSelect(reservation)
+            // Set view mode to calendar to ensure the reservation is visible
+            setViewMode("calendar")
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching reservations:', err)
+        setError(err instanceof Error ? err.message : 'Failed to load reservations')
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchReservations()
+  }, [reservationIdFromUrl])
+
+  const handleReservationSelect = (reservation: Reservation) => {
     // Format the reservation data for the ReservationDetails component
     const formattedReservation = {
       id: reservation.id,
@@ -268,51 +311,7 @@ export default function AdminAllReservationsPage() {
     setSelectedReservation(reservation);
     setReservationStatus(reservation.status);
     setIsDetailsOpen(true);
-  }, [setSelectedReservation, setReservationStatus, setIsDetailsOpen]);
-
-  // Fetch reservations on mount
-  const fetchReservations = useCallback(async () => {
-    setIsLoading(true)
-    try {
-      const response = await fetch('/api/reservations')
-      if (!response.ok) {
-        throw new Error('Failed to fetch reservations')
-      }
-      const data = await response.json()
-      setReservations(data)
-      
-      // Extract unique clubs for filtering
-      const clubs = Array.from(new Set(data.map((r: Reservation) => r.club_id)))
-        .map(clubId => {
-          const reservation = data.find((r: Reservation) => r.club_id === clubId);
-          return {
-            id: clubId as string,
-            name: reservation?.club_name || 'Unknown Club'
-          };
-        });
-      setUniqueClubs(clubs);
-      
-      // If there's a reservation ID in the URL, highlight it and open its details
-      if (reservationIdFromUrl) {
-        setHighlightedReservationId(reservationIdFromUrl)
-        const reservation = data.find((r: Reservation) => r.id === reservationIdFromUrl)
-        if (reservation) {
-          handleReservationSelect(reservation)
-          // Set view mode to calendar to ensure the reservation is visible
-          setViewMode("calendar")
-        }
-      }
-    } catch (err) {
-      console.error('Error fetching reservations:', err)
-      setError(err instanceof Error ? err.message : 'Failed to load reservations')
-    } finally {
-      setIsLoading(false)
-    }
-  }, [reservationIdFromUrl, setIsLoading, setReservations, setUniqueClubs, setHighlightedReservationId, setViewMode, handleReservationSelect])
-
-  useEffect(() => {
-    fetchReservations()
-  }, [fetchReservations])
+  }
 
   const formatDateTime = (dateTimeStr: string) => {
     const date = new Date(dateTimeStr)

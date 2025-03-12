@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Calendar, Clock, MapPin, Users, Building, CheckCircle2, Clock3, AlertCircle, X, TableIcon, CalendarIcon, Home, Settings } from "lucide-react"
@@ -47,37 +47,36 @@ export default function AllReservationsPage() {
   const searchParams = useSearchParams()
   const reservationIdFromUrl = searchParams.get('id')
 
-  // Use useCallback to memoize the fetchReservations function
-  const fetchReservations = useCallback(async () => {
-    setIsLoading(true)
-    try {
-      const response = await fetch('/api/reservations')
-      if (!response.ok) {
-        throw new Error('Failed to fetch reservations')
-      }
-      const data = await response.json()
-      setReservations(data)
-      setError(null)
-      
-      if (reservationIdFromUrl) {
-        setHighlightedReservationId(reservationIdFromUrl)
-        const reservation = data.find((r: Reservation) => r.id === reservationIdFromUrl)
-        if (reservation) {
-          setSelectedReservation(reservation)
-          setViewMode("calendar")
-        }
-      }
-    } catch (err) {
-      console.error('Error fetching reservations:', err)
-      setError(err instanceof Error ? err.message : 'Failed to load reservations')
-    } finally {
-      setIsLoading(false)
-    }
-  }, [reservationIdFromUrl, setIsLoading, setReservations, setError, setHighlightedReservationId, setSelectedReservation, setViewMode]) // Add all dependencies
-
   useEffect(() => {
+    const fetchReservations = async () => {
+      setIsLoading(true)
+      try {
+        const response = await fetch('/api/reservations')
+        if (!response.ok) {
+          throw new Error('Failed to fetch reservations')
+        }
+        const data = await response.json()
+        setReservations(data)
+        setError(null)
+        
+        if (reservationIdFromUrl) {
+          setHighlightedReservationId(reservationIdFromUrl)
+          const reservation = data.find((r: Reservation) => r.id === reservationIdFromUrl)
+          if (reservation) {
+            setSelectedReservation(reservation)
+            setViewMode("calendar")
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching reservations:', err)
+        setError(err instanceof Error ? err.message : 'Failed to load reservations')
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
     fetchReservations()
-  }, [fetchReservations]) // Now fetchReservations is the only dependency
+  }, [reservationIdFromUrl])
 
   const handleReservationSelect = (reservation: Reservation) => {
     setSelectedReservation(reservation)
