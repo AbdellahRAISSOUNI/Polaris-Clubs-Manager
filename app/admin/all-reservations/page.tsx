@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Calendar, Clock, MapPin, Users, Building, CheckCircle2, Clock3, AlertCircle, X, TableIcon, CalendarIcon, Search, ArrowUpDown, Filter, Eye, FileDown } from "lucide-react"
@@ -229,7 +229,17 @@ const CalendarPDF = ({ reservations, year }: { reservations: Reservation[], year
   );
 };
 
-export default function AdminAllReservationsPage() {
+// Main page component
+export default function AllReservationsPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center h-screen">Loading...</div>}>
+      <AllReservationsContent />
+    </Suspense>
+  );
+}
+
+// Content component that uses useSearchParams
+function AllReservationsContent() {
   const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null)
   const [isDetailsOpen, setIsDetailsOpen] = useState(false)
   const [reservationStatus, setReservationStatus] = useState<string>("")

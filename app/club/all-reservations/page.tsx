@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, Suspense } from "react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Calendar, Clock, MapPin, Users, Building, CheckCircle2, Clock3, AlertCircle, X, TableIcon, CalendarIcon, Home, Settings } from "lucide-react"
@@ -36,7 +36,17 @@ interface Reservation {
   admin_message?: string;
 }
 
+// Main page component
 export default function AllReservationsPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center h-screen">Loading...</div>}>
+      <AllReservationsContent />
+    </Suspense>
+  );
+}
+
+// Content component that uses useSearchParams
+function AllReservationsContent() {
   const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null)
   const [viewMode, setViewMode] = useState<"calendar" | "table">("calendar")
   const [reservations, setReservations] = useState<Reservation[]>([])
