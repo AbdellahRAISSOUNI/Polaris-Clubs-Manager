@@ -10,9 +10,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { storeClubId, storeIsAdmin, storeAdminId } from "@/lib/storage"
 import { supabase } from "@/lib/supabase"
 import { toast } from "@/components/ui/use-toast"
-import { AlertCircle, CheckCircle, Loader2, LogIn } from "lucide-react"
+import { AlertCircle, CheckCircle, Loader2, LogIn, Mail, Lock, Building2, Shield, Linkedin } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import Link from "next/link"
+import { Badge } from "@/components/ui/badge"
 
 export default function LoginPage() {
   const router = useRouter()
@@ -232,149 +233,229 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900 relative overflow-hidden">
+    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-white dark:from-indigo-950 dark:via-blue-900 dark:to-indigo-900 relative overflow-hidden">
       {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-blue-950 dark:to-indigo-950 opacity-70"></div>
-        <div className="absolute -top-20 -left-20 w-64 h-64 bg-blue-200/30 dark:bg-blue-500/10 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute top-40 right-20 w-80 h-80 bg-indigo-200/30 dark:bg-indigo-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
-        <div className="absolute bottom-0 left-1/3 w-72 h-72 bg-purple-200/30 dark:bg-purple-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
+        <div className="absolute top-0 left-0 w-full h-full">
+          <div 
+            className="absolute -top-20 -left-20 w-96 h-96 bg-blue-200/40 dark:bg-blue-500/20 rounded-full blur-3xl"
+            style={{
+              animation: 'slowPulse 12s ease-in-out infinite'
+            }}
+          ></div>
+          <div 
+            className="absolute top-1/3 right-20 w-[30rem] h-[30rem] bg-indigo-200/40 dark:bg-indigo-500/20 rounded-full blur-3xl"
+            style={{
+              animation: 'slowPulse 12s ease-in-out infinite',
+              animationDelay: '3s'
+            }}
+          ></div>
+          <div 
+            className="absolute bottom-20 left-1/3 w-[25rem] h-[25rem] bg-purple-200/40 dark:bg-purple-500/20 rounded-full blur-3xl"
+            style={{
+              animation: 'slowPulse 12s ease-in-out infinite',
+              animationDelay: '6s'
+            }}
+          ></div>
+        </div>
       </div>
 
       <div className={`w-full max-w-md px-4 relative z-10 transition-all duration-1000 transform ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
-        <div className="mb-8 text-center">
+        <div className="mb-8 text-center space-y-4">
           <Link href="/" className="inline-block transition-transform duration-300 hover:scale-105">
-            <h1 className="text-3xl font-bold text-blue-600 dark:text-blue-400">ReserveSpace</h1>
+            <div className="flex flex-col items-center gap-4">
+              <div className="relative h-24 w-auto">
+                <img src="/images/polaris-logo.png" alt="ADE ENSA Tetouan" className="h-full w-auto" style={{ minWidth: '120px' }} />
+              </div>
+              <h1 className="text-3xl font-extrabold text-[#1B1464]">
+                ADE <span className="text-[#FF6B00]">ENSA Tetouan</span>
+              </h1>
+            </div>
           </Link>
-          <p className="mt-2 text-gray-600 dark:text-gray-400 animate-in fade-in slide-in-from-bottom-5 duration-700 delay-200">Sign in to your account</p>
+          <p className="text-gray-600 dark:text-gray-400 animate-in fade-in slide-in-from-bottom-5 duration-700 delay-200">
+            Sign in to manage your club spaces
+          </p>
         </div>
-        
-        {error && (
-          <Alert variant="destructive" className="mb-4 animate-in fade-in zoom-in-95 duration-300">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Error</AlertTitle>
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-        
+
         {success && (
-          <Alert className="mb-4 bg-green-50 text-green-800 dark:bg-green-900 dark:text-green-100 border-green-200 dark:border-green-800 animate-in fade-in zoom-in-95 duration-300">
-            <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
-            <AlertTitle>Success</AlertTitle>
-            <AlertDescription>{success}</AlertDescription>
+          <Alert className="mb-6 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/50 dark:to-emerald-900/50 text-green-800 dark:text-green-200 border-green-200/50 dark:border-green-800/50 shadow-lg shadow-green-900/5 animate-in fade-in-0 slide-in-from-top-5 duration-500">
+            <div className="flex items-center gap-3">
+              <div className="h-8 w-8 rounded-full bg-green-100 dark:bg-green-800/50 flex items-center justify-center">
+                <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
+              </div>
+              <div>
+                <AlertTitle className="text-lg font-semibold mb-1">Welcome Back! 🎉</AlertTitle>
+                <AlertDescription className="text-green-700 dark:text-green-300">{success}</AlertDescription>
+              </div>
+            </div>
           </Alert>
         )}
-        
-        <Card className="w-full animate-in fade-in slide-in-from-bottom-5 duration-700 delay-300 shadow-lg hover:shadow-xl transition-all duration-300">
-          <CardHeader>
-            <CardTitle className="text-2xl text-center">Login</CardTitle>
-            <CardDescription className="text-center">
-              Log in to manage your club reservations
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Tabs defaultValue="club" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 mb-4">
-                <TabsTrigger value="club" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white transition-all duration-300">Club Login</TabsTrigger>
-                <TabsTrigger value="admin" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white transition-all duration-300">Admin Login</TabsTrigger>
-              </TabsList>
-              <TabsContent value="club" className="animate-in fade-in-50 duration-300">
-                <form onSubmit={handleClubLogin} className="space-y-4 mt-4">
+
+        <Card className="border-[#1B1464]/20 dark:border-[#FF6B00]/20 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-xl">
+          <Tabs defaultValue="club" className="w-full" onValueChange={setActiveTab}>
+            <TabsList className="grid w-full grid-cols-2 bg-gray-100/50 dark:bg-gray-800/50 rounded-lg border border-[#1B1464]/20 dark:border-[#FF6B00]/20">
+              <TabsTrigger 
+                value="club"
+                className="data-[state=active]:bg-[#1B1464] data-[state=active]:text-white dark:data-[state=active]:bg-[#FF6B00] dark:data-[state=active]:text-white transition-all duration-300"
+              >
+                <Building2 className="w-4 h-4 mr-2" />
+                Club Login
+              </TabsTrigger>
+              <TabsTrigger 
+                value="admin"
+                className="data-[state=active]:bg-[#1B1464] data-[state=active]:text-white dark:data-[state=active]:bg-[#FF6B00] dark:data-[state=active]:text-white transition-all duration-300"
+              >
+                <Shield className="w-4 h-4 mr-2" />
+                Admin Login
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="club">
+              <form onSubmit={handleClubLogin}>
+                <CardHeader>
+                  <CardTitle className="text-2xl font-bold text-[#1B1464] dark:text-white">Club Login</CardTitle>
+                  <CardDescription>Enter your club credentials to access your dashboard</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="club-email">Email</Label>
-                    <Input
-                      id="club-email"
-                      type="email"
-                      placeholder="Enter your club email"
-                      value={clubEmail}
-                      onChange={(e) => setClubEmail(e.target.value)}
-                      disabled={isLoading}
-                      required
-                      className="bg-white dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 transition-all duration-300"
-                    />
+                    <Label htmlFor="club-email">Club Email</Label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 w-4 h-4" />
+                      <Input
+                        id="club-email"
+                        type="email"
+                        placeholder="your.club@ensatetouan.com"
+                        value={clubEmail}
+                        onChange={(e) => setClubEmail(e.target.value)}
+                        className="pl-10"
+                      />
+                    </div>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="club-password">Password</Label>
-                    <Input
-                      id="club-password"
-                      type="password"
-                      placeholder="Enter your password"
-                      value={clubPassword}
-                      onChange={(e) => setClubPassword(e.target.value)}
-                      disabled={isLoading}
-                      required
-                      className="bg-white dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 transition-all duration-300"
-                    />
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 w-4 h-4" />
+                      <Input
+                        id="club-password"
+                        type="password"
+                        value={clubPassword}
+                        onChange={(e) => setClubPassword(e.target.value)}
+                        className="pl-10"
+                      />
+                    </div>
                   </div>
-                  <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 transition-all duration-300 hover:shadow-md group" disabled={isLoading}>
+                </CardContent>
+                <CardFooter>
+                  <Button 
+                    type="submit" 
+                    className="w-full bg-[#1B1464] hover:bg-[#1B1464]/90 dark:bg-[#FF6B00] dark:hover:bg-[#FF6B00]/90 text-white"
+                    disabled={isLoading}
+                  >
                     {isLoading ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Logging in...
+                        Signing in...
                       </>
                     ) : (
                       <>
-                        <LogIn className="mr-2 h-4 w-4 group-hover:translate-x-1 transition-transform duration-300" />
-                        Login as Club
+                        <LogIn className="mr-2 h-4 w-4" />
+                        Sign In
                       </>
                     )}
                   </Button>
-                </form>
-              </TabsContent>
-              <TabsContent value="admin" className="animate-in fade-in-50 duration-300">
-                <form onSubmit={handleAdminLogin} className="space-y-4 mt-4">
+                </CardFooter>
+              </form>
+            </TabsContent>
+
+            <TabsContent value="admin">
+              <form onSubmit={handleAdminLogin}>
+                <CardHeader>
+                  <CardTitle className="text-2xl font-bold text-[#1B1464] dark:text-white">Admin Login</CardTitle>
+                  <CardDescription>Enter your admin credentials to access the control panel</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="admin-email">Email</Label>
-                    <Input
-                      id="admin-email"
-                      type="email"
-                      placeholder="Enter admin email"
-                      value={adminEmail}
-                      onChange={(e) => setAdminEmail(e.target.value)}
-                      disabled={isLoading}
-                      required
-                      className="bg-white dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 transition-all duration-300"
-                    />
+                    <Label htmlFor="admin-email">Admin Email</Label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 w-4 h-4" />
+                      <Input
+                        id="admin-email"
+                        type="email"
+                        placeholder="admin@ensatetouan.com"
+                        value={adminEmail}
+                        onChange={(e) => setAdminEmail(e.target.value)}
+                        className="pl-10"
+                      />
+                    </div>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="admin-password">Password</Label>
-                    <Input
-                      id="admin-password"
-                      type="password"
-                      placeholder="Enter password"
-                      value={adminPassword}
-                      onChange={(e) => setAdminPassword(e.target.value)}
-                      disabled={isLoading}
-                      required
-                      className="bg-white dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 transition-all duration-300"
-                    />
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 w-4 h-4" />
+                      <Input
+                        id="admin-password"
+                        type="password"
+                        value={adminPassword}
+                        onChange={(e) => setAdminPassword(e.target.value)}
+                        className="pl-10"
+                      />
+                    </div>
                   </div>
-                  <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 transition-all duration-300 hover:shadow-md group" disabled={isLoading}>
+                </CardContent>
+                <CardFooter>
+                  <Button 
+                    type="submit" 
+                    className="w-full bg-[#1B1464] hover:bg-[#1B1464]/90 dark:bg-[#FF6B00] dark:hover:bg-[#FF6B00]/90 text-white"
+                    disabled={isLoading}
+                  >
                     {isLoading ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Logging in...
+                        Signing in...
                       </>
                     ) : (
                       <>
-                        <LogIn className="mr-2 h-4 w-4 group-hover:translate-x-1 transition-transform duration-300" />
-                        Login as Admin
+                        <LogIn className="mr-2 h-4 w-4" />
+                        Sign In
                       </>
                     )}
                   </Button>
-                </form>
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-          <CardFooter className="flex justify-center">
-            <p className="text-sm text-muted-foreground">
-              <Link href="/" className="text-blue-600 dark:text-blue-400 hover:underline hover:text-blue-800 dark:hover:text-blue-300 transition-colors duration-300">
-                Return to home page
-              </Link>
-            </p>
-          </CardFooter>
+                </CardFooter>
+              </form>
+            </TabsContent>
+          </Tabs>
+
+          {error && (
+            <Alert variant="destructive" className="mt-4">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Error</AlertTitle>
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
         </Card>
+
+        <div className="mt-8 pb-12 text-center">
+          <Link 
+            href="https://ma.linkedin.com/in/abdellah-raissouni-1419432a8" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="group inline-flex items-center gap-2 text-sm text-[#1B1464] hover:text-[#FF6B00] dark:text-gray-400 dark:hover:text-[#FF6B00] transition-colors"
+          >
+            <Badge variant="outline" className="border-[#FF6B00] text-[#FF6B00] px-4 py-1 text-sm group-hover:bg-[#FF6B00]/10 transition-all duration-300">
+              Made by Abdelah Raissouni
+              <Linkedin className="w-4 h-4 ml-2 opacity-0 group-hover:opacity-100 transition-all -translate-x-2 group-hover:translate-x-0" />
+            </Badge>
+          </Link>
+        </div>
       </div>
+
+      <style jsx global>{`
+        @keyframes slowPulse {
+          0% { opacity: 0.2; }
+          50% { opacity: 0.4; }
+          100% { opacity: 0.2; }
+        }
+      `}</style>
     </div>
   )
 }

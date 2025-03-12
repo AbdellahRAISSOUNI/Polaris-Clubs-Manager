@@ -119,9 +119,18 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                 </SheetContent>
               </Sheet>
             )}
-            <Link href="/admin/dashboard" className="flex items-center gap-2">
-              <ShieldCheck className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-              <h1 className="text-lg font-semibold hidden sm:inline-block">Admin Portal</h1>
+            <Link href="/admin/dashboard" className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <div className="relative h-8 w-auto">
+                  <img src="/images/polaris-logo.png" alt="ADE ENSA Tetouan" className="h-full w-auto object-contain" />
+                </div>
+                <div className="flex flex-col">
+                  <h1 className="text-lg font-bold text-[#1B1464] dark:text-white">
+                    ADE <span className="text-[#FF6B00]">ENSA Tetouan</span>
+                  </h1>
+                  <span className="text-xs text-gray-600 dark:text-gray-400">Admin Portal</span>
+                </div>
+              </div>
             </Link>
           </div>
 

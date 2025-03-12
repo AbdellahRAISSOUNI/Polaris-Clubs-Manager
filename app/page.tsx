@@ -523,17 +523,17 @@ export default function LandingPage() {
                     </TabsList>
 
                     <TabsContent value="features" className="mt-4 space-y-4">
-                      {features.map((feature, index) => (
-                        <div
-                          key={index}
+                        {features.map((feature, index) => (
+                          <div
+                            key={index}
                           className={`group p-4 rounded-lg transition-all duration-500 transform hover:scale-105 cursor-pointer ${
-                            activeFeature === index
+                              activeFeature === index
                               ? 'bg-gradient-to-r from-[#1B1464] to-[#FF6B00] text-white'
                               : 'bg-gray-50 dark:bg-gray-800/50 hover:bg-[#1B1464]/10 dark:hover:bg-[#FF6B00]/10'
-                          }`}
+                            }`}
                           onClick={() => setActiveFeature(index)}
-                        >
-                          <div className="flex items-start space-x-4">
+                          >
+                            <div className="flex items-start space-x-4">
                             <div className={`p-2 rounded-lg ${
                               activeFeature === index 
                                 ? 'bg-white/20' 
@@ -544,8 +544,8 @@ export default function LandingPage() {
                                   ? 'text-white' 
                                   : 'text-[#1B1464] dark:text-[#FF6B00]'
                               }`} />
-                            </div>
-                            <div>
+                              </div>
+                              <div>
                               <h3 className={`font-semibold ${
                                 activeFeature === index 
                                   ? 'text-white' 
@@ -556,15 +556,15 @@ export default function LandingPage() {
                                   ? 'text-white/90' 
                                   : 'text-gray-600 dark:text-gray-300'
                               }`}>{feature.description}</p>
-                            </div>
-                            <CheckCircle2 className={`h-5 w-5 ml-auto ${
+                              </div>
+                              <CheckCircle2 className={`h-5 w-5 ml-auto ${
                               activeFeature === index 
                                 ? 'opacity-100 text-white' 
                                 : 'opacity-0 group-hover:opacity-50 text-[#1B1464] dark:text-[#FF6B00]'
                             } transition-all duration-300`} />
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        ))}
                     </TabsContent>
 
                     <TabsContent value="analytics" className="mt-4 space-y-4">
@@ -620,8 +620,8 @@ export default function LandingPage() {
                             <span className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-xs font-bold text-[#1B1464] dark:text-[#FF6B00]">
                               +24%
                             </span>
+                            </div>
                           </div>
-                        </div>
 
                         <div className="h-[60px] bg-gray-50 dark:bg-gray-800/50 rounded-lg flex items-center justify-between px-4 hover:bg-[#1B1464]/10 dark:hover:bg-[#FF6B00]/10 transition-all duration-300 group cursor-pointer">
                           <div className="flex flex-col">
@@ -679,8 +679,8 @@ export default function LandingPage() {
                                 <span>Room A101</span>
                                 <span>•</span>
                                 <span>2:00 PM</span>
-                              </div>
                             </div>
+                          </div>
                             <ChevronRight className="h-4 w-4 ml-auto text-gray-400 group-hover:text-[#1B1464] dark:group-hover:text-[#FF6B00] transform group-hover:translate-x-1 transition-all duration-300" />
                           </div>
                           <div className="bg-gray-50 dark:bg-gray-800/50 p-3 rounded-md flex items-center space-x-3 hover:bg-[#1B1464]/10 dark:hover:bg-[#FF6B00]/10 transition-all duration-300 cursor-pointer group">
@@ -691,7 +691,7 @@ export default function LandingPage() {
                                 <span>Auditorium</span>
                                 <span>•</span>
                                 <span>4:30 PM</span>
-                              </div>
+                            </div>
                             </div>
                             <ChevronRight className="h-4 w-4 ml-auto text-gray-400 group-hover:text-[#1B1464] dark:group-hover:text-[#FF6B00] transform group-hover:translate-x-1 transition-all duration-300" />
                           </div>
@@ -1189,16 +1189,16 @@ export default function LandingPage() {
                 <span className="hidden md:inline">|</span>
                 <span>All rights reserved.</span>
                 <span className="hidden md:inline">|</span>
-                <Link 
-                  href="https://ma.linkedin.com/in/abdellah-raissouni-1419432a8" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
+              <Link 
+                href="https://ma.linkedin.com/in/abdellah-raissouni-1419432a8" 
+                target="_blank" 
+                rel="noopener noreferrer"
                   className="text-[#FF6B00] hover:text-[#1B1464] dark:hover:text-white transition-colors flex items-center gap-1 group"
-                >
+              >
                   Developed by Abdelah Raissouni
                   <Linkedin className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-all duration-300 -translate-x-2 group-hover:translate-x-0" />
-                </Link>
-              </div>
+              </Link>
+            </div>
               <div className="flex space-x-6">
                 <Link href="#" className="text-sm hover:text-[#FF6B00] dark:hover:text-[#FF6B00] transition-colors">Privacy Policy</Link>
                 <Link href="#" className="text-sm hover:text-[#FF6B00] dark:hover:text-[#FF6B00] transition-colors">Terms of Service</Link>
