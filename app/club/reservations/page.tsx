@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Calendar, Clock, MapPin, Users, Building, CheckCircle2, Clock3, AlertCircle, X, Home, Settings, Loader2 } from "lucide-react"
@@ -49,11 +49,8 @@ export default function ReservationsPage() {
   const searchParams = useSearchParams()
   const reservationIdFromUrl = searchParams.get('id')
 
-  useEffect(() => {
-    fetchReservations()
-  }, [])
-
-  const fetchReservations = async () => {
+  // Define fetchReservations with useCallback
+  const fetchReservations = useCallback(async () => {
     setIsLoading(true)
     try {
       const clubId = getClubId()
@@ -142,7 +139,12 @@ export default function ReservationsPage() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [reservationIdFromUrl, setIsLoading, setReservations, setError, setHighlightedReservationId, setSelectedReservation]) // Add all dependencies
+
+  // Now use fetchReservations in useEffect
+  useEffect(() => {
+    fetchReservations()
+  }, [fetchReservations]) // Add fetchReservations as a dependency
 
   const handleDeleteReservation = async () => {
     if (!reservationToDelete) return
