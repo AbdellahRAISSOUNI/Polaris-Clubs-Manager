@@ -3,15 +3,16 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
-import { Calendar, Clock, MapPin, Users, Building, CheckCircle2, Clock3, AlertCircle, X, TableIcon, CalendarIcon, Search, ArrowUpDown, Filter, Eye } from "lucide-react"
+import { Calendar, Clock, MapPin, Users, Building, CheckCircle2, Clock3, AlertCircle, X, TableIcon, CalendarIcon, Search, ArrowUpDown, Filter, Eye, FileDown } from "lucide-react"
 import { BigCalendar } from "@/components/big-calendar"
 import { Badge } from "@/components/ui/badge"
-import { format, formatDistance, parseISO } from "date-fns"
+import { format, formatDistance, parseISO, eachMonthOfInterval, startOfYear, endOfYear, eachDayOfInterval, startOfMonth, endOfMonth, isSameDay } from "date-fns"
 import { Separator } from "@/components/ui/separator"
 import { AdminLayout } from "@/components/admin-layout"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ReservationDetails } from "@/components/reservation-details"
 import { Input } from "@/components/ui/input"
+import { Document, Page, Text, View, StyleSheet, PDFViewer, pdf, Image } from '@react-pdf/renderer'
 import {
   Table,
   TableBody,
@@ -45,6 +46,171 @@ interface Reservation {
 
 type SortField = 'date' | 'club' | 'title' | 'time' | 'status' | 'created_at';
 type SortDirection = 'asc' | 'desc';
+
+// PDF styles
+const styles = StyleSheet.create({
+  page: {
+    flexDirection: 'column',
+    backgroundColor: '#FFFFFF',
+    padding: 20,
+    fontFamily: 'Helvetica',
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#FF6B00',
+    paddingBottom: 10,
+  },
+  logo: {
+    width: 100,
+    height: 50,
+    objectFit: 'contain',
+  },
+  headerTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#1B1464',
+  },
+  monthContainer: {
+    flexDirection: 'column',
+    marginBottom: 15,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  monthHeader: {
+    backgroundColor: '#FF6B00',
+    color: 'white',
+    padding: 5,
+    textAlign: 'center',
+    fontSize: 12,
+  },
+  calendarGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginBottom: 5,
+  },
+  weekdayHeader: {
+    width: '14.28%',
+    textAlign: 'center',
+    fontSize: 8,
+    fontWeight: 'bold',
+    color: '#1B1464',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
+    paddingBottom: 2,
+  },
+  dayCell: {
+    width: '14.28%',
+    borderRight: 1,
+    borderBottom: 1,
+    borderColor: '#E0E0E0',
+    padding: 2,
+    minHeight: 30,
+  },
+  dayNumber: {
+    fontSize: 8,
+    textAlign: 'right',
+    marginRight: 2,
+  },
+  eventContainer: {
+    backgroundColor: 'rgba(255, 107, 0, 0.1)',
+    borderRadius: 2,
+    padding: 2,
+    marginTop: 2,
+  },
+  eventText: {
+    fontSize: 7,
+    color: '#1B1464',
+    overflow: 'hidden',
+    whiteSpace: 'nowrap',
+    textOverflow: 'ellipsis',
+  },
+  footer: {
+    position: 'absolute',
+    bottom: 20,
+    left: 20,
+    right: 20,
+    textAlign: 'center',
+    fontSize: 8,
+    color: '#888',
+  },
+});
+
+// PDF Calendar Component
+const CalendarPDF = ({ reservations, year }: { reservations: Reservation[], year: number }) => {
+  // Prepare reservations by month
+  const yearReservations = reservations.filter(res => 
+    new Date(res.start_time).getFullYear() === year
+  );
+
+  return (
+    <Document>
+      <Page size="A4" style={styles.page}>
+        {/* Header */}
+        <View style={styles.header}>
+          <Image src="/public/images/ade-logo.svg" style={styles.logo} />
+          <Text style={styles.headerTitle}>ADE ENSA Tetouan - Annual Reservations Calendar {year}</Text>
+        </View>
+
+        {/* Months */}
+        {eachMonthOfInterval({ 
+          start: startOfYear(new Date(year, 0, 1)), 
+          end: endOfYear(new Date(year, 0, 1)) 
+        }).map((monthDate) => {
+          const monthStart = startOfMonth(monthDate);
+          const monthEnd = endOfMonth(monthDate);
+          const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
+
+          return (
+            <View key={format(monthDate, 'MMMM')} style={styles.monthContainer}>
+              <Text style={styles.monthHeader}>
+                {format(monthDate, 'MMMM yyyy')}
+              </Text>
+              <View style={styles.calendarGrid}>
+                {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, index) => (
+                  <Text key={index} style={styles.weekdayHeader}>{day}</Text>
+                ))}
+              </View>
+              <View style={styles.calendarGrid}>
+                {daysInMonth.map((day) => {
+                  const dayReservations = yearReservations.filter(res => 
+                    isSameDay(parseISO(res.start_time), day)
+                  );
+
+                  return (
+                    <View key={format(day, 'dd-MM-yyyy')} style={styles.dayCell}>
+                      <Text style={styles.dayNumber}>{format(day, 'd')}</Text>
+                      {dayReservations.slice(0, 2).map((res, index) => (
+                        <View key={index} style={styles.eventContainer}>
+                          <Text style={styles.eventText}>
+                            {res.club_name}: {res.title}
+                          </Text>
+                        </View>
+                      ))}
+                      {dayReservations.length > 2 && (
+                        <Text style={styles.eventText}>
+                          +{dayReservations.length - 2} more
+                        </Text>
+                      )}
+                    </View>
+                  );
+                })}
+              </View>
+            </View>
+          );
+        })}
+
+        {/* Footer */}
+        <Text style={styles.footer}>
+          Generated on {format(new Date(), 'dd MMMM yyyy')} | ADE ENSA Tetouan
+        </Text>
+      </Page>
+    </Document>
+  );
+};
 
 export default function AdminAllReservationsPage() {
   const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null)
@@ -247,6 +413,20 @@ export default function AdminAllReservationsPage() {
       : <ArrowUpDown className="ml-2 h-4 w-4 text-blue-500 rotate-180" />;
   };
 
+  const handleExportCalendar = async () => {
+    try {
+      const blob = await pdf(<CalendarPDF reservations={reservations} year={new Date().getFullYear()} />).toBlob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `ADE-Calendar-${new Date().getFullYear()}.pdf`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+    }
+  };
+
   return (
     <AdminLayout>
       <div className="flex flex-col space-y-6">
@@ -311,6 +491,15 @@ export default function AdminAllReservationsPage() {
             >
               <TableIcon className="h-4 w-4" />
               Table
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={handleExportCalendar}
+              className="w-full sm:w-10 h-10"
+              title="Export Annual Calendar"
+            >
+              <FileDown className="h-4 w-4" />
             </Button>
           </div>
         </div>
