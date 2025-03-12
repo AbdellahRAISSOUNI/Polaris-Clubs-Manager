@@ -20,6 +20,7 @@ import {
 import { getClubId } from "@/lib/storage"
 import { supabase } from "@/lib/supabase"
 import { toast } from "sonner"
+import { useSearchParams } from "next/navigation"
 
 interface Reservation {
   id: string;
@@ -32,6 +33,7 @@ interface Reservation {
   status: string;
   created_at: string;
   space_name?: string;
+  admin_message?: string;
 }
 
 export default function ReservationsPage() {
@@ -41,6 +43,11 @@ export default function ReservationsPage() {
   const [error, setError] = useState<string | null>(null)
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
   const [reservationToDelete, setReservationToDelete] = useState<string | null>(null)
+  const [highlightedReservationId, setHighlightedReservationId] = useState<string | null>(null)
+  
+  // Get URL parameters
+  const searchParams = useSearchParams()
+  const reservationIdFromUrl = searchParams.get('id')
 
   useEffect(() => {
     fetchReservations()
@@ -111,6 +118,15 @@ export default function ReservationsPage() {
       
       setReservations(reservationsWithSpaceNames)
       setError(null)
+
+      // If there's a reservation ID in the URL, highlight it and open its details
+      if (reservationIdFromUrl) {
+        setHighlightedReservationId(reservationIdFromUrl)
+        const reservation = reservationsWithSpaceNames.find((r: Reservation) => r.id === reservationIdFromUrl)
+        if (reservation) {
+          setSelectedReservation(reservation)
+        }
+      }
     } catch (err) {
       console.error('Error details:', err)
       let errorMessage = 'Failed to load reservations. Please try again.'
@@ -379,45 +395,56 @@ export default function ReservationsPage() {
       {/* View Reservation Dialog */}
       {selectedReservation && (
         <Dialog open={!!selectedReservation} onOpenChange={() => setSelectedReservation(null)}>
-          <DialogContent className="max-w-lg">
+          <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
-              <div>
-                <DialogTitle className="text-xl break-all">{selectedReservation.title}</DialogTitle>
-                <DialogDescription className="text-sm text-muted-foreground mt-1">
-                  Reservation Details
-                </DialogDescription>
-              </div>
+              <DialogTitle className="text-xl break-all">{selectedReservation.title}</DialogTitle>
+              <DialogDescription>
+                Reservation details
+              </DialogDescription>
             </DialogHeader>
-            <div className="space-y-4">
-              <div className="flex flex-wrap items-center gap-2">
+            <div className="grid gap-4 py-4">
+              <div className="flex items-center gap-2">
                 {getStatusInfo(selectedReservation.status).icon}
                 <Badge variant="outline" className={`${getStatusInfo(selectedReservation.status).color} whitespace-nowrap`}>
                   {getStatusInfo(selectedReservation.status).label}
                 </Badge>
               </div>
-              <Separator />
-              <div className="grid gap-3">
-                <div className="flex items-center gap-2">
-                  <Building className="h-4 w-4 flex-shrink-0" />
-                  <span className="break-all">{selectedReservation.space_name}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4 flex-shrink-0" />
-                  <span>{format(new Date(selectedReservation.start_time), 'MMMM d, yyyy')}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Clock className="h-4 w-4 flex-shrink-0" />
-                  <span className="whitespace-nowrap">
-                    {format(new Date(selectedReservation.start_time), 'h:mm a')} -{' '}
-                    {format(new Date(selectedReservation.end_time), 'h:mm a')}
-                  </span>
-                </div>
-                {selectedReservation.description && (
-                  <div className="mt-2 text-sm text-muted-foreground break-words">
-                    {selectedReservation.description}
-                  </div>
-                )}
+              
+              <div className="grid grid-cols-[20px_1fr] gap-x-2 items-start">
+                <MapPin className="h-5 w-5 text-gray-500" />
+                <span className="break-all">{selectedReservation.space_name}</span>
               </div>
+              
+              <div className="grid grid-cols-[20px_1fr] gap-x-2 items-start">
+                <Calendar className="h-5 w-5 text-gray-500" />
+                <span>{format(new Date(selectedReservation.start_time), 'MMMM d, yyyy')}</span>
+              </div>
+              
+              <div className="grid grid-cols-[20px_1fr] gap-x-2 items-start">
+                <Clock className="h-5 w-5 text-gray-500" />
+                <span>
+                  {format(new Date(selectedReservation.start_time), 'h:mm a')} -{' '}
+                  {format(new Date(selectedReservation.end_time), 'h:mm a')}
+                </span>
+              </div>
+              
+              {selectedReservation.description && (
+                <div className="mt-2 text-sm text-gray-700 dark:text-gray-300">
+                  {selectedReservation.description}
+                </div>
+              )}
+              
+              {/* Add admin message display */}
+              {selectedReservation.admin_message && (
+                <div className="mt-2">
+                  <h4 className="text-sm font-medium mb-1">
+                    {selectedReservation.status === 'rejected' ? 'Rejection Reason' : 'Admin Message'}
+                  </h4>
+                  <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-md text-sm">
+                    {selectedReservation.admin_message}
+                  </div>
+                </div>
+              )}
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setSelectedReservation(null)}>

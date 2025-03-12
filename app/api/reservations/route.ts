@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
+import { sendNotification } from "@/lib/send-notification";
 
 // Mock data for initial setup - will be used if Supabase connection fails
 const mockReservations = [
@@ -161,6 +162,62 @@ export async function POST(request: Request) {
       mockReservations.push(mockReservation);
       
       return NextResponse.json(mockReservation, { status: 201 });
+    }
+    
+    // Get club name for the notification
+    const { data: clubData, error: clubError } = await supabase
+      .from('clubs')
+      .select('name')
+      .eq('id', body.clubId)
+      .single();
+    
+    const clubName = clubError ? 'A club' : clubData.name;
+    
+    // Get space name for the notification
+    const { data: spaceData, error: spaceError } = await supabase
+      .from('spaces')
+      .select('name')
+      .eq('id', body.spaceId)
+      .single();
+    
+    const spaceName = spaceError ? 'a space' : spaceData.name;
+    
+    // Get all admin IDs to send notifications to
+    const { data: adminData, error: adminError } = await supabase
+      .from('users')
+      .select('id')
+      .eq('role', 'admin');
+    
+    if (!adminError && adminData.length > 0) {
+      // Send notification to all admins
+      for (const admin of adminData) {
+        try {
+          await sendNotification({
+            recipientId: admin.id,
+            recipientType: 'admin',
+            title: 'New Reservation Request',
+            message: `${clubName} has requested to reserve ${spaceName} for "${body.title}"`,
+            type: 'info',
+            link: `/admin/all-reservations?id=${data[0].id}`
+          });
+        } catch (notifError) {
+          console.error("Error sending notification to admin:", notifError);
+        }
+      }
+    }
+    
+    // Send confirmation notification to the club
+    try {
+      await sendNotification({
+        recipientId: body.clubId,
+        recipientType: 'club',
+        title: 'Reservation Submitted',
+        message: `Your reservation request for "${body.title}" has been submitted and is pending approval.`,
+        type: 'success',
+        link: `/club/reservations`
+      });
+    } catch (notifError) {
+      console.error("Error sending notification to club:", notifError);
     }
     
     return NextResponse.json(data[0], { status: 201 });

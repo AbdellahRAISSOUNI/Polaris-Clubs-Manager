@@ -8,13 +8,15 @@ import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { Filter, ShieldCheck, LogOut } from "lucide-react"
+import { Filter, ShieldCheck, LogOut, Bell } from "lucide-react"
 import { useRouter, usePathname } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 import { useToast } from "@/components/ui/use-toast"
 import { AdminSidebar } from "@/components/admin-sidebar"
 import { ThemeToggle } from "@/components/ui/theme-toggle"
 import { getAdminId } from "@/lib/storage"
+import { NotificationBell } from "@/components/notification-bell"
+import { NotificationsProvider } from "@/lib/notifications-context"
 
 interface AdminLayoutProps {
   children: React.ReactNode
@@ -31,6 +33,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   const [isMobile, setIsMobile] = useState(false)
   const [isLoggingOut, setIsLoggingOut] = useState(false)
   const [adminUser, setAdminUser] = useState<AdminUser | null>(null)
+  const [adminId, setAdminId] = useState<string | null>(null)
   const router = useRouter()
   const pathname = usePathname()
   const { toast } = useToast()
@@ -51,16 +54,17 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   useEffect(() => {
     const fetchAdminUser = async () => {
       try {
-        const adminId = getAdminId()
-        if (!adminId) {
+        const id = getAdminId()
+        if (!id) {
           console.error("No admin ID found")
           return
         }
+        setAdminId(id)
 
         const { data, error } = await supabase
           .from('users')
           .select('id, name, email, avatar_url')
-          .eq('id', adminId)
+          .eq('id', id)
           .eq('role', 'admin')
           .single()
 
@@ -96,85 +100,92 @@ export function AdminLayout({ children }: AdminLayoutProps) {
     }
   }
 
+  if (!adminId) {
+    return null
+  }
+
   return (
-    <div className="flex min-h-screen flex-col bg-gray-50 dark:bg-gray-900">
-      <header className="bg-white dark:bg-gray-950 border-b sticky top-0 z-30">
-        <div className="container flex h-16 items-center justify-between px-4 sm:px-6">
-          <div className="flex items-center gap-2">
-            {isMobile && (
-              <Sheet>
-                <SheetTrigger asChild>
-                  <Button variant="ghost" size="icon">
-                    <Filter className="h-5 w-5" />
-                  </Button>
-                </SheetTrigger>
-                <SheetContent side="left">
-                  <div className="py-4 space-y-4">
-                    <div className="flex items-center gap-2">
-                      <ShieldCheck className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                      <h2 className="text-lg font-semibold">Admin Portal</h2>
+    <NotificationsProvider userId={adminId} userType="admin">
+      <div className="flex min-h-screen flex-col bg-gray-50 dark:bg-gray-900">
+        <header className="bg-white dark:bg-gray-950 border-b sticky top-0 z-30">
+          <div className="flex h-14 sm:h-16 items-center justify-between px-3 sm:px-6">
+            <div className="flex items-center gap-1 sm:gap-2">
+              {isMobile && (
+                <Sheet>
+                  <SheetTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-9 sm:w-9">
+                      <Filter className="h-4 w-4" />
+                    </Button>
+                  </SheetTrigger>
+                  <SheetContent side="left" className="w-[240px] sm:w-[280px]">
+                    <div className="py-4 space-y-4">
+                      <div className="flex items-center gap-2">
+                        <ShieldCheck className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                        <h2 className="text-lg font-semibold">Admin Portal</h2>
+                      </div>
+                      <AdminSidebar onLogout={handleLogout} isLoggingOut={isLoggingOut} />
                     </div>
-                    <AdminSidebar onLogout={handleLogout} isLoggingOut={isLoggingOut} />
+                  </SheetContent>
+                </Sheet>
+              )}
+              <Link href="/admin/dashboard" className="flex items-center gap-2 sm:gap-4">
+                <div className="flex items-center gap-1 sm:gap-2">
+                  <div className="relative h-6 sm:h-8 w-auto">
+                    <img src="/images/polaris-logo.png" alt="ADE ENSA Tetouan" className="h-full w-auto object-contain" />
                   </div>
-                </SheetContent>
-              </Sheet>
-            )}
-            <Link href="/admin/dashboard" className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <div className="relative h-8 w-auto">
-                  <img src="/images/polaris-logo.png" alt="ADE ENSA Tetouan" className="h-full w-auto object-contain" />
+                  <div className="flex flex-col">
+                    <h1 className="text-sm sm:text-lg font-bold text-[#1B1464] dark:text-white">
+                      ADE <span className="text-[#FF6B00]">ENSA Tetouan</span>
+                    </h1>
+                    <span className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-400">Admin Portal</span>
+                  </div>
                 </div>
-                <div className="flex flex-col">
-                  <h1 className="text-lg font-bold text-[#1B1464] dark:text-white">
-                    ADE <span className="text-[#FF6B00]">ENSA Tetouan</span>
-                  </h1>
-                  <span className="text-xs text-gray-600 dark:text-gray-400">Admin Portal</span>
-                </div>
-              </div>
-            </Link>
-          </div>
+              </Link>
+            </div>
 
-          <div className="flex items-center gap-2">
-            <ThemeToggle />
+            <div className="flex items-center gap-1 sm:gap-2">
+              <NotificationBell userType="admin" />
+              <ThemeToggle />
 
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="rounded-full">
-                  <Avatar className="h-8 w-8">
-                    <AvatarImage src={adminUser?.avatar_url || "/placeholder.svg"} alt={adminUser?.name || 'Admin'} />
-                    <AvatarFallback>{adminUser?.name?.charAt(0) || 'A'}</AvatarFallback>
-                  </Avatar>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem asChild>
-                  <Link href="/admin/settings">Settings</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem 
-                  className="text-red-600 dark:text-red-500 font-medium"
-                  onClick={handleLogout}
-                  disabled={isLoggingOut}
-                >
-                  <LogOut className="h-4 w-4 mr-2" />
-                  {isLoggingOut ? "Signing out..." : "Sign out"}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-9 sm:w-9 rounded-full">
+                    <Avatar className="h-7 w-7 sm:h-8 sm:w-8">
+                      <AvatarImage src={adminUser?.avatar_url || "/placeholder.svg"} alt={adminUser?.name || 'Admin'} />
+                      <AvatarFallback>{adminUser?.name?.charAt(0) || 'A'}</AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem asChild>
+                    <Link href="/admin/settings">Settings</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    className="text-red-600 dark:text-red-500 font-medium"
+                    onClick={handleLogout}
+                    disabled={isLoggingOut}
+                  >
+                    <LogOut className="h-4 w-4 mr-2" />
+                    {isLoggingOut ? "Signing out..." : "Sign out"}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
+        </header>
+
+        <div className="flex flex-1">
+          {/* Sidebar - hidden on mobile */}
+          <aside className="w-56 sm:w-64 border-r bg-white dark:bg-gray-950 hidden md:block p-4 flex flex-col">
+            <div className="flex-1">
+              <AdminSidebar onLogout={handleLogout} isLoggingOut={isLoggingOut} />
+            </div>
+          </aside>
+
+          <main className="flex-1 p-3 sm:p-4 md:p-6 overflow-x-hidden">{children}</main>
         </div>
-      </header>
-
-      <div className="flex flex-1">
-        {/* Sidebar - hidden on mobile */}
-        <aside className="w-64 border-r bg-white dark:bg-gray-950 hidden md:block p-4 flex flex-col">
-          <div className="flex-1">
-            <AdminSidebar onLogout={handleLogout} isLoggingOut={isLoggingOut} />
-          </div>
-        </aside>
-
-        <main className="flex-1 p-4 md:p-6">{children}</main>
       </div>
-    </div>
+    </NotificationsProvider>
   )
 }
 

@@ -19,6 +19,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { useSearchParams } from "next/navigation"
 
 interface Reservation {
   id: string;
@@ -30,8 +31,9 @@ interface Reservation {
   end_time: string;
   status: string;
   created_at: string;
-  club_name?: string;
   space_name?: string;
+  club_name?: string;
+  admin_message?: string;
 }
 
 export default function AllReservationsPage() {
@@ -40,28 +42,41 @@ export default function AllReservationsPage() {
   const [reservations, setReservations] = useState<Reservation[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [highlightedReservationId, setHighlightedReservationId] = useState<string | null>(null)
+  
+  const searchParams = useSearchParams()
+  const reservationIdFromUrl = searchParams.get('id')
 
   useEffect(() => {
-    fetchReservations()
-  }, [])
-
-  const fetchReservations = async () => {
-    setIsLoading(true)
-    try {
-      const response = await fetch('/api/reservations')
-      if (!response.ok) {
-        throw new Error('Failed to fetch reservations')
+    const fetchReservations = async () => {
+      setIsLoading(true)
+      try {
+        const response = await fetch('/api/reservations')
+        if (!response.ok) {
+          throw new Error('Failed to fetch reservations')
+        }
+        const data = await response.json()
+        setReservations(data)
+        setError(null)
+        
+        if (reservationIdFromUrl) {
+          setHighlightedReservationId(reservationIdFromUrl)
+          const reservation = data.find((r: Reservation) => r.id === reservationIdFromUrl)
+          if (reservation) {
+            setSelectedReservation(reservation)
+            setViewMode("calendar")
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching reservations:', err)
+        setError(err instanceof Error ? err.message : 'Failed to load reservations')
+      } finally {
+        setIsLoading(false)
       }
-      const data = await response.json()
-      setReservations(data)
-      setError(null)
-    } catch (err) {
-      console.error('Error fetching reservations:', err)
-      setError(err instanceof Error ? err.message : 'Failed to load reservations')
-    } finally {
-      setIsLoading(false)
     }
-  }
+
+    fetchReservations()
+  }, [reservationIdFromUrl])
 
   const handleReservationSelect = (reservation: Reservation) => {
     setSelectedReservation(reservation)
@@ -121,7 +136,10 @@ export default function AllReservationsPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={fetchReservations}
+              onClick={() => {
+                fetchReservations()
+                setHighlightedReservationId(null)
+              }}
               className="flex items-center gap-2"
             >
               <svg
@@ -165,7 +183,10 @@ export default function AllReservationsPage() {
         {viewMode === "calendar" ? (
           <div className="space-y-4">
             <div className="rounded-md border">
-      <BigCalendar onReservationSelect={handleReservationSelect} />
+      <BigCalendar 
+        onReservationSelect={handleReservationSelect} 
+        highlightedReservationId={highlightedReservationId}
+      />
             </div>
             <div className="flex items-center gap-4 text-sm">
               <div className="flex items-center gap-2">
@@ -303,17 +324,13 @@ export default function AllReservationsPage() {
 
       {selectedReservation && (
         <Dialog open={!!selectedReservation} onOpenChange={() => setSelectedReservation(null)}>
-          <DialogContent className="max-w-lg">
+          <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
-              <div className="flex items-start gap-3">
+              <div className="flex items-center gap-3 mb-2">
                 <Avatar className="h-10 w-10">
                   <AvatarImage 
-                    src={`/api/clubs/${selectedReservation.club_id}/image`} 
+                    src={`/api/clubs/${selectedReservation.club_id}/image`}
                     alt={selectedReservation.club_name || 'Club logo'}
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.src = '/default-club-image.png';
-                    }}
                   />
                   <AvatarFallback>
                     {selectedReservation.club_name?.split(' ').map(word => word[0]).join('').toUpperCase() || 'C'}
@@ -321,54 +338,68 @@ export default function AllReservationsPage() {
                 </Avatar>
                 <div>
                   <DialogTitle className="text-xl break-all">{selectedReservation.title}</DialogTitle>
-                  <DialogDescription className="text-sm text-muted-foreground mt-1">
-                    Reservation Details
+                  <DialogDescription>
+                    Reservation details
                   </DialogDescription>
                 </div>
               </div>
             </DialogHeader>
-            <div className="space-y-4">
-              <div className="flex flex-wrap items-center gap-2">
+            <div className="grid gap-4 py-4">
+              <div className="flex items-center gap-2">
                 {getStatusInfo(selectedReservation.status).icon}
                 <Badge variant="outline" className={`${getStatusInfo(selectedReservation.status).color} whitespace-nowrap`}>
                   {getStatusInfo(selectedReservation.status).label}
                 </Badge>
               </div>
-              <Separator />
-              <div className="grid gap-3">
-                <div className="flex items-center gap-2">
-                  <Users className="h-4 w-4 flex-shrink-0" />
-                  <span className="font-medium break-all">{selectedReservation.club_name}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Building className="h-4 w-4 flex-shrink-0" />
-                  <span className="break-all">{selectedReservation.space_name}</span>
-                    </div>
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4 flex-shrink-0" />
-                  <span>{format(new Date(selectedReservation.start_time), 'MMMM d, yyyy')}</span>
-                  </div>
-                <div className="flex items-center gap-2">
-                  <Clock className="h-4 w-4 flex-shrink-0" />
-                  <span className="whitespace-nowrap">
-                    {format(new Date(selectedReservation.start_time), 'h:mm a')} -{' '}
-                    {format(new Date(selectedReservation.end_time), 'h:mm a')}
-                  </span>
-                </div>
-                {selectedReservation.description && (
-                  <div className="mt-2 text-sm text-muted-foreground break-words">
-                        {selectedReservation.description}
-                    </div>
-                )}
+              
+              <div className="grid grid-cols-[20px_1fr] gap-x-2 items-start">
+                <Users className="h-5 w-5 text-gray-500" />
+                <span className="font-medium break-all">{selectedReservation.club_name}</span>
               </div>
+              
+              <div className="grid grid-cols-[20px_1fr] gap-x-2 items-start">
+                <MapPin className="h-5 w-5 text-gray-500" />
+                <span className="break-all">{selectedReservation.space_name}</span>
+              </div>
+              
+              <div className="grid grid-cols-[20px_1fr] gap-x-2 items-start">
+                <Calendar className="h-5 w-5 text-gray-500" />
+                <span>{format(new Date(selectedReservation.start_time), 'MMMM d, yyyy')}</span>
+              </div>
+              
+              <div className="grid grid-cols-[20px_1fr] gap-x-2 items-start">
+                <Clock className="h-5 w-5 text-gray-500" />
+                <span>
+                  {format(new Date(selectedReservation.start_time), 'h:mm a')} -{' '}
+                  {format(new Date(selectedReservation.end_time), 'h:mm a')}
+                </span>
+              </div>
+              
+              {selectedReservation.description && (
+                <div className="mt-2 text-sm text-gray-700 dark:text-gray-300">
+                  {selectedReservation.description}
+                </div>
+              )}
+              
+              {/* Add admin message display */}
+              {selectedReservation.admin_message && (
+                <div className="mt-2">
+                  <h4 className="text-sm font-medium mb-1">
+                    {selectedReservation.status === 'rejected' ? 'Rejection Reason' : 'Admin Message'}
+                  </h4>
+                  <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-md text-sm">
+                    {selectedReservation.admin_message}
+                  </div>
+                </div>
+              )}
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setSelectedReservation(null)}>
-                  Close
-                </Button>
-              </DialogFooter>
-        </DialogContent>
-      </Dialog>
+                Close
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   )

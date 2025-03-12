@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/popover"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
+import { useSearchParams } from "next/navigation"
 
 interface Reservation {
   id: string;
@@ -242,6 +243,11 @@ export default function AdminAllReservationsPage() {
   const [statusFilter, setStatusFilter] = useState<string[]>([])
   const [clubFilter, setClubFilter] = useState<string[]>([])
   const [uniqueClubs, setUniqueClubs] = useState<{id: string, name: string}[]>([])
+  const [highlightedReservationId, setHighlightedReservationId] = useState<string | null>(null)
+  
+  // Get URL parameters
+  const searchParams = useSearchParams()
+  const reservationIdFromUrl = searchParams.get('reservationId')
 
   // Fetch reservations on mount
   useEffect(() => {
@@ -265,6 +271,17 @@ export default function AdminAllReservationsPage() {
             };
           });
         setUniqueClubs(clubs);
+        
+        // If there's a reservation ID in the URL, highlight it and open its details
+        if (reservationIdFromUrl) {
+          setHighlightedReservationId(reservationIdFromUrl)
+          const reservation = data.find((r: Reservation) => r.id === reservationIdFromUrl)
+          if (reservation) {
+            handleReservationSelect(reservation)
+            // Set view mode to calendar to ensure the reservation is visible
+            setViewMode("calendar")
+          }
+        }
       } catch (err) {
         console.error('Error fetching reservations:', err)
         setError(err instanceof Error ? err.message : 'Failed to load reservations')
@@ -274,7 +291,7 @@ export default function AdminAllReservationsPage() {
     }
 
     fetchReservations()
-  }, [])
+  }, [reservationIdFromUrl])
 
   const handleReservationSelect = (reservation: Reservation) => {
     // Format the reservation data for the ReservationDetails component
@@ -445,15 +462,15 @@ export default function AdminAllReservationsPage() {
 
   return (
     <AdminLayout>
-      <div className="flex flex-col space-y-6">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="flex flex-col space-y-4 sm:space-y-6">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 sm:gap-4">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">All Clubs Calendar</h1>
-            <p className="text-muted-foreground">
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight">All Clubs Calendar</h1>
+            <p className="text-sm sm:text-base text-muted-foreground">
               View and manage reservations from all clubs across the campus
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 mt-3 md:mt-0 w-full md:w-auto">
             <Button
               variant="outline"
               size="sm"
@@ -471,7 +488,7 @@ export default function AdminAllReservationsPage() {
                   })
                   .finally(() => setIsLoading(false));
               }}
-              className="flex items-center gap-2"
+              className="flex items-center gap-1 sm:gap-2 text-xs h-8 sm:h-9 flex-1 md:flex-auto justify-center"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -481,7 +498,7 @@ export default function AdminAllReservationsPage() {
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                className="h-4 w-4"
+                className="h-3 w-3 sm:h-4 sm:w-4"
               >
                 <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
                 <path d="M3 3v5h5" />
@@ -494,84 +511,87 @@ export default function AdminAllReservationsPage() {
               variant={viewMode === "calendar" ? "default" : "outline"}
               size="sm"
               onClick={() => setViewMode("calendar")}
-              className="flex items-center gap-2"
+              className="flex items-center gap-1 sm:gap-2 text-xs h-8 sm:h-9 flex-1 md:flex-auto justify-center"
             >
-              <CalendarIcon className="h-4 w-4" />
+              <CalendarIcon className="h-3 w-3 sm:h-4 sm:w-4" />
               Calendar
             </Button>
             <Button
               variant={viewMode === "table" ? "default" : "outline"}
               size="sm"
               onClick={() => setViewMode("table")}
-              className="flex items-center gap-2"
+              className="flex items-center gap-1 sm:gap-2 text-xs h-8 sm:h-9 flex-1 md:flex-auto justify-center"
             >
-              <TableIcon className="h-4 w-4" />
+              <TableIcon className="h-3 w-3 sm:h-4 sm:w-4" />
               Table
             </Button>
             <Button
               variant="outline"
-              size="icon"
+              size="sm"
               onClick={handleExportCalendar}
-              className="w-full sm:w-10 h-10"
+              className="h-8 sm:h-9 w-8 sm:w-9 p-0"
               title="Export Annual Calendar"
             >
-              <FileDown className="h-4 w-4" />
+              <FileDown className="h-3 w-3 sm:h-4 sm:w-4" />
             </Button>
           </div>
         </div>
 
         {viewMode === "calendar" ? (
-          <div className="space-y-4">
-            <div className="rounded-md border">
-              <BigCalendar onReservationSelect={handleReservationSelect} />
+          <div className="space-y-3 sm:space-y-4">
+            <div className="rounded-md border overflow-x-auto">
+              <BigCalendar 
+                onReservationSelect={handleReservationSelect} 
+                highlightedReservationId={highlightedReservationId}
+              />
             </div>
-            <div className="flex items-center gap-4 text-sm">
-              <div className="flex items-center gap-2">
-                <div className="h-3 w-3 rounded-full bg-green-500"></div>
+            <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs sm:text-sm">
+              <div className="flex items-center gap-1 sm:gap-2">
+                <div className="h-2.5 w-2.5 sm:h-3 sm:w-3 rounded-full bg-green-500"></div>
                 <span>Approved</span>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="h-3 w-3 rounded-full bg-yellow-500"></div>
+              <div className="flex items-center gap-1 sm:gap-2">
+                <div className="h-2.5 w-2.5 sm:h-3 sm:w-3 rounded-full bg-yellow-500"></div>
                 <span>Pending</span>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="h-3 w-3 rounded-full bg-red-500"></div>
+              <div className="flex items-center gap-1 sm:gap-2">
+                <div className="h-2.5 w-2.5 sm:h-3 sm:w-3 rounded-full bg-red-500"></div>
                 <span>Rejected</span>
               </div>
             </div>
           </div>
         ) : (
-          <div className="space-y-4">
-            <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
-              <div className="relative w-full md:w-64">
-                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+          <div className="space-y-3 sm:space-y-4">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-start sm:items-center justify-between">
+              <div className="relative w-full sm:w-64">
+                <Search className="absolute left-2 top-2.5 h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground" />
                 <Input
                   placeholder="Search reservations..."
-                  className="pl-8"
+                  className="pl-7 sm:pl-8 text-xs sm:text-sm h-9 sm:h-10"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-2 self-end sm:self-auto">
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" size="sm" className="flex items-center gap-2">
-                      <Filter className="h-4 w-4" />
+                    <Button variant="outline" size="sm" className="flex items-center gap-1 sm:gap-2 text-xs h-8 sm:h-9">
+                      <Filter className="h-3 w-3 sm:h-4 sm:w-4" />
                       Filter
                       {(statusFilter.length > 0 || clubFilter.length > 0) && (
-                        <Badge variant="secondary" className="ml-1 rounded-full px-1 py-0 text-xs">
+                        <Badge variant="secondary" className="ml-1 rounded-full px-1 py-0 text-[10px] sm:text-xs">
                           {statusFilter.length + clubFilter.length}
                         </Badge>
                       )}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-80">
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <h4 className="font-medium">Status</h4>
-                        <div className="grid grid-cols-2 gap-2">
+                  <PopoverContent className="w-[280px] sm:w-80 p-3 sm:p-4">
+                    <div className="space-y-3 sm:space-y-4">
+                      <div className="space-y-1.5 sm:space-y-2">
+                        <h4 className="text-sm sm:text-base font-medium">Status</h4>
+                        <div className="grid grid-cols-2 gap-1.5 sm:gap-2">
                           {['approved', 'pending', 'rejected'].map(status => (
-                            <div key={status} className="flex items-center space-x-2">
+                            <div key={status} className="flex items-center space-x-1.5 sm:space-x-2">
                               <Checkbox 
                                 id={`status-${status}`} 
                                 checked={statusFilter.includes(status)}
@@ -582,8 +602,9 @@ export default function AdminAllReservationsPage() {
                                     setStatusFilter(statusFilter.filter(s => s !== status));
                                   }
                                 }}
+                                className="h-3.5 w-3.5 sm:h-4 sm:w-4"
                               />
-                              <Label htmlFor={`status-${status}`} className="capitalize">
+                              <Label htmlFor={`status-${status}`} className="capitalize text-xs sm:text-sm">
                                 {status}
                               </Label>
                             </div>
@@ -591,11 +612,11 @@ export default function AdminAllReservationsPage() {
                         </div>
                       </div>
                       <Separator />
-                      <div className="space-y-2">
-                        <h4 className="font-medium">Clubs</h4>
-                        <div className="max-h-[200px] overflow-y-auto space-y-2">
+                      <div className="space-y-1.5 sm:space-y-2">
+                        <h4 className="text-sm sm:text-base font-medium">Clubs</h4>
+                        <div className="max-h-[150px] sm:max-h-[200px] overflow-y-auto space-y-1.5 sm:space-y-2">
                           {uniqueClubs.map(club => (
-                            <div key={club.id} className="flex items-center space-x-2">
+                            <div key={club.id} className="flex items-center space-x-1.5 sm:space-x-2">
                               <Checkbox 
                                 id={`club-${club.id}`} 
                                 checked={clubFilter.includes(club.id)}
@@ -606,15 +627,16 @@ export default function AdminAllReservationsPage() {
                                     setClubFilter(clubFilter.filter(id => id !== club.id));
                                   }
                                 }}
+                                className="h-3.5 w-3.5 sm:h-4 sm:w-4"
                               />
-                              <Label htmlFor={`club-${club.id}`}>
+                              <Label htmlFor={`club-${club.id}`} className="text-xs sm:text-sm">
                                 {club.name}
                               </Label>
                             </div>
                           ))}
                         </div>
                       </div>
-                      <div className="flex justify-between">
+                      <div className="flex justify-between pt-1 sm:pt-2">
                         <Button 
                           variant="outline" 
                           size="sm"
@@ -622,12 +644,14 @@ export default function AdminAllReservationsPage() {
                             setStatusFilter([]);
                             setClubFilter([]);
                           }}
+                          className="text-xs h-7 sm:h-8"
                         >
                           Reset
                         </Button>
                         <Button 
                           size="sm"
                           onClick={() => document.body.click()} // Close popover
+                          className="text-xs h-7 sm:h-8"
                         >
                           Apply
                         </Button>
@@ -637,211 +661,217 @@ export default function AdminAllReservationsPage() {
                 </Popover>
               </div>
             </div>
-            <div className="rounded-md border">
+            <div className="rounded-md border overflow-x-auto">
               {isLoading ? (
-                <div className="p-8 text-center text-muted-foreground">
+                <div className="p-6 sm:p-8 text-center text-sm sm:text-base text-muted-foreground">
                   Loading reservations...
                 </div>
               ) : error ? (
-                <div className="p-8 text-center text-red-500">
+                <div className="p-6 sm:p-8 text-center text-sm sm:text-base text-red-500">
                   {error}
                 </div>
               ) : filteredAndSortedReservations.length === 0 ? (
-                <div className="p-8 text-center text-muted-foreground">
+                <div className="p-6 sm:p-8 text-center text-sm sm:text-base text-muted-foreground">
                   No reservations found
                 </div>
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead 
-                        className="cursor-pointer"
-                        onClick={() => handleSort('date')}
-                      >
-                        <div className="flex items-center">
-                          Date
-                          {getSortIcon('date')}
-                        </div>
-                      </TableHead>
-                      <TableHead 
-                        className="cursor-pointer"
-                        onClick={() => handleSort('club')}
-                      >
-                        <div className="flex items-center">
-                          Club
-                          {getSortIcon('club')}
-                        </div>
-                      </TableHead>
-                      <TableHead 
-                        className="cursor-pointer"
-                        onClick={() => handleSort('title')}
-                      >
-                        <div className="flex items-center">
-                          Title
-                          {getSortIcon('title')}
-                        </div>
-                      </TableHead>
-                      <TableHead 
-                        className="cursor-pointer"
-                        onClick={() => handleSort('time')}
-                      >
-                        <div className="flex items-center">
-                          Time
-                          {getSortIcon('time')}
-                        </div>
-                      </TableHead>
-                      <TableHead 
-                        className="cursor-pointer"
-                        onClick={() => handleSort('created_at')}
-                      >
-                        <div className="flex items-center">
-                          Created At
-                          {getSortIcon('created_at')}
-                        </div>
-                      </TableHead>
-                      <TableHead 
-                        className="cursor-pointer"
-                        onClick={() => handleSort('status')}
-                      >
-                        <div className="flex items-center">
-                          Status
-                          {getSortIcon('status')}
-                        </div>
-                      </TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredAndSortedReservations.map((reservation: Reservation) => {
-                      const startTime = new Date(reservation.start_time)
-                      const endTime = new Date(reservation.end_time)
-                      const createdAt = new Date(reservation.created_at)
-                      return (
-                        <TableRow
-                          key={reservation.id}
-                          className="hover:bg-gray-50 dark:hover:bg-gray-800"
+                <div className="min-w-[700px]">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead 
+                          className="cursor-pointer text-xs sm:text-sm py-2 sm:py-3"
+                          onClick={() => handleSort('date')}
                         >
-                          <TableCell>
-                            {format(startTime, "MMM d, yyyy")}
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <img
-                                src={`/api/clubs/${reservation.club_id}/image`}
-                                alt={reservation.club_name || 'Club logo'}
-                                className="h-6 w-6 rounded-full object-cover"
-                                onError={(e) => {
-                                  // If image fails to load, replace with default
-                                  e.currentTarget.src = '/default-club-image.png'
-                                }}
-                              />
-                              {reservation.club_name || 'Unknown Club'}
-                            </div>
-                          </TableCell>
-                          <TableCell 
-                            className="cursor-pointer hover:text-blue-600 dark:hover:text-blue-400"
-                            onClick={() => handleReservationSelect(reservation)}
+                          <div className="flex items-center">
+                            Date
+                            {getSortIcon('date')}
+                          </div>
+                        </TableHead>
+                        <TableHead 
+                          className="cursor-pointer text-xs sm:text-sm py-2 sm:py-3"
+                          onClick={() => handleSort('club')}
+                        >
+                          <div className="flex items-center">
+                            Club
+                            {getSortIcon('club')}
+                          </div>
+                        </TableHead>
+                        <TableHead 
+                          className="cursor-pointer text-xs sm:text-sm py-2 sm:py-3"
+                          onClick={() => handleSort('title')}
+                        >
+                          <div className="flex items-center">
+                            Title
+                            {getSortIcon('title')}
+                          </div>
+                        </TableHead>
+                        <TableHead 
+                          className="cursor-pointer text-xs sm:text-sm py-2 sm:py-3"
+                          onClick={() => handleSort('time')}
+                        >
+                          <div className="flex items-center">
+                            Time
+                            {getSortIcon('time')}
+                          </div>
+                        </TableHead>
+                        <TableHead 
+                          className="cursor-pointer text-xs sm:text-sm py-2 sm:py-3"
+                          onClick={() => handleSort('created_at')}
+                        >
+                          <div className="flex items-center">
+                            Created
+                            {getSortIcon('created_at')}
+                          </div>
+                        </TableHead>
+                        <TableHead 
+                          className="cursor-pointer text-xs sm:text-sm py-2 sm:py-3"
+                          onClick={() => handleSort('status')}
+                        >
+                          <div className="flex items-center">
+                            Status
+                            {getSortIcon('status')}
+                          </div>
+                        </TableHead>
+                        <TableHead className="text-xs sm:text-sm py-2 sm:py-3">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredAndSortedReservations.map((reservation: Reservation) => {
+                        const startTime = new Date(reservation.start_time)
+                        const endTime = new Date(reservation.end_time)
+                        const createdAt = new Date(reservation.created_at)
+                        return (
+                          <TableRow
+                            key={reservation.id}
+                            className="hover:bg-gray-50 dark:hover:bg-gray-800 text-xs sm:text-sm"
                           >
-                            {reservation.title}
-                          </TableCell>
-                          <TableCell>
-                            {reservation.is_full_day ? (
-                              <Badge variant="outline">Full Day</Badge>
-                            ) : (
-                              `${format(startTime, "h:mm a")} - ${format(endTime, "h:mm a")}`
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            {format(createdAt, "MMM d, yyyy h:mm a")}
-                          </TableCell>
-                          <TableCell>
-                            <Badge
-                              variant="outline"
-                              className={
-                                reservation.status === "approved"
-                                  ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
-                                  : reservation.status === "pending"
-                                  ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400"
-                                  : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
-                              }
+                            <TableCell className="py-2 sm:py-3">
+                              {format(startTime, "MMM d, yyyy")}
+                            </TableCell>
+                            <TableCell className="py-2 sm:py-3">
+                              <div className="flex items-center gap-1.5 sm:gap-2">
+                                <img
+                                  src={`/api/clubs/${reservation.club_id}/image`}
+                                  alt={reservation.club_name || 'Club logo'}
+                                  className="h-5 w-5 sm:h-6 sm:w-6 rounded-full object-cover"
+                                  onError={(e) => {
+                                    // If image fails to load, replace with default
+                                    e.currentTarget.src = '/default-club-image.png'
+                                  }}
+                                />
+                                <span className="truncate max-w-[100px] sm:max-w-[150px]">
+                                  {reservation.club_name || 'Unknown Club'}
+                                </span>
+                              </div>
+                            </TableCell>
+                            <TableCell 
+                              className="cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 py-2 sm:py-3 truncate max-w-[120px] sm:max-w-[200px]"
+                              onClick={() => handleReservationSelect(reservation)}
                             >
-                              {reservation.status.charAt(0).toUpperCase() + reservation.status.slice(1)}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-100"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleReservationSelect(reservation);
-                                }}
+                              {reservation.title}
+                            </TableCell>
+                            <TableCell className="py-2 sm:py-3">
+                              {reservation.is_full_day ? (
+                                <Badge variant="outline" className="text-[10px] sm:text-xs">Full Day</Badge>
+                              ) : (
+                                <span className="text-xs sm:text-sm whitespace-nowrap">
+                                  {format(startTime, "h:mm a")} - {format(endTime, "h:mm a")}
+                                </span>
+                              )}
+                            </TableCell>
+                            <TableCell className="py-2 sm:py-3 whitespace-nowrap">
+                              {format(createdAt, "MMM d, yyyy")}
+                            </TableCell>
+                            <TableCell className="py-2 sm:py-3">
+                              <Badge
+                                variant="outline"
+                                className={`text-[10px] sm:text-xs ${
+                                  reservation.status === "approved"
+                                    ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
+                                    : reservation.status === "pending"
+                                    ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400"
+                                    : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
+                                }`}
                               >
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                              {reservation.status !== 'approved' && (
+                                {reservation.status.charAt(0).toUpperCase() + reservation.status.slice(1)}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="py-2 sm:py-3">
+                              <div className="flex items-center gap-1 sm:gap-2">
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  className="h-8 w-8 p-0 text-green-600 hover:text-green-700 hover:bg-green-100"
-                                  onClick={async (e) => {
+                                  className="h-6 w-6 sm:h-8 sm:w-8 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-100"
+                                  onClick={(e) => {
                                     e.stopPropagation();
-                                    try {
-                                      const response = await fetch(`/api/reservations/${reservation.id}/status`, {
-                                        method: 'PATCH',
-                                        headers: { 'Content-Type': 'application/json' },
-                                        body: JSON.stringify({ status: 'approved' })
-                                      });
-                                      if (!response.ok) throw new Error('Failed to update status');
-                                      // Refresh reservations
-                                      const updatedReservations = reservations.map(r => 
-                                        r.id === reservation.id ? { ...r, status: 'approved' } : r
-                                      );
-                                      setReservations(updatedReservations);
-                                    } catch (error) {
-                                      console.error('Error updating reservation:', error);
-                                    }
+                                    handleReservationSelect(reservation);
                                   }}
                                 >
-                                  <CheckCircle2 className="h-4 w-4" />
+                                  <Eye className="h-3 w-3 sm:h-4 sm:w-4" />
                                 </Button>
-                              )}
-                              {reservation.status !== 'rejected' && (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-100"
-                                  onClick={async (e) => {
-                                    e.stopPropagation();
-                                    try {
-                                      const response = await fetch(`/api/reservations/${reservation.id}/status`, {
-                                        method: 'PATCH',
-                                        headers: { 'Content-Type': 'application/json' },
-                                        body: JSON.stringify({ status: 'rejected' })
-                                      });
-                                      if (!response.ok) throw new Error('Failed to update status');
-                                      // Refresh reservations
-                                      const updatedReservations = reservations.map(r => 
-                                        r.id === reservation.id ? { ...r, status: 'rejected' } : r
-                                      );
-                                      setReservations(updatedReservations);
-                                    } catch (error) {
-                                      console.error('Error updating reservation:', error);
-                                    }
-                                  }}
-                                >
-                                  <X className="h-4 w-4" />
-                                </Button>
-                              )}
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      )
-                    })}
-                  </TableBody>
-                </Table>
+                                {reservation.status !== 'approved' && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 w-6 sm:h-8 sm:w-8 p-0 text-green-600 hover:text-green-700 hover:bg-green-100"
+                                    onClick={async (e) => {
+                                      e.stopPropagation();
+                                      try {
+                                        const response = await fetch(`/api/reservations/${reservation.id}/status`, {
+                                          method: 'PATCH',
+                                          headers: { 'Content-Type': 'application/json' },
+                                          body: JSON.stringify({ status: 'approved' })
+                                        });
+                                        if (!response.ok) throw new Error('Failed to update status');
+                                        // Refresh reservations
+                                        const updatedReservations = reservations.map(r => 
+                                          r.id === reservation.id ? { ...r, status: 'approved' } : r
+                                        );
+                                        setReservations(updatedReservations);
+                                      } catch (error) {
+                                        console.error('Error updating reservation:', error);
+                                      }
+                                    }}
+                                  >
+                                    <CheckCircle2 className="h-3 w-3 sm:h-4 sm:w-4" />
+                                  </Button>
+                                )}
+                                {reservation.status !== 'rejected' && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 w-6 sm:h-8 sm:w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-100"
+                                    onClick={async (e) => {
+                                      e.stopPropagation();
+                                      try {
+                                        const response = await fetch(`/api/reservations/${reservation.id}/status`, {
+                                          method: 'PATCH',
+                                          headers: { 'Content-Type': 'application/json' },
+                                          body: JSON.stringify({ status: 'rejected' })
+                                        });
+                                        if (!response.ok) throw new Error('Failed to update status');
+                                        // Refresh reservations
+                                        const updatedReservations = reservations.map(r => 
+                                          r.id === reservation.id ? { ...r, status: 'rejected' } : r
+                                        );
+                                        setReservations(updatedReservations);
+                                      } catch (error) {
+                                        console.error('Error updating reservation:', error);
+                                      }
+                                    }}
+                                  >
+                                    <X className="h-3 w-3 sm:h-4 sm:w-4" />
+                                  </Button>
+                                )}
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        )
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
               )}
             </div>
           </div>

@@ -9,12 +9,26 @@ if (!supabaseUrl || !supabaseKey) {
   console.log('Supabase client initialized with URL:', supabaseUrl);
 }
 
-export const supabase = createClient(supabaseUrl, supabaseKey);
+export const supabase = createClient(supabaseUrl, supabaseKey, {
+  auth: {
+    persistSession: false
+  },
+  global: {
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    }
+  }
+});
 
 // Test the connection with a simpler query that doesn't use aggregate functions
 (async () => {
   try {
-    const { data, error } = await supabase.from('reservations').select('id').limit(1);
+    const { data, error } = await supabase
+      .from('reservations')
+      .select('id')
+      .limit(1);
+      
     if (error) {
       console.error('Error connecting to Supabase:', error);
     } else {

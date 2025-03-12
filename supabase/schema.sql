@@ -178,3 +178,41 @@ INSERT INTO spaces (name, capacity, features, image) VALUES
   ('Student Lounge', 100, '["Casual Seating", "Kitchenette"]', '/spaces/lounge.jpg'),
   ('Outdoor Courtyard', 150, '["Open Air", "Power Outlets"]', '/spaces/courtyard.jpg')
 ON CONFLICT DO NOTHING; 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

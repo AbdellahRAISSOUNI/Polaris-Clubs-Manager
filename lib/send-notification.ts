@@ -1,0 +1,69 @@
+import { supabase } from '@/lib/supabase'
+import { 
+  successNotification, 
+  errorNotification, 
+  warningNotification, 
+  infoNotification 
+} from '@/lib/notifications'
+
+interface SendNotificationParams {
+  recipientId: string
+  recipientType: 'admin' | 'club'
+  title: string
+  message: string
+  type: 'success' | 'error' | 'warning' | 'info'
+  link?: string
+}
+
+export async function sendNotification({
+  recipientId,
+  recipientType,
+  title,
+  message,
+  type,
+  link,
+}: SendNotificationParams) {
+  try {
+    const { data, error } = await supabase
+      .from('notifications')
+      .insert({
+        recipient_id: recipientId,
+        recipient_type: recipientType,
+        title,
+        message,
+        type,
+        link,
+      })
+      .select()
+      .single()
+
+    if (error) throw error
+
+    // Show a toast notification if the recipient is the current user
+    const currentAdminId = localStorage.getItem('adminId')
+    const currentClubId = localStorage.getItem('clubId')
+    const isCurrentUser = recipientId === (recipientType === 'admin' ? currentAdminId : currentClubId)
+
+    if (isCurrentUser) {
+      switch (type) {
+        case 'success':
+          successNotification({ title, description: message })
+          break
+        case 'error':
+          errorNotification({ title, description: message })
+          break
+        case 'warning':
+          warningNotification({ title, description: message })
+          break
+        case 'info':
+          infoNotification({ title, description: message })
+          break
+      }
+    }
+
+    return data
+  } catch (error) {
+    console.error('Error sending notification:', error)
+    throw error
+  }
+} 

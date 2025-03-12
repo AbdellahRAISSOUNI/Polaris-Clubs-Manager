@@ -370,16 +370,16 @@ export default function AdminDashboard() {
 
   return (
     <AdminLayout>
-      <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-4 sm:gap-6">
         <div className="flex flex-col gap-2">
-          <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground text-lg">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight">Dashboard</h1>
+          <p className="text-sm sm:text-lg text-muted-foreground">
             Hello, <span className="font-medium">{adminUser?.name || 'Admin'}</span>! Welcome to your dashboard.
           </p>
         </div>
         
         {/* Mobile search - visible only on mobile */}
-        <div className="md:hidden mb-6">
+        <div className="md:hidden mb-4">
           <div className="relative">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
@@ -391,13 +391,13 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold tracking-tight">Admin Dashboard</h2>
-          <div className="flex flex-col sm:flex-row gap-2">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 sm:mb-6">
+          <h2 className="text-lg sm:text-2xl font-bold tracking-tight">Admin Dashboard</h2>
+          <div className="flex flex-wrap gap-2">
             <Button 
               variant="outline" 
               onClick={handleReservationStatusChange}
-              className="flex items-center gap-2 text-sm"
+              className="flex items-center gap-2 text-xs sm:text-sm flex-1 sm:flex-auto justify-center"
               size="sm"
             >
               <svg
@@ -408,7 +408,7 @@ export default function AdminDashboard() {
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                className="h-4 w-4"
+                className="h-3 w-3 sm:h-4 sm:w-4"
               >
                 <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
                 <path d="M21 3v5h-5" />
@@ -432,92 +432,92 @@ export default function AdminDashboard() {
                   }
                 }
               }}
-              className="flex items-center gap-2 text-sm"
+              className="flex items-center gap-2 text-xs sm:text-sm flex-1 sm:flex-auto justify-center"
               size="sm"
             >
-              <XCircle className="h-4 w-4" />
+              <XCircle className="h-3 w-3 sm:h-4 sm:w-4" />
               Delete Rejected
             </Button>
           </div>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
+        <div className="grid grid-cols-2 gap-2 sm:gap-4 md:grid-cols-2 lg:grid-cols-4 mb-4 sm:mb-6">
           <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between space-x-4">
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-center justify-between space-x-2 sm:space-x-4">
                 <div>
-                  <p className="text-xs sm:text-sm font-medium text-muted-foreground">Total</p>
-                  <p className="text-xl sm:text-3xl font-bold">{filteredReservations.length}</p>
+                  <p className="text-xs font-medium text-muted-foreground">Total</p>
+                  <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold">{filteredReservations.length}</p>
                 </div>
-                <div className="p-1.5 sm:p-2 bg-blue-100 rounded-full dark:bg-blue-900/30">
-                  <CalendarIcon className="h-4 w-4 sm:h-6 sm:w-6 text-blue-600 dark:text-blue-400" />
+                <div className="p-1 sm:p-1.5 md:p-2 bg-blue-100 rounded-full dark:bg-blue-900/30">
+                  <CalendarIcon className="h-3 w-3 sm:h-4 sm:w-4 md:h-5 md:w-5 lg:h-6 lg:w-6 text-blue-600 dark:text-blue-400" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
           <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between space-x-4">
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-center justify-between space-x-2 sm:space-x-4">
                 <div>
-                  <p className="text-xs sm:text-sm font-medium text-muted-foreground">Pending</p>
-                  <p className="text-xl sm:text-3xl font-bold">
+                  <p className="text-xs font-medium text-muted-foreground">Pending</p>
+                  <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold">
                     {filteredReservations.filter((r) => r.status === "pending").length}
                   </p>
                 </div>
-                <div className="p-1.5 sm:p-2 bg-yellow-100 rounded-full dark:bg-yellow-900/30">
-                  <Clock className="h-4 w-4 sm:h-6 sm:w-6 text-yellow-600 dark:text-yellow-400" />
+                <div className="p-1 sm:p-1.5 md:p-2 bg-yellow-100 rounded-full dark:bg-yellow-900/30">
+                  <Clock className="h-3 w-3 sm:h-4 sm:w-4 md:h-5 md:w-5 lg:h-6 lg:w-6 text-yellow-600 dark:text-yellow-400" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
           <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between space-x-4">
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-center justify-between space-x-2 sm:space-x-4">
                 <div>
-                  <p className="text-xs sm:text-sm font-medium text-muted-foreground">Approved</p>
-                  <p className="text-xl sm:text-3xl font-bold">
+                  <p className="text-xs font-medium text-muted-foreground">Approved</p>
+                  <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold">
                     {filteredReservations.filter((r) => r.status === "approved").length}
                   </p>
                 </div>
-                <div className="p-1.5 sm:p-2 bg-green-100 rounded-full dark:bg-green-900/30">
-                  <CheckCircle2 className="h-4 w-4 sm:h-6 sm:w-6 text-green-600 dark:text-green-400" />
+                <div className="p-1 sm:p-1.5 md:p-2 bg-green-100 rounded-full dark:bg-green-900/30">
+                  <CheckCircle2 className="h-3 w-3 sm:h-4 sm:w-4 md:h-5 md:w-5 lg:h-6 lg:w-6 text-green-600 dark:text-green-400" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
           <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between space-x-4">
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-center justify-between space-x-2 sm:space-x-4">
                 <div>
-                  <p className="text-xs sm:text-sm font-medium text-muted-foreground">Rejected</p>
-                  <p className="text-xl sm:text-3xl font-bold">
+                  <p className="text-xs font-medium text-muted-foreground">Rejected</p>
+                  <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold">
                     {filteredReservations.filter((r) => r.status === "rejected").length}
                   </p>
                 </div>
-                <div className="p-1.5 sm:p-2 bg-red-100 rounded-full dark:bg-red-900/30">
-                  <XCircle className="h-4 w-4 sm:h-6 sm:w-6 text-red-600 dark:text-red-400" />
+                <div className="p-1 sm:p-1.5 md:p-2 bg-red-100 rounded-full dark:bg-red-900/30">
+                  <XCircle className="h-3 w-3 sm:h-4 sm:w-4 md:h-5 md:w-5 lg:h-6 lg:w-6 text-red-600 dark:text-red-400" />
                 </div>
               </div>
             </CardContent>
           </Card>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          <Card className="col-span-full lg:col-span-2">
-            <CardHeader>
-              <div className="flex items-center justify-between">
+        <div className="grid gap-4 sm:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+          <Card className="col-span-1 md:col-span-2">
+            <CardHeader className="p-4 sm:p-6">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div>
-                  <CardTitle>Reservation Calendar</CardTitle>
-                  <CardDescription>Overview of all club reservations</CardDescription>
+                  <CardTitle className="text-base sm:text-lg">Reservation Calendar</CardTitle>
+                  <CardDescription className="text-xs sm:text-sm">Overview of all club reservations</CardDescription>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <Button 
                     variant="outline" 
                     onClick={handleReservationStatusChange}
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-1 sm:gap-2 text-xs"
                     size="sm"
                   >
                     <svg
@@ -528,43 +528,45 @@ export default function AdminDashboard() {
                       strokeWidth="2"
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      className="h-4 w-4"
+                      className="h-3 w-3 sm:h-4 sm:w-4"
                     >
                       <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
                       <path d="M21 3v5h-5" />
                     </svg>
                     Refresh
                   </Button>
-                  <Button asChild size="sm">
-                    <Link href="/admin/all-reservations" className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4" />
+                  <Button asChild size="sm" className="text-xs">
+                    <Link href="/admin/all-reservations" className="flex items-center gap-1 sm:gap-2">
+                      <Calendar className="h-3 w-3 sm:h-4 sm:w-4" />
                       View All
                     </Link>
                   </Button>
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="px-2 sm:px-6">
-              <CalendarComponent
-                mode="single"
-                selected={date}
-                onSelect={setDate}
-                className="rounded-md border"
-                showOutsideDays={true}
-                modifiers={{
-                  booked: (date) => getDatesWithReservations(date),
-                }}
-                modifiersClassNames={{
-                  booked: "relative after:absolute after:top-1 after:right-1 after:h-1.5 after:w-1.5 after:rounded-full after:bg-red-500"
-                }}
-              />
+            <CardContent className="px-2 sm:px-6 pb-4 sm:pb-6 overflow-x-auto">
+              <div className="min-w-[280px]">
+                <CalendarComponent
+                  mode="single"
+                  selected={date}
+                  onSelect={setDate}
+                  className="rounded-md border"
+                  showOutsideDays={true}
+                  modifiers={{
+                    booked: (date) => getDatesWithReservations(date),
+                  }}
+                  modifiersClassNames={{
+                    booked: "relative after:absolute after:top-1 after:right-1 after:h-1.5 after:w-1.5 after:rounded-full after:bg-red-500"
+                  }}
+                />
+              </div>
             </CardContent>
           </Card>
 
           <Card>
-            <CardHeader>
-              <CardTitle>Selected Date Schedule</CardTitle>
-              <CardDescription>
+            <CardHeader className="p-4 sm:p-6">
+              <CardTitle className="text-base sm:text-lg">Selected Date Schedule</CardTitle>
+              <CardDescription className="text-xs sm:text-sm">
                 {date
                   ? date.toLocaleDateString("en-US", {
                       weekday: "long",
@@ -575,24 +577,24 @@ export default function AdminDashboard() {
                   : "Select a date"}
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
+            <CardContent className="px-4 pb-4 sm:px-6 sm:pb-6">
+              <div className="space-y-3 sm:space-y-4">
                 {reservationsForSelectedDate.length === 0 ? (
-                  <div className="text-center py-8">
-                    <Clock className="h-8 w-8 mx-auto text-muted-foreground opacity-50 mb-2" />
-                    <p className="text-muted-foreground">No reservations for this date</p>
+                  <div className="text-center py-6 sm:py-8">
+                    <Clock className="h-6 w-6 sm:h-8 sm:w-8 mx-auto text-muted-foreground opacity-50 mb-2" />
+                    <p className="text-sm text-muted-foreground">No reservations for this date</p>
                   </div>
                 ) : (
                   reservationsForSelectedDate.map((reservation) => (
                     <div
                       key={reservation.id}
-                      className="flex items-center gap-4 p-2 rounded-lg hover:bg-accent transition-colors cursor-pointer"
+                      className="flex items-center gap-2 sm:gap-4 p-2 rounded-lg hover:bg-accent transition-colors cursor-pointer"
                       onClick={() => setSelectedReservation({
                         ...reservation,
                         isFullDay: reservation.isFullDay
                       })}
                     >
-                      <Avatar className="h-9 w-9">
+                      <Avatar className="h-7 w-7 sm:h-9 sm:w-9">
                         <AvatarImage src={reservation.clubLogo} alt={reservation.clubName} />
                         <AvatarFallback>
                           {reservation.clubName
@@ -602,7 +604,7 @@ export default function AdminDashboard() {
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{reservation.title}</p>
+                        <p className="text-xs sm:text-sm font-medium truncate">{reservation.title}</p>
                         <p className="text-xs text-muted-foreground truncate">
                           {reservation.clubName} • {reservation.venue} • {reservation.time}
                         </p>

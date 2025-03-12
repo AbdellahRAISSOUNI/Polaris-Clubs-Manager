@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { ChevronLeft, ChevronRight, Info, ZoomIn, ZoomOut, Maximize, Minimize, X } from "lucide-react"
+import { ChevronLeft, ChevronRight, Info, ZoomIn, ZoomOut, Maximize, Minimize, X, Bell } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import { addDays, addMonths, addWeeks, format, getDay, getDaysInMonth, isSameDay, isSameMonth, startOfMonth, startOfWeek, subMonths, subWeeks } from "date-fns"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
@@ -44,12 +44,14 @@ interface BigCalendarProps {
   selectedDate?: Date;
   onDateSelect?: (date: Date) => void;
   onReservationSelect?: (reservation: Reservation) => void;
+  highlightedReservationId?: string | null;
 }
 
 export function BigCalendar({ 
   selectedDate, 
   onDateSelect, 
-  onReservationSelect 
+  onReservationSelect,
+  highlightedReservationId = null
 }: BigCalendarProps) {
   const [currentDate, setCurrentDate] = useState(selectedDate || new Date())
   const [viewMode, setViewMode] = useState<'month' | 'week'>('month')
@@ -285,13 +287,14 @@ export function BigCalendar({
             {dayReservations.slice(0, getMaxReservations()).map(reservation => {
               const clubColor = getClubColor(reservation.club_id)
               const statusColor = getStatusColor(reservation.status)
+              const isHighlighted = highlightedReservationId === reservation.id
               
               return (
                 <TooltipProvider key={reservation.id}>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <div 
-                        className={`text-xs p-1.5 rounded-md border ${clubColor.bg} ${clubColor.text} ${clubColor.border} ${clubColor.hover} transition-colors cursor-pointer shadow-sm overflow-hidden`}
+                        className={`text-xs p-1.5 rounded-md border ${clubColor.bg} ${clubColor.text} ${clubColor.border} ${clubColor.hover} transition-colors cursor-pointer shadow-sm overflow-hidden ${isHighlighted ? 'ring-2 ring-blue-500 dark:ring-blue-400' : ''}`}
                         onClick={(e) => {
                           e.stopPropagation()
                           onReservationSelect && onReservationSelect(reservation)
@@ -299,6 +302,9 @@ export function BigCalendar({
                       >
                         <div className="flex items-center justify-between gap-1">
                           <div className="flex items-center gap-1 flex-1 min-w-0">
+                            {isHighlighted && (
+                              <Bell className="h-3 w-3 text-blue-500 dark:text-blue-400 animate-pulse flex-shrink-0" />
+                            )}
                             <img
                               src={`/api/clubs/${reservation.club_id}/image`}
                               alt={reservation.club_name || 'Club logo'}
@@ -338,6 +344,12 @@ export function BigCalendar({
                         <Badge variant="outline" className={`${clubColor.bg} ${clubColor.text}`}>
                           {reservation.club_name}
                         </Badge>
+                        {isHighlighted && (
+                          <div className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400">
+                            <Bell className="h-3 w-3" />
+                            <span>From notification</span>
+                          </div>
+                        )}
                       </div>
                     </TooltipContent>
                   </Tooltip>
@@ -458,6 +470,7 @@ export function BigCalendar({
             {dayReservations.map(reservation => {
               const clubColor = getClubColor(reservation.club_id)
               const statusColor = getStatusColor(reservation.status)
+              const isHighlighted = highlightedReservationId === reservation.id
               
               return (
                 <TooltipProvider key={reservation.id}>
@@ -473,6 +486,9 @@ export function BigCalendar({
                       >
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex items-center gap-2 flex-1 min-w-0">
+                            {isHighlighted && (
+                              <Bell className="h-3 w-3 text-blue-500 dark:text-blue-400 animate-pulse flex-shrink-0" />
+                            )}
                             <img
                               src={`/api/clubs/${reservation.club_id}/image`}
                               alt={reservation.club_name || 'Club logo'}
@@ -741,10 +757,11 @@ export function BigCalendar({
           <div className="max-h-[60vh] overflow-y-auto">
             {dayReservationsDialog.reservations.map(reservation => {
               const clubColor = getClubColor(reservation.club_id)
+              const isHighlighted = highlightedReservationId === reservation.id
               return (
                 <div 
                   key={reservation.id}
-                  className="p-3 border-b last:border-b-0 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                  className={`p-3 border-b last:border-b-0 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors ${isHighlighted ? 'bg-blue-50 dark:bg-blue-900/20' : ''}`}
                   onClick={() => {
                     onReservationSelect && onReservationSelect(reservation)
                     closeDayReservationsDialog()
@@ -752,6 +769,9 @@ export function BigCalendar({
                 >
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2 flex-1 min-w-0">
+                      {isHighlighted && (
+                        <Bell className="h-4 w-4 text-blue-500 dark:text-blue-400 animate-pulse flex-shrink-0" />
+                      )}
                       <img
                         src={`/api/clubs/${reservation.club_id}/image`}
                         alt={reservation.club_name || 'Club logo'}
