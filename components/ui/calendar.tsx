@@ -68,7 +68,7 @@ function Calendar({
         months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
         month: "space-y-4",
         caption: "flex justify-center pt-1 relative items-center",
-        caption_label: "hidden",
+        caption_label: "text-sm font-medium mx-auto",
         caption_dropdowns: "flex justify-center gap-1",
         dropdown: "flex flex-1 justify-center",
         dropdown_month: "flex-1",

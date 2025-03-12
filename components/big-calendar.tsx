@@ -5,9 +5,10 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { ChevronLeft, ChevronRight, Info } from "lucide-react"
+import { ChevronLeft, ChevronRight, Info, ZoomIn, ZoomOut, Maximize, Minimize, X } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import { addDays, addMonths, addWeeks, format, getDay, getDaysInMonth, isSameDay, isSameMonth, startOfMonth, startOfWeek, subMonths, subWeeks } from "date-fns"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 
 interface Reservation {
   id: string;
@@ -57,6 +58,16 @@ export function BigCalendar({
   const [spaces, setSpaces] = useState<Space[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [zoomLevel, setZoomLevel] = useState<'compact' | 'normal' | 'expanded'>('normal')
+  const [dayReservationsDialog, setDayReservationsDialog] = useState<{
+    isOpen: boolean;
+    date: Date | null;
+    reservations: Reservation[];
+  }>({
+    isOpen: false,
+    date: null,
+    reservations: []
+  })
 
   // Enhanced club colors with better contrast and visual appeal
   const clubColors = [
@@ -107,30 +118,24 @@ export function BigCalendar({
         
         if (spacesError) throw spacesError
         
-        // Assign club names and colors to reservations
-        const enhancedReservations = reservationsData.map((reservation: Reservation) => {
-          const club = clubsData.find((c: Club) => c.id === reservation.club_id)
-          const space = spacesData.find((s: Space) => s.id === reservation.space_id)
+        // Enhance reservations with club and space names
+        const enhancedReservations = reservationsData?.map(reservation => {
+          const club = clubsData?.find(c => c.id === reservation.club_id)
+          const space = spacesData?.find(s => s.id === reservation.space_id)
           
           return {
             ...reservation,
-            club_name: club?.name || 'Unknown Club',
-            space_name: space?.name || 'Unknown Space'
+            club_name: club?.name,
+            space_name: space?.name
           }
-        })
-        
-        // Assign colors to clubs
-        const enhancedClubs = clubsData.map((club: Club, index: number) => ({
-          ...club,
-          color: index % clubColors.length
-        }))
+        }) || []
         
         setReservations(enhancedReservations)
-        setClubs(enhancedClubs)
-        setSpaces(spacesData)
-      } catch (err: any) {
+        setClubs(clubsData || [])
+        setSpaces(spacesData || [])
+      } catch (err) {
         console.error('Error fetching data:', err)
-        setError('Failed to load calendar data. Please try again later.')
+        setError('Failed to load calendar data')
       } finally {
         setIsLoading(false)
       }
@@ -149,7 +154,22 @@ export function BigCalendar({
   // Get club color by club ID
   const getClubColor = (clubId: string) => {
     const club = clubs.find(c => c.id === clubId)
-    return club ? clubColors[club.color as unknown as number] : clubColors[0]
+    
+    // If club has a valid color property and it's within range, use it
+    if (club?.color !== undefined && club.color >= 0 && club.color < clubColors.length) {
+      return clubColors[club.color as unknown as number]
+    }
+    
+    // Otherwise, assign a color based on the club ID hash to ensure consistency
+    // This ensures different clubs get different colors even if they don't have a color property
+    if (clubId) {
+      // Simple hash function to convert clubId to a number
+      const hash = clubId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
+      return clubColors[hash % clubColors.length]
+    }
+    
+    // Fallback to first color if all else fails
+    return clubColors[0]
   }
 
   // Get status color
@@ -176,6 +196,48 @@ export function BigCalendar({
     })
   }
 
+  // Zoom functions
+  const zoomIn = () => {
+    if (zoomLevel === 'compact') setZoomLevel('normal')
+    else if (zoomLevel === 'normal') setZoomLevel('expanded')
+  }
+
+  const zoomOut = () => {
+    if (zoomLevel === 'expanded') setZoomLevel('normal')
+    else if (zoomLevel === 'normal') setZoomLevel('compact')
+  }
+
+  const resetZoom = () => {
+    setZoomLevel('normal')
+  }
+
+  // Get cell height based on zoom level
+  const getCellHeight = () => {
+    switch (zoomLevel) {
+      case 'compact': return 'min-h-[80px]'
+      case 'normal': return 'min-h-[120px]'
+      case 'expanded': return 'min-h-[180px]'
+    }
+  }
+
+  // Get max reservations to show based on zoom level
+  const getMaxReservations = () => {
+    switch (zoomLevel) {
+      case 'compact': return 2
+      case 'normal': return 3
+      case 'expanded': return 5
+    }
+  }
+
+  // Get week cell height based on zoom level
+  const getWeekCellHeight = () => {
+    switch (zoomLevel) {
+      case 'compact': return 'min-h-[80px] md:min-h-[300px]'
+      case 'normal': return 'min-h-[100px] md:min-h-[400px]'
+      case 'expanded': return 'min-h-[150px] md:min-h-[500px]'
+    }
+  }
+
   // Render days of the month
   const renderMonthView = () => {
     const monthStart = startOfMonth(currentDate)
@@ -200,7 +262,7 @@ export function BigCalendar({
       days.push(
         <div 
           key={day.toString()} 
-          className={`min-h-[120px] p-2 border ${
+          className={`${getCellHeight()} p-2 border ${
             isCurrentMonth 
               ? 'bg-white dark:bg-gray-950' 
               : 'bg-gray-50 dark:bg-gray-900 text-gray-400 dark:text-gray-600'
@@ -219,8 +281,8 @@ export function BigCalendar({
             {formattedDate}
           </div>
           
-          <div className="space-y-1.5 overflow-y-auto max-h-[90px] pr-1">
-            {dayReservations.slice(0, 3).map(reservation => {
+          <div className="space-y-1.5 overflow-y-auto max-h-[90%] pr-1">
+            {dayReservations.slice(0, getMaxReservations()).map(reservation => {
               const clubColor = getClubColor(reservation.club_id)
               const statusColor = getStatusColor(reservation.status)
               
@@ -229,31 +291,33 @@ export function BigCalendar({
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <div 
-                        className={`text-xs p-1.5 rounded-md border ${clubColor.bg} ${clubColor.text} ${clubColor.border} ${clubColor.hover} transition-colors cursor-pointer shadow-sm`}
+                        className={`text-xs p-1.5 rounded-md border ${clubColor.bg} ${clubColor.text} ${clubColor.border} ${clubColor.hover} transition-colors cursor-pointer shadow-sm overflow-hidden`}
                         onClick={(e) => {
                           e.stopPropagation()
                           onReservationSelect && onReservationSelect(reservation)
                         }}
                       >
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-1.5 flex-1">
+                        <div className="flex items-center justify-between gap-1">
+                          <div className="flex items-center gap-1 flex-1 min-w-0">
                             <img
                               src={`/api/clubs/${reservation.club_id}/image`}
                               alt={reservation.club_name || 'Club logo'}
-                              className="h-4 w-4 rounded-full object-cover"
+                              className="h-4 w-4 flex-shrink-0 rounded-full object-cover"
                               onError={(e) => {
                                 e.currentTarget.src = '/default-club-image.png'
                               }}
                             />
                             <span className="font-medium truncate">{reservation.title}</span>
                           </div>
-                          <div className={`h-3 w-3 rounded-full ${
+                          <div className={`h-3 w-3 flex-shrink-0 rounded-full ${
                             reservation.status === 'approved' ? 'bg-green-500' :
                             reservation.status === 'pending' ? 'bg-yellow-500' :
                             'bg-red-500'
                           }`}></div>
                         </div>
-                        <div className="text-xs opacity-80 mt-0.5">{formatTime(reservation.start_time, reservation)}</div>
+                        {zoomLevel !== 'compact' && (
+                          <div className="text-xs opacity-80 mt-0.5 truncate">{formatTime(reservation.start_time, reservation)}</div>
+                        )}
                       </div>
                     </TooltipTrigger>
                     <TooltipContent className="p-3 max-w-xs">
@@ -281,13 +345,41 @@ export function BigCalendar({
               )
             })}
             
-            {dayReservations.length > 3 && (
+            {dayReservations.length > getMaxReservations() && (
               <div className="text-xs text-center py-1 bg-gray-100 dark:bg-gray-800 rounded-md cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
                 onClick={(e) => {
                   e.stopPropagation()
-                  onDateSelect && onDateSelect(day)
+                  // Create a dialog or popover to show all reservations for this day
+                  const allReservationsForDay = dayReservations.map(reservation => {
+                    return (
+                      <div 
+                        key={reservation.id}
+                        className="p-2 border-b last:border-b-0 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
+                        onClick={() => onReservationSelect && onReservationSelect(reservation)}
+                      >
+                        <div className="flex items-center gap-2">
+                          <div className={`h-3 w-3 rounded-full ${
+                            reservation.status === 'approved' ? 'bg-green-500' :
+                            reservation.status === 'pending' ? 'bg-yellow-500' :
+                            'bg-red-500'
+                          }`}></div>
+                          <div className="font-medium">{reservation.title}</div>
+                        </div>
+                        <div className="text-xs text-gray-500 mt-1">
+                          {reservation.is_full_day 
+                            ? "Full Day" 
+                            : formatTime(reservation.start_time, reservation)}
+                          {' • '}
+                          {reservation.space_name || 'No location'}
+                        </div>
+                      </div>
+                    )
+                  })
+                  
+                  // Show a dialog with all reservations
+                  openDayReservationsDialog(day, dayReservations)
                 }}>
-                +{dayReservations.length - 3} more
+                +{dayReservations.length - getMaxReservations()} more
               </div>
             )}
           </div>
@@ -362,7 +454,7 @@ export function BigCalendar({
           </div>
 
           {/* Reservations */}
-          <div className="p-2 space-y-2 min-h-[100px] md:min-h-[400px]">
+          <div className={`p-2 space-y-2 ${getWeekCellHeight()}`}>
             {dayReservations.map(reservation => {
               const clubColor = getClubColor(reservation.club_id)
               const statusColor = getStatusColor(reservation.status)
@@ -373,18 +465,18 @@ export function BigCalendar({
                     <TooltipTrigger asChild>
                       <div 
                         className={`
-                          p-2.5 rounded-md border shadow-sm 
+                          p-2 rounded-md border shadow-sm 
                           ${clubColor.bg} ${clubColor.text} ${clubColor.border} ${clubColor.hover} 
                           transition-colors cursor-pointer text-sm
                         `}
                         onClick={() => onReservationSelect && onReservationSelect(reservation)}
                       >
                         <div className="flex items-start justify-between gap-2">
-                          <div className="flex items-center gap-2 flex-1">
+                          <div className="flex items-center gap-2 flex-1 min-w-0">
                             <img
                               src={`/api/clubs/${reservation.club_id}/image`}
                               alt={reservation.club_name || 'Club logo'}
-                              className="h-5 w-5 rounded-full object-cover"
+                              className="h-5 w-5 flex-shrink-0 rounded-full object-cover"
                               onError={(e) => {
                                 e.currentTarget.src = '/default-club-image.png'
                               }}
@@ -393,20 +485,22 @@ export function BigCalendar({
                               {reservation.title || 'Untitled'}
                             </div>
                           </div>
-                          <div className={`h-4 w-4 rounded-full ${
+                          <div className={`h-4 w-4 flex-shrink-0 rounded-full ${
                             reservation.status === 'approved' ? 'bg-green-500' :
                             reservation.status === 'pending' ? 'bg-yellow-500' :
                             'bg-red-500'
                           }`}></div>
                         </div>
                         <div className="mt-1.5 text-xs space-y-1 opacity-90">
-                          <div className="font-medium">
+                          <div className="font-medium truncate">
                             {reservation.is_full_day 
                               ? "Full Day" 
                               : `${formatTime(reservation.start_time, reservation)} - ${formatTime(reservation.end_time, reservation)}`}
                           </div>
                           <div className="truncate">{reservation.space_name || 'No location'}</div>
-                          <div className="truncate opacity-75">{reservation.club_name || 'Unknown Club'}</div>
+                          {zoomLevel !== 'compact' && (
+                            <div className="truncate opacity-75">{reservation.club_name || 'Unknown Club'}</div>
+                          )}
                         </div>
                       </div>
                     </TooltipTrigger>
@@ -459,6 +553,24 @@ export function BigCalendar({
         </div>
       </div>
     )
+  }
+
+  // Function to open the day reservations dialog
+  const openDayReservationsDialog = (day: Date, reservations: Reservation[]) => {
+    setDayReservationsDialog({
+      isOpen: true,
+      date: day,
+      reservations: reservations
+    })
+  }
+
+  // Function to close the day reservations dialog
+  const closeDayReservationsDialog = () => {
+    setDayReservationsDialog({
+      isOpen: false,
+      date: null,
+      reservations: []
+    })
   }
 
   return (
@@ -521,6 +633,41 @@ export function BigCalendar({
             >
               Today
             </Button>
+            
+            {/* Zoom controls */}
+            <div className="hidden sm:flex items-center gap-1 ml-2 border-l pl-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={zoomOut}
+                disabled={zoomLevel === 'compact'}
+                className="h-8 w-8"
+                title="Zoom out"
+              >
+                <ZoomOut className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={resetZoom}
+                className="h-8 w-8"
+                title="Reset zoom"
+              >
+                {zoomLevel === 'compact' ? <Maximize className="h-4 w-4" /> : 
+                 zoomLevel === 'expanded' ? <Minimize className="h-4 w-4" /> : 
+                 <span className="text-xs">100%</span>}
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={zoomIn}
+                disabled={zoomLevel === 'expanded'}
+                className="h-8 w-8"
+                title="Zoom in"
+              >
+                <ZoomIn className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </div>
         
@@ -544,8 +691,7 @@ export function BigCalendar({
             </h3>
             <div className="flex flex-wrap gap-2">
               {clubs.map(club => {
-                const colorIndex = club.color as unknown as number;
-                const color = clubColors[colorIndex];
+                const color = getClubColor(club.id);
                 return (
                   <Badge key={club.id} className={`${color.bg} ${color.text} ${color.border}`}>
                     {club.name}
@@ -570,6 +716,73 @@ export function BigCalendar({
           </div>
         </div>
       </CardContent>
+
+      {/* Day Reservations Dialog */}
+      <Dialog open={dayReservationsDialog.isOpen} onOpenChange={(open) => !open && closeDayReservationsDialog()}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center justify-between">
+              <span>
+                {dayReservationsDialog.date && format(dayReservationsDialog.date, 'MMMM d, yyyy')} Reservations
+              </span>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="h-6 w-6 rounded-full" 
+                onClick={closeDayReservationsDialog}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </DialogTitle>
+            <DialogDescription>
+              {dayReservationsDialog.reservations.length} reservations for this day
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[60vh] overflow-y-auto">
+            {dayReservationsDialog.reservations.map(reservation => {
+              const clubColor = getClubColor(reservation.club_id)
+              return (
+                <div 
+                  key={reservation.id}
+                  className="p-3 border-b last:border-b-0 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                  onClick={() => {
+                    onReservationSelect && onReservationSelect(reservation)
+                    closeDayReservationsDialog()
+                  }}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <img
+                        src={`/api/clubs/${reservation.club_id}/image`}
+                        alt={reservation.club_name || 'Club logo'}
+                        className="h-6 w-6 flex-shrink-0 rounded-full object-cover"
+                        onError={(e) => {
+                          e.currentTarget.src = '/default-club-image.png'
+                        }}
+                      />
+                      <div>
+                        <div className="font-medium truncate">{reservation.title}</div>
+                        <div className="text-xs text-gray-500 flex items-center gap-2">
+                          <span>{reservation.club_name}</span>
+                          <span>•</span>
+                          <span>{reservation.is_full_day ? "Full Day" : formatTime(reservation.start_time, reservation)}</span>
+                          <span>•</span>
+                          <span>{reservation.space_name || 'No location'}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className={`h-3 w-3 flex-shrink-0 rounded-full ${
+                      reservation.status === 'approved' ? 'bg-green-500' :
+                      reservation.status === 'pending' ? 'bg-yellow-500' :
+                      'bg-red-500'
+                    }`}></div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>
   )
 } 

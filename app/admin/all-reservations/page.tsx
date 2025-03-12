@@ -108,12 +108,13 @@ const styles = StyleSheet.create({
     borderBottom: 1,
     borderColor: '#E0E0E0',
     padding: 2,
-    minHeight: 30,
+    minHeight: 60,
   },
   dayNumber: {
     fontSize: 8,
     textAlign: 'right',
     marginRight: 2,
+    marginBottom: 2,
   },
   eventContainer: {
     backgroundColor: 'rgba(255, 107, 0, 0.1)',
@@ -122,11 +123,8 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   eventText: {
-    fontSize: 7,
+    fontSize: 5,
     color: '#1B1464',
-    overflow: 'hidden',
-    whiteSpace: 'nowrap',
-    textOverflow: 'ellipsis',
   },
   footer: {
     position: 'absolute',
@@ -137,6 +135,15 @@ const styles = StyleSheet.create({
     fontSize: 8,
     color: '#888',
   },
+  approvedEvent: {
+    backgroundColor: 'rgba(34, 197, 94, 0.1)',
+  },
+  pendingEvent: {
+    backgroundColor: 'rgba(234, 179, 8, 0.1)',
+  },
+  rejectedEvent: {
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+  },
 });
 
 // PDF Calendar Component
@@ -146,9 +153,23 @@ const CalendarPDF = ({ reservations, year }: { reservations: Reservation[], year
     new Date(res.start_time).getFullYear() === year
   );
 
+  // Helper function to get event background color based on status
+  const getEventStyle = (status: string) => {
+    switch(status) {
+      case 'approved':
+        return styles.approvedEvent;
+      case 'pending':
+        return styles.pendingEvent;
+      case 'rejected':
+        return styles.rejectedEvent;
+      default:
+        return styles.eventContainer;
+    }
+  };
+
   return (
     <Document>
-      <Page size="A4" style={styles.page}>
+      <Page size="A4" orientation="landscape" style={styles.page}>
         {/* Header */}
         <View style={styles.header}>
           <Image src="/public/images/ade-logo.svg" style={styles.logo} />
@@ -183,18 +204,13 @@ const CalendarPDF = ({ reservations, year }: { reservations: Reservation[], year
                   return (
                     <View key={format(day, 'dd-MM-yyyy')} style={styles.dayCell}>
                       <Text style={styles.dayNumber}>{format(day, 'd')}</Text>
-                      {dayReservations.slice(0, 2).map((res, index) => (
-                        <View key={index} style={styles.eventContainer}>
+                      {dayReservations.map((res, index) => (
+                        <View key={index} style={[styles.eventContainer, getEventStyle(res.status)]}>
                           <Text style={styles.eventText}>
                             {res.club_name}: {res.title}
                           </Text>
                         </View>
                       ))}
-                      {dayReservations.length > 2 && (
-                        <Text style={styles.eventText}>
-                          +{dayReservations.length - 2} more
-                        </Text>
-                      )}
                     </View>
                   );
                 })}
