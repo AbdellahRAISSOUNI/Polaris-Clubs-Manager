@@ -177,7 +177,7 @@ export default function LandingPage() {
                 <div className="relative h-12 w-auto">
                   <img src="/images/polaris-logo.png" alt="ADE ENSA Tetouan" className="h-full w-auto" style={{ minWidth: '120px' }} />
                 </div>
-                <div className="text-xl font-bold text-gray-900 dark:text-white">ADE ENSA Tetouan</div>
+                <div className="text-xl font-extrabold text-[#1B1464] dark:text-white">ADE <span className="text-[#FF6B00]">ENSA Tetouan</span></div>
               </div>
               <div className="hidden md:flex items-center space-x-6">
                 <button 
@@ -311,34 +311,38 @@ export default function LandingPage() {
         <div className="absolute inset-0 overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-full">
             <div 
-              className="absolute -top-20 -left-20 w-96 h-96 bg-blue-200/40 dark:bg-blue-500/20 rounded-full blur-3xl animate-pulse"
+              className="absolute -top-20 -left-20 w-96 h-96 bg-blue-200/40 dark:bg-blue-500/20 rounded-full blur-3xl"
               style={{
                 transform: `translate(${mousePosition.x * 20}px, ${mousePosition.y * 20}px) rotate(${mousePosition.x * 360}deg)`,
-                transition: 'transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)'
+                transition: 'transform 1s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                animation: 'slowPulse 12s ease-in-out infinite'
               }}
             ></div>
             <div 
-              className="absolute top-1/3 right-20 w-[30rem] h-[30rem] bg-indigo-200/40 dark:bg-indigo-500/20 rounded-full blur-3xl animate-pulse"
+              className="absolute top-1/3 right-20 w-[30rem] h-[30rem] bg-indigo-200/40 dark:bg-indigo-500/20 rounded-full blur-3xl"
               style={{
                 transform: `translate(${-mousePosition.x * 30}px, ${-mousePosition.y * 30}px) rotate(${-mousePosition.y * 360}deg)`,
-                transition: 'transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)',
-                animationDelay: '1s'
+                transition: 'transform 1s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                animation: 'slowPulse 12s ease-in-out infinite',
+                animationDelay: '3s'
               }}
             ></div>
             <div 
-              className="absolute bottom-20 left-1/3 w-[25rem] h-[25rem] bg-purple-200/40 dark:bg-purple-500/20 rounded-full blur-3xl animate-pulse"
+              className="absolute bottom-20 left-1/3 w-[25rem] h-[25rem] bg-purple-200/40 dark:bg-purple-500/20 rounded-full blur-3xl"
               style={{
                 transform: `translate(${mousePosition.x * 25}px, ${-mousePosition.y * 25}px) scale(${1 + mousePosition.x * 0.2})`,
-                transition: 'transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)',
-                animationDelay: '2s'
+                transition: 'transform 1s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                animation: 'slowPulse 12s ease-in-out infinite',
+                animationDelay: '6s'
               }}
             ></div>
             <div 
-              className="absolute top-1/2 left-1/2 w-[20rem] h-[20rem] bg-cyan-200/30 dark:bg-cyan-500/10 rounded-full blur-3xl animate-pulse"
+              className="absolute top-1/2 left-1/2 w-[20rem] h-[20rem] bg-cyan-200/30 dark:bg-cyan-500/10 rounded-full blur-3xl"
               style={{
-                transform: `translate(-50%, -50%) scale(${1 + (Math.sin(Date.now() / 2000) + 1) / 4})`,
-                transition: 'transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)',
-                animationDelay: '3s'
+                transform: `translate(-50%, -50%) scale(${1 + (Math.sin(Date.now() / 4000) + 1) / 8})`,
+                transition: 'transform 1s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                animation: 'slowPulse 12s ease-in-out infinite',
+                animationDelay: '9s'
               }}
             ></div>
           </div>
@@ -435,12 +439,12 @@ export default function LandingPage() {
               <div className="flex justify-center mb-8">
                 <img src="/images/polaris-logo.png" alt="ADE ENSA Tetouan" className="h-24 w-auto" />
                 </div>
-              <h1 className="text-4xl lg:text-6xl font-bold leading-tight text-[#1B1464] text-center">
+              <h1 className="text-4xl lg:text-6xl font-extrabold leading-tight text-[#1B1464] text-center">
                 Clubs Manager
                 <br />
                 <span className="text-[#FF6B00]">ENSA Tetouan</span>
               </h1>
-              <p className="text-xl text-gray-700 dark:text-gray-300 max-w-lg text-center mx-auto">
+              <p className="text-xl font-semibold text-gray-700 dark:text-gray-300 max-w-lg text-center mx-auto">
                 Experience the future of club space management with AI-powered scheduling, real-time analytics, and seamless collaboration tools.
               </p>
               <div className="flex flex-col sm:flex-row items-center gap-4">
@@ -494,90 +498,151 @@ export default function LandingPage() {
 
             <div className={`relative transition-all duration-1000 delay-500 transform ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
               <div className="relative animate-[float_6s_ease-in-out_infinite]">
-                <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-lg blur opacity-30 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-pulse"></div>
-                <Card className="relative bg-gray-900/50 backdrop-blur-xl border-blue-900/50 p-6 rounded-lg overflow-hidden">
+                <div className="absolute -inset-0.5 bg-gradient-to-r from-[#1B1464] to-[#FF6B00] rounded-lg blur opacity-30 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-pulse"></div>
+                <Card className="relative bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-[#1B1464]/20 dark:border-[#FF6B00]/20 p-6 rounded-lg overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300">
                   <Tabs defaultValue="features" className="w-full">
-                    <TabsList className="w-full bg-gray-900/50 border border-blue-900/50">
-                      <TabsTrigger value="features" className="flex-1 data-[state=active]:bg-blue-500/20">Features</TabsTrigger>
-                      <TabsTrigger value="analytics" className="flex-1 data-[state=active]:bg-purple-500/20">Analytics</TabsTrigger>
-                      <TabsTrigger value="calendar" className="flex-1 data-[state=active]:bg-green-500/20">Calendar</TabsTrigger>
+                    <TabsList className="w-full bg-gray-100/50 dark:bg-gray-800/50 border border-[#1B1464]/20 dark:border-[#FF6B00]/20 rounded-lg mb-4">
+                      <TabsTrigger 
+                        value="features" 
+                        className="flex-1 data-[state=active]:bg-[#1B1464] data-[state=active]:text-white dark:data-[state=active]:bg-[#FF6B00] dark:data-[state=active]:text-white transition-all duration-300"
+                      >
+                        Features
+                      </TabsTrigger>
+                      <TabsTrigger 
+                        value="analytics" 
+                        className="flex-1 data-[state=active]:bg-[#1B1464] data-[state=active]:text-white dark:data-[state=active]:bg-[#FF6B00] dark:data-[state=active]:text-white transition-all duration-300"
+                      >
+                        Analytics
+                      </TabsTrigger>
+                      <TabsTrigger 
+                        value="calendar" 
+                        className="flex-1 data-[state=active]:bg-[#1B1464] data-[state=active]:text-white dark:data-[state=active]:bg-[#FF6B00] dark:data-[state=active]:text-white transition-all duration-300"
+                      >
+                        Calendar
+                      </TabsTrigger>
                     </TabsList>
-                    <TabsContent value="features" className="mt-4">
+
+                    <TabsContent value="features" className="mt-4 space-y-4">
+                      {features.map((feature, index) => (
+                        <div
+                          key={index}
+                          className={`group p-4 rounded-lg transition-all duration-500 transform hover:scale-105 cursor-pointer ${
+                            activeFeature === index
+                              ? 'bg-gradient-to-r from-[#1B1464] to-[#FF6B00] text-white'
+                              : 'bg-gray-50 dark:bg-gray-800/50 hover:bg-[#1B1464]/10 dark:hover:bg-[#FF6B00]/10'
+                          }`}
+                          onClick={() => setActiveFeature(index)}
+                        >
+                          <div className="flex items-start space-x-4">
+                            <div className={`p-2 rounded-lg ${
+                              activeFeature === index 
+                                ? 'bg-white/20' 
+                                : 'bg-[#1B1464]/10 dark:bg-[#FF6B00]/10'
+                            }`}>
+                              <feature.icon className={`h-6 w-6 ${
+                                activeFeature === index 
+                                  ? 'text-white' 
+                                  : 'text-[#1B1464] dark:text-[#FF6B00]'
+                              }`} />
+                            </div>
+                            <div>
+                              <h3 className={`font-semibold ${
+                                activeFeature === index 
+                                  ? 'text-white' 
+                                  : 'text-[#1B1464] dark:text-white'
+                              }`}>{feature.title}</h3>
+                              <p className={`text-sm ${
+                                activeFeature === index 
+                                  ? 'text-white/90' 
+                                  : 'text-gray-600 dark:text-gray-300'
+                              }`}>{feature.description}</p>
+                            </div>
+                            <CheckCircle2 className={`h-5 w-5 ml-auto ${
+                              activeFeature === index 
+                                ? 'opacity-100 text-white' 
+                                : 'opacity-0 group-hover:opacity-50 text-[#1B1464] dark:text-[#FF6B00]'
+                            } transition-all duration-300`} />
+                          </div>
+                        </div>
+                      ))}
+                    </TabsContent>
+
+                    <TabsContent value="analytics" className="mt-4 space-y-4">
                       <div className="space-y-4">
-                        {features.map((feature, index) => (
-                          <div
-                            key={index}
-                            className={`p-4 rounded-lg transition-all duration-500 transform ${
-                              activeFeature === index
-                                ? 'bg-gradient-to-r ' + feature.color + ' scale-105'
-                                : 'bg-gray-800/50 hover:bg-gray-800/80'
-                            }`}
-                          >
-                            <div className="flex items-start space-x-4">
-                              <div className="p-2 rounded-lg bg-white/10">
-                                <feature.icon className="h-6 w-6" />
-                              </div>
-                              <div>
-                                <h3 className="font-semibold">{feature.title}</h3>
-                                <p className="text-sm text-gray-300">{feature.description}</p>
-                              </div>
-                              <CheckCircle2 className={`h-5 w-5 ml-auto ${
-                                activeFeature === index ? 'opacity-100' : 'opacity-0'
-                              } transition-opacity duration-300`} />
-                            </div>
+                        <div className="h-[60px] bg-gray-50 dark:bg-gray-800/50 rounded-lg flex items-center justify-between px-4 hover:bg-[#1B1464]/10 dark:hover:bg-[#FF6B00]/10 transition-all duration-300 group cursor-pointer">
+                          <div className="flex flex-col">
+                            <span className="text-xs text-gray-500 dark:text-gray-400">Total Bookings</span>
+                            <span className="font-bold text-lg text-[#1B1464] dark:text-[#FF6B00] group-hover:scale-110 transition-transform duration-300">1,248</span>
                           </div>
-                        ))}
+                          <div className="h-12 w-24 flex items-end space-x-1">
+                            {[4, 6, 8, 5, 10, 7, 12].map((height, i) => (
+                              <div 
+                                key={i}
+                                className="w-2 bg-gradient-to-t from-[#1B1464] to-[#FF6B00] dark:from-[#FF6B00] dark:to-[#1B1464] rounded-t group-hover:animate-bounce"
+                                style={{ 
+                                  height: `${height / 12 * 100}%`,
+                                  animationDelay: `${i * 0.1}s`
+                                }}
+                              ></div>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="h-[60px] bg-gray-50 dark:bg-gray-800/50 rounded-lg flex items-center justify-between px-4 hover:bg-[#1B1464]/10 dark:hover:bg-[#FF6B00]/10 transition-all duration-300 group cursor-pointer">
+                          <div className="flex flex-col">
+                            <span className="text-xs text-gray-500 dark:text-gray-400">Active Members</span>
+                            <span className="font-bold text-lg text-[#1B1464] dark:text-[#FF6B00] group-hover:scale-110 transition-transform duration-300">342</span>
+                          </div>
+                          <div className="relative h-12 w-12">
+                            <svg className="transform -rotate-90 w-12 h-12">
+                              <circle
+                                className="text-gray-200 dark:text-gray-700"
+                                strokeWidth="2"
+                                stroke="currentColor"
+                                fill="transparent"
+                                r="20"
+                                cx="24"
+                                cy="24"
+                              />
+                              <circle
+                                className="text-[#1B1464] dark:text-[#FF6B00] transition-all duration-300"
+                                strokeWidth="2"
+                                strokeDasharray={125.6}
+                                strokeDashoffset={125.6 * (1 - 0.75)}
+                                strokeLinecap="round"
+                                stroke="currentColor"
+                                fill="transparent"
+                                r="20"
+                                cx="24"
+                                cy="24"
+                              />
+                            </svg>
+                            <span className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-xs font-bold text-[#1B1464] dark:text-[#FF6B00]">
+                              +24%
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="h-[60px] bg-gray-50 dark:bg-gray-800/50 rounded-lg flex items-center justify-between px-4 hover:bg-[#1B1464]/10 dark:hover:bg-[#FF6B00]/10 transition-all duration-300 group cursor-pointer">
+                          <div className="flex flex-col">
+                            <span className="text-xs text-gray-500 dark:text-gray-400">Space Utilization</span>
+                            <span className="font-bold text-lg text-[#1B1464] dark:text-[#FF6B00] group-hover:scale-110 transition-transform duration-300">87%</span>
+                          </div>
+                          <div className="h-2 w-24 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                            <div 
+                              className="h-full bg-gradient-to-r from-[#1B1464] to-[#FF6B00] rounded-full group-hover:animate-pulse"
+                              style={{ width: '87%' }}
+                            ></div>
+                          </div>
+                        </div>
                       </div>
                     </TabsContent>
-                    <TabsContent value="analytics" className="mt-4">
-                      <div className="space-y-4 p-2">
-                        <div className="h-[60px] bg-gray-800/70 rounded-lg flex items-center justify-between px-4">
-                          <div className="flex flex-col">
-                            <span className="text-xs text-gray-400">Total Bookings</span>
-                            <span className="font-bold text-lg">1,248</span>
-                          </div>
-                          <div className="h-12 w-24 flex items-end">
-                            <div className="h-4 w-2 bg-purple-500 rounded-t mx-0.5"></div>
-                            <div className="h-6 w-2 bg-purple-500 rounded-t mx-0.5"></div>
-                            <div className="h-8 w-2 bg-purple-500 rounded-t mx-0.5"></div>
-                            <div className="h-5 w-2 bg-purple-500 rounded-t mx-0.5"></div>
-                            <div className="h-10 w-2 bg-purple-500 rounded-t mx-0.5"></div>
-                            <div className="h-7 w-2 bg-purple-500 rounded-t mx-0.5"></div>
-                            <div className="h-12 w-2 bg-purple-500 rounded-t mx-0.5"></div>
-                          </div>
-                        </div>
-                        <div className="h-[60px] bg-gray-800/70 rounded-lg flex items-center justify-between px-4">
-                          <div className="flex flex-col">
-                            <span className="text-xs text-gray-400">Active Members</span>
-                            <span className="font-bold text-lg">342</span>
-                          </div>
-                          <div className="h-12 w-24 flex items-center">
-                            <div className="h-12 w-12 rounded-full border-4 border-purple-500 flex items-center justify-center">
-                              <span className="text-xs font-bold">+24%</span>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="h-[60px] bg-gray-800/70 rounded-lg flex items-center justify-between px-4">
-                          <div className="flex flex-col">
-                            <span className="text-xs text-gray-400">Space Utilization</span>
-                            <span className="font-bold text-lg">87%</span>
-                          </div>
-                          <div className="h-2 w-24 bg-gray-700 rounded-full overflow-hidden">
-                            <div className="h-full w-[87%] bg-gradient-to-r from-purple-500 to-pink-500 rounded-full"></div>
-                          </div>
-                        </div>
-                        <div className="flex justify-center mt-4">
-                          <Button variant="outline" size="sm" className="text-xs border-purple-500 text-purple-400">
-                            View Full Report
-                          </Button>
-                        </div>
-                      </div>
-                    </TabsContent>
+
                     <TabsContent value="calendar" className="mt-4">
                       <div className="space-y-4">
                         <div className="grid grid-cols-7 gap-1 text-center text-xs">
                           {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, i) => (
-                            <div key={i} className="py-1 text-gray-400">{day}</div>
+                            <div key={i} className="py-1 text-gray-500 dark:text-gray-400 font-medium">{day}</div>
                           ))}
                           {[...Array(31)].map((_, i) => {
                             const isToday = i === 14;
@@ -585,34 +650,50 @@ export default function LandingPage() {
                             return (
                               <div 
                                 key={i} 
-                                className={`py-2 rounded-md ${
+                                className={`py-2 rounded-md cursor-pointer transition-all duration-300 hover:scale-110 ${
                                   isToday 
-                                    ? 'bg-green-500 text-white font-bold' 
+                                    ? 'bg-[#1B1464] dark:bg-[#FF6B00] text-white font-bold' 
                                     : hasEvent 
-                                      ? 'bg-gray-800 text-white' 
-                                      : 'text-gray-500'
+                                      ? 'bg-[#1B1464]/10 dark:bg-[#FF6B00]/10 text-[#1B1464] dark:text-[#FF6B00]' 
+                                      : 'text-gray-600 dark:text-gray-400 hover:bg-[#1B1464]/5 dark:hover:bg-[#FF6B00]/5'
                                 }`}
                               >
                                 {i + 1}
-                                {hasEvent && <div className="w-1 h-1 bg-green-400 rounded-full mx-auto mt-1"></div>}
+                                {hasEvent && (
+                                  <div className={`w-1 h-1 mx-auto mt-1 rounded-full ${
+                                    isToday 
+                                      ? 'bg-white' 
+                                      : 'bg-[#1B1464] dark:bg-[#FF6B00]'
+                                  }`}></div>
+                                )}
                               </div>
                             );
                           })}
                         </div>
                         <div className="space-y-2 mt-4">
-                          <div className="bg-gray-800/70 p-2 rounded-md flex items-center space-x-2">
-                            <div className="w-2 h-full bg-green-500 rounded-full"></div>
+                          <div className="bg-gray-50 dark:bg-gray-800/50 p-3 rounded-md flex items-center space-x-3 hover:bg-[#1B1464]/10 dark:hover:bg-[#FF6B00]/10 transition-all duration-300 cursor-pointer group">
+                            <div className="w-1 h-full self-stretch bg-[#1B1464] dark:bg-[#FF6B00] rounded-full group-hover:scale-y-110 transition-transform duration-300"></div>
                             <div>
-                              <div className="text-xs font-medium">Tech Club Meeting</div>
-                              <div className="text-xs text-gray-400">Room A101 • 2:00 PM</div>
+                              <div className="text-sm font-medium text-[#1B1464] dark:text-[#FF6B00]">Tech Club Meeting</div>
+                              <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center space-x-2">
+                                <span>Room A101</span>
+                                <span>•</span>
+                                <span>2:00 PM</span>
+                              </div>
                             </div>
+                            <ChevronRight className="h-4 w-4 ml-auto text-gray-400 group-hover:text-[#1B1464] dark:group-hover:text-[#FF6B00] transform group-hover:translate-x-1 transition-all duration-300" />
                           </div>
-                          <div className="bg-gray-800/70 p-2 rounded-md flex items-center space-x-2">
-                            <div className="w-2 h-full bg-blue-500 rounded-full"></div>
+                          <div className="bg-gray-50 dark:bg-gray-800/50 p-3 rounded-md flex items-center space-x-3 hover:bg-[#1B1464]/10 dark:hover:bg-[#FF6B00]/10 transition-all duration-300 cursor-pointer group">
+                            <div className="w-1 h-full self-stretch bg-[#1B1464] dark:bg-[#FF6B00] rounded-full group-hover:scale-y-110 transition-transform duration-300"></div>
                             <div>
-                              <div className="text-xs font-medium">Debate Tournament</div>
-                              <div className="text-xs text-gray-400">Auditorium • 4:30 PM</div>
+                              <div className="text-sm font-medium text-[#1B1464] dark:text-[#FF6B00]">Debate Tournament</div>
+                              <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center space-x-2">
+                                <span>Auditorium</span>
+                                <span>•</span>
+                                <span>4:30 PM</span>
+                              </div>
                             </div>
+                            <ChevronRight className="h-4 w-4 ml-auto text-gray-400 group-hover:text-[#1B1464] dark:group-hover:text-[#FF6B00] transform group-hover:translate-x-1 transition-all duration-300" />
                           </div>
                         </div>
                       </div>
@@ -633,7 +714,7 @@ export default function LandingPage() {
         <div className="container mx-auto px-4 relative z-10">
           <div className="text-center max-w-3xl mx-auto mb-16">
             <Badge variant="outline" className="mb-4 border-blue-500 dark:border-blue-400 text-blue-600 dark:text-blue-400">Polaris Features</Badge>
-            <h2 className="text-4xl md:text-5xl font-bold mb-6 text-gray-900 dark:text-white">Everything you need to manage your club</h2>
+            <h2 className="text-4xl md:text-5xl font-extrabold mb-6 text-gray-900 dark:text-white">Everything you need to manage your club</h2>
             <p className="text-xl text-gray-600 dark:text-gray-400">
               Powerful tools designed to streamline your club's operations and enhance member engagement
             </p>
@@ -696,7 +777,7 @@ export default function LandingPage() {
         <div className="container mx-auto px-4">
           <div className="text-center max-w-3xl mx-auto mb-16">
             <Badge variant="outline" className="mb-4 border-blue-500 dark:border-blue-400 text-blue-600 dark:text-blue-400">Polaris Testimonials</Badge>
-            <h2 className="text-4xl font-bold mb-6 text-gray-900 dark:text-white">Loved by club leaders</h2>
+            <h2 className="text-4xl font-extrabold mb-6 text-gray-900 dark:text-white">Loved by club leaders</h2>
             <p className="text-xl text-gray-600 dark:text-gray-400">
               See what other club leaders are saying about ADE ENSA Tetouan
             </p>
@@ -812,8 +893,8 @@ export default function LandingPage() {
                     Your Journey Begins Here
                   </Badge>
                   
-                  <h2 className="text-3xl md:text-4xl font-bold mb-4 text-gray-900 dark:text-white">
-                    Navigate Your Club's Future with ADE ENSA Tetouan
+                  <h2 className="text-3xl md:text-4xl font-extrabold mb-4 text-gray-900 dark:text-white">
+                    Navigate Your Club's Future with <span className="text-[#FF6B00]">ENSA Tetouan</span>
                   </h2>
                   
                   <p className="text-gray-700 dark:text-blue-200 mb-6">
@@ -846,7 +927,7 @@ export default function LandingPage() {
                     
                     <Button 
                       variant="outline" 
-                      className="border-blue-500 dark:border-blue-400/50 text-blue-600 dark:text-blue-300 hover:text-blue-700 dark:hover:text-white hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-all duration-300"
+                      className="border-blue-500 dark:border-blue-400/50 text-blue-600 dark:text-blue-300 hover:text-white hover:border-transparent transition-all duration-300 group"
                       onClick={() => scrollToSection('features')}
                       onMouseEnter={handleButtonHover}
                       onMouseLeave={handleButtonLeave}
@@ -958,9 +1039,10 @@ export default function LandingPage() {
         
         {/* Add animations */}
         <style jsx global>{`
-          @keyframes shimmer {
-            0% { transform: translateX(-100%); }
-            100% { transform: translateX(100%); }
+          @keyframes slowPulse {
+            0% { opacity: 0.2; }
+            50% { opacity: 0.4; }
+            100% { opacity: 0.2; }
           }
           
           @keyframes spin {
@@ -970,7 +1052,7 @@ export default function LandingPage() {
           
           @keyframes pulse {
             0%, 100% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(1.1); opacity: 0.8; }
+            50% { transform: scale(1.05); opacity: 0.8; }
           }
           
           @keyframes orbit {
@@ -980,7 +1062,7 @@ export default function LandingPage() {
           
           @keyframes twinkle {
             0%, 100% { opacity: 0.2; }
-            50% { opacity: 0.8; }
+            50% { opacity: 0.4; }
           }
         `}</style>
       </section>
@@ -995,8 +1077,8 @@ export default function LandingPage() {
                   <img src="/images/polaris-logo.png" alt="ADE ENSA Tetouan" className="h-full w-auto" style={{ minWidth: '120px' }} />
                 </div>
               </div>
-              <p className="text-sm text-[#1B1464] dark:text-gray-300">
-                Empowering student clubs and activities at ENSA Tetouan through innovative space management and collaboration tools.
+              <p className="text-sm font-semibold text-[#1B1464] dark:text-gray-300">
+                Empowering student clubs and activities at <span className="text-[#FF6B00]">ENSA Tetouan</span> through innovative space management and collaboration tools.
               </p>
               <div className="flex space-x-4">
                 <Link 
