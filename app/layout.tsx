@@ -7,15 +7,14 @@ import { Providers } from "./providers"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: 'Polaris Clubs Manager | Smart Club Management for Universities',
-  description: 'Polaris Clubs Manager - The ultimate platform for university clubs to manage spaces, schedule events, and collaborate seamlessly.',
+  title: 'ADE ENSA Tetouan | Smart Club Management',
+  description: 'ADE ENSA Tetouan - The ultimate platform for managing club spaces, scheduling events, and collaborating seamlessly.',
   generator: 'v0.dev',
   icons: {
     icon: [
-      { url: '/favicon.ico', sizes: 'any' },
-      { url: '/favicon.svg', type: 'image/svg+xml' }
+      { url: '/images/polaris-logo.png', sizes: 'any' }
     ],
-    apple: { url: '/images/polaris-logo.svg', type: 'image/svg+xml' }
+    apple: { url: '/images/polaris-logo.png' }
   }
 }
 

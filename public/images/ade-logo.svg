@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 200">
+  <style>
+    .navy-text { fill: #1B1464; font-family: Arial, sans-serif; font-weight: bold; }
+    .orange-text { fill: #FF6B00; font-family: Arial, sans-serif; font-weight: bold; }
+  </style>
+  <path d="M50,100 L150,30 L250,100 L350,30 L450,100" stroke="#1B1464" stroke-width="30" fill="none" stroke-linejoin="round"/>
+  <text class="navy-text" x="100" y="150" font-size="48">ADE</text>
+  <text class="orange-text" x="250" y="150" font-size="24">ENSA TETOUAN</text>
+</svg> 

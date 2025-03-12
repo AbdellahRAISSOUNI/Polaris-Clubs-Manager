@@ -174,34 +174,32 @@ export default function LandingPage() {
           <div className="container mx-auto px-4">
             <div className="flex justify-between items-center">
               <div className="flex items-center space-x-2">
-                <div className="relative h-8 w-8">
-                  <img src="/images/polaris-logo.png" alt="Polaris Logo" className="h-8 w-8" />
+                <div className="relative h-12 w-auto">
+                  <img src="/images/polaris-logo.png" alt="ADE ENSA Tetouan" className="h-full w-auto" style={{ minWidth: '120px' }} />
                 </div>
-                <div className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent">
-                  Polaris Clubs Manager
-                </div>
+                <div className="text-xl font-bold text-gray-900 dark:text-white">ADE ENSA Tetouan</div>
               </div>
               <div className="hidden md:flex items-center space-x-6">
                 <button 
                   onClick={() => scrollToSection('features')} 
-                  className={`text-sm text-gray-700 dark:text-blue-100 hover:text-blue-700 dark:hover:text-white transition-colors relative group ${activeSection === 'features' ? 'text-blue-700 dark:text-white font-medium' : ''}`}
+                  className={`text-sm text-[#1B1464] dark:text-[#1B1464] hover:text-[#FF6B00] dark:hover:text-[#FF6B00] transition-colors relative group ${activeSection === 'features' ? 'text-[#FF6B00] dark:text-[#FF6B00] font-medium' : ''}`}
                 >
                   Features
-                  <div className={`absolute -bottom-1 left-0 w-full h-0.5 bg-blue-500 transform origin-left transition-transform duration-300 ${activeSection === 'features' ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100'}`}></div>
+                  <div className={`absolute -bottom-1 left-0 w-full h-0.5 bg-[#FF6B00] transform origin-left transition-transform duration-300 ${activeSection === 'features' ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100'}`}></div>
                 </button>
                 <button 
                   onClick={() => scrollToSection('testimonials')} 
-                  className={`text-sm text-gray-700 dark:text-blue-100 hover:text-blue-700 dark:hover:text-white transition-colors relative group ${activeSection === 'testimonials' ? 'text-blue-700 dark:text-white font-medium' : ''}`}
+                  className={`text-sm text-[#1B1464] dark:text-[#1B1464] hover:text-[#FF6B00] dark:hover:text-[#FF6B00] transition-colors relative group ${activeSection === 'testimonials' ? 'text-[#FF6B00] dark:text-[#FF6B00] font-medium' : ''}`}
                 >
                   Testimonials
-                  <div className={`absolute -bottom-1 left-0 w-full h-0.5 bg-blue-500 transform origin-left transition-transform duration-300 ${activeSection === 'testimonials' ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100'}`}></div>
+                  <div className={`absolute -bottom-1 left-0 w-full h-0.5 bg-[#FF6B00] transform origin-left transition-transform duration-300 ${activeSection === 'testimonials' ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100'}`}></div>
                 </button>
                 <button 
                   onClick={() => scrollToSection('contact')} 
-                  className={`text-sm text-gray-700 dark:text-blue-100 hover:text-blue-700 dark:hover:text-white transition-colors relative group ${activeSection === 'contact' ? 'text-blue-700 dark:text-white font-medium' : ''}`}
+                  className={`text-sm text-[#1B1464] dark:text-[#1B1464] hover:text-[#FF6B00] dark:hover:text-[#FF6B00] transition-colors relative group ${activeSection === 'contact' ? 'text-[#FF6B00] dark:text-[#FF6B00] font-medium' : ''}`}
                 >
                   Contact
-                  <div className={`absolute -bottom-1 left-0 w-full h-0.5 bg-blue-500 transform origin-left transition-transform duration-300 ${activeSection === 'contact' ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100'}`}></div>
+                  <div className={`absolute -bottom-1 left-0 w-full h-0.5 bg-[#FF6B00] transform origin-left transition-transform duration-300 ${activeSection === 'contact' ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100'}`}></div>
                 </button>
               </div>
               <div className="flex items-center space-x-3">
@@ -210,12 +208,9 @@ export default function LandingPage() {
                   asChild 
                   variant="outline" 
                   size="sm"
-                  className="border-blue-500 text-blue-600 dark:border-blue-400 dark:text-blue-400 hover:text-white hover:border-transparent hover:bg-gradient-to-r hover:from-blue-500 hover:to-indigo-600 transition-all duration-300 hidden md:inline-flex relative group overflow-hidden"
+                  className="border-[#1B1464] text-[#1B1464] hover:bg-[#1B1464] hover:text-white transition-all duration-300 hidden md:inline-flex"
                 >
-                  <Link href="/login" className="relative z-10">
-                    <span className="relative z-10">Login</span>
-                    <span className="absolute bottom-0 left-0 w-full h-[1px] bg-blue-500 dark:bg-blue-400 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left"></span>
-                  </Link>
+                  <Link href="/login">Login</Link>
                 </Button>
                 <Button 
                   variant="ghost" 
@@ -365,14 +360,10 @@ export default function LandingPage() {
           <nav className="flex justify-between items-center py-8 sticky top-0">
             <div className="flex items-center space-x-2 group cursor-pointer">
               <div className="relative">
-                <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full opacity-0 group-hover:opacity-70 blur-md transition-all duration-500 group-hover:duration-200"></div>
-                <div className="relative h-8 w-8 flex items-center justify-center">
-                  <Star className="h-8 w-8 text-blue-500 dark:text-blue-400 absolute transition-all duration-300 group-hover:scale-110 group-hover:rotate-12 group-hover:text-blue-400 dark:group-hover:text-blue-300 animate-[glow_3s_ease-in-out_infinite]" />
-                  <Sparkles className="h-4 w-4 text-indigo-400 dark:text-indigo-300 absolute transition-all duration-300 group-hover:scale-110 group-hover:text-indigo-300 dark:group-hover:text-indigo-200" />
+                <div className="absolute -inset-1 bg-gradient-to-r from-[#1B1464] to-[#FF6B00] rounded-full opacity-0 group-hover:opacity-70 blur-md transition-all duration-500 group-hover:duration-200"></div>
+                <div className="relative h-12 w-auto">
+                  <img src="/images/polaris-logo.png" alt="ADE ENSA Tetouan" className="h-full w-auto" style={{ minWidth: '120px' }} />
                 </div>
-              </div>
-              <div className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent group-hover:from-blue-500 group-hover:to-indigo-500 dark:group-hover:from-blue-300 dark:group-hover:to-indigo-300 transition-all">
-                Polaris Clubs Manager
               </div>
             </div>
             <div className="hidden md:flex items-center space-x-8">
@@ -426,7 +417,7 @@ export default function LandingPage() {
           <div className="grid lg:grid-cols-2 gap-12 items-center py-20">
             <div className={`space-y-8 transition-all duration-1000 transform ${isVisible ? 'translate-x-0 opacity-100' : '-translate-x-10 opacity-0'}`}>
               <div className="flex flex-col sm:flex-row gap-4">
-                <Badge variant="outline" className="border-blue-500 dark:border-blue-400 text-blue-600 dark:text-blue-400 px-4 py-1 text-sm hover:bg-blue-50 dark:hover:bg-blue-400/10 transition-colors cursor-default w-fit">
+                <Badge variant="outline" className="border-[#1B1464] text-[#1B1464] px-4 py-1 text-sm hover:bg-[#1B1464]/10 transition-colors cursor-default w-fit">
                   Revolutionizing Club Management
                 </Badge>
                 <Link 
@@ -435,34 +426,21 @@ export default function LandingPage() {
                   rel="noopener noreferrer"
                   className="group inline-flex items-center w-fit"
                 >
-                  <Badge variant="outline" className="border-purple-500 dark:border-purple-400 text-purple-600 dark:text-purple-400 px-4 py-1 text-sm group-hover:bg-purple-50 dark:group-hover:bg-purple-400/10 transition-all duration-300">
+                  <Badge variant="outline" className="border-[#FF6B00] text-[#FF6B00] px-4 py-1 text-sm group-hover:bg-[#FF6B00]/10 transition-all duration-300">
                     Made by Abdelah Raissouni
                     <Linkedin className="w-4 h-4 ml-2 opacity-0 group-hover:opacity-100 transition-all -translate-x-2 group-hover:translate-x-0" />
                   </Badge>
                 </Link>
               </div>
-              <h1 className="text-5xl lg:text-7xl font-bold leading-tight text-gray-900 dark:text-white">
-                <div className="relative inline-block">
-                  <span className="bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent">Polaris</span>
-                  <div className="absolute -bottom-2 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full transform scale-x-0 origin-left group-hover:scale-x-100 transition-transform duration-500"></div>
+              <div className="flex justify-center mb-8">
+                <img src="/images/polaris-logo.png" alt="ADE ENSA Tetouan" className="h-24 w-auto" />
                 </div>
-                <br />Clubs Manager for
+              <h1 className="text-4xl lg:text-6xl font-bold leading-tight text-[#1B1464] text-center">
+                Clubs Manager
                 <br />
-                <span className="relative text-gray-900 dark:text-white">
-                  Modern Universities
-                  <svg className="absolute -bottom-2 left-0 w-full" height="6" viewBox="0 0 200 6" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M0 3C50 3 50 0 100 0C150 0 150 3 200 3C250 3 250 0 300 0" stroke="url(#paint0_linear)" strokeWidth="5" strokeLinecap="round"/>
-                    <defs>
-                      <linearGradient id="paint0_linear" x1="0" y1="0" x2="300" y2="0" gradientUnits="userSpaceOnUse">
-                        <stop stopColor="#3B82F6"/>
-                        <stop offset="1" stopColor="#818CF8"/>
-                      </linearGradient>
-                    </defs>
-                  </svg>
-                </span>
-                <div className="text-sm font-normal text-blue-600 dark:text-blue-300 mt-2">made by Abdellah Raissouni</div>
+                <span className="text-[#FF6B00]">ENSA Tetouan</span>
               </h1>
-              <p className="text-xl text-gray-700 dark:text-blue-100 max-w-lg">
+              <p className="text-xl text-gray-700 dark:text-gray-300 max-w-lg text-center mx-auto">
                 Experience the future of club space management with AI-powered scheduling, real-time analytics, and seamless collaboration tools.
               </p>
               <div className="flex flex-col sm:flex-row items-center gap-4">
@@ -473,7 +451,7 @@ export default function LandingPage() {
                   onMouseLeave={handleButtonLeave}
                 >
                   <Link href="/login" className="relative z-10 flex items-center gap-2 px-6 py-6 sm:py-2">
-                    Join Polaris
+                    Join ADE ENSA Tetouan
                     <ArrowRight className="w-4 h-4 transform group-hover:translate-x-1 transition-transform" />
                     <div className="absolute inset-0 opacity-0 group-hover:opacity-20 transition-opacity duration-300">
                       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white via-transparent to-transparent animate-pulse"></div>
@@ -720,7 +698,7 @@ export default function LandingPage() {
             <Badge variant="outline" className="mb-4 border-blue-500 dark:border-blue-400 text-blue-600 dark:text-blue-400">Polaris Testimonials</Badge>
             <h2 className="text-4xl font-bold mb-6 text-gray-900 dark:text-white">Loved by club leaders</h2>
             <p className="text-xl text-gray-600 dark:text-gray-400">
-              See what other club leaders are saying about Polaris Clubs Manager
+              See what other club leaders are saying about ADE ENSA Tetouan
             </p>
           </div>
 
@@ -735,7 +713,7 @@ export default function LandingPage() {
                         <div className="font-semibold text-gray-900 dark:text-white">Sarah Johnson</div>
                         <div className="text-sm text-gray-600 dark:text-gray-400">President, Tech Club</div>
                         <p className="mt-4 text-lg text-gray-700 dark:text-gray-200">
-                          "Polaris Clubs Manager has completely transformed how we manage our club activities. 
+                          "ADE ENSA Tetouan has completely transformed how we manage our club activities. 
                           The smart scheduling and analytics features have saved us countless hours."
                         </p>
                       </div>
@@ -835,11 +813,11 @@ export default function LandingPage() {
                   </Badge>
                   
                   <h2 className="text-3xl md:text-4xl font-bold mb-4 text-gray-900 dark:text-white">
-                    Navigate Your Club's Future with Polaris
+                    Navigate Your Club's Future with ADE ENSA Tetouan
                   </h2>
                   
                   <p className="text-gray-700 dark:text-blue-200 mb-6">
-                    Like the North Star guides travelers, let Polaris guide your club to new heights of organization and success.
+                    Like the North Star guides travelers, let ADE ENSA Tetouan guide your club to new heights of organization and success.
                   </p>
                   
                   <div className="flex flex-col sm:flex-row gap-4">
@@ -964,7 +942,7 @@ export default function LandingPage() {
               {/* Testimonial quote */}
               <div className="mt-10 pt-8 border-t border-gray-200/50 dark:border-white/10 text-center">
                 <p className="italic text-gray-700 dark:text-blue-200 text-lg">
-                  "Polaris guided our club through the chaos of scheduling and space management, just like the North Star has guided sailors for centuries."
+                  "ADE ENSA Tetouan guided our club through the chaos of scheduling and space management, just like the North Star has guided sailors for centuries."
                 </p>
                 <div className="mt-4 flex items-center justify-center">
                   <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-indigo-400 mr-3"></div>
@@ -1008,52 +986,141 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer id="contact" ref={footerRef} className="py-12 bg-gray-100 dark:bg-black text-gray-600 dark:text-gray-400">
+      <footer id="contact" ref={footerRef} className="py-12 bg-gradient-to-b from-gray-100 to-white dark:from-black dark:to-gray-900 text-gray-600 dark:text-gray-400">
         <div className="container mx-auto px-4">
           <div className="grid md:grid-cols-4 gap-8">
-            <div>
-              <div className="flex items-center space-x-2 mb-4">
-                <div className="relative h-8 w-8">
-                  <img src="/images/polaris-logo.svg" alt="Polaris Logo" className="h-8 w-8" />
+            <div className="space-y-4">
+              <div className="flex items-center space-x-3">
+                <div className="relative h-12 w-auto">
+                  <img src="/images/polaris-logo.png" alt="ADE ENSA Tetouan" className="h-full w-auto" style={{ minWidth: '120px' }} />
                 </div>
-                <div className="text-xl font-bold text-gray-900 dark:text-white">Polaris Clubs Manager</div>
               </div>
-              <p className="text-sm">
-                Polaris Clubs Manager - The smart way to manage your club's spaces and activities
+              <p className="text-sm text-[#1B1464] dark:text-gray-300">
+                Empowering student clubs and activities at ENSA Tetouan through innovative space management and collaboration tools.
               </p>
+              <div className="flex space-x-4">
+                <Link 
+                  href="https://www.facebook.com/ENSATETOUAN" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-[#1B1464] hover:text-[#FF6B00] dark:text-gray-400 dark:hover:text-[#FF6B00] transition-colors"
+                >
+                  <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z"/>
+                  </svg>
+                </Link>
+                <Link 
+                  href="https://www.linkedin.com/company/ensa-tetouan" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-[#1B1464] hover:text-[#FF6B00] dark:text-gray-400 dark:hover:text-[#FF6B00] transition-colors"
+                >
+                  <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+                  </svg>
+                </Link>
+                <Link 
+                  href="https://twitter.com/ENSA_Tetouan" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-[#1B1464] hover:text-[#FF6B00] dark:text-gray-400 dark:hover:text-[#FF6B00] transition-colors"
+                >
+                  <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/>
+                  </svg>
+                </Link>
             </div>
-            {['Product', 'Company', 'Resources'].map((section, i) => (
-              <div key={i}>
-                <h4 className="font-semibold text-gray-900 dark:text-white mb-4">{section}</h4>
+            </div>
+
+            <div>
+              <h4 className="font-semibold text-[#1B1464] dark:text-white mb-4">Quick Links</h4>
                 <ul className="space-y-2">
-                  {['Features', 'About', 'Contact'].map((item, j) => (
-                    <li key={j}>
-                      <Link href="#" className="text-sm hover:text-gray-900 dark:hover:text-white transition-colors">
-                        {item}
+                <li>
+                  <Link href="#features" className="text-sm hover:text-[#FF6B00] dark:hover:text-[#FF6B00] transition-colors">
+                    Features
                       </Link>
                     </li>
-                  ))}
+                <li>
+                  <Link href="#testimonials" className="text-sm hover:text-[#FF6B00] dark:hover:text-[#FF6B00] transition-colors">
+                    Testimonials
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/login" className="text-sm hover:text-[#FF6B00] dark:hover:text-[#FF6B00] transition-colors">
+                    Login
+                  </Link>
+                </li>
                 </ul>
               </div>
-            ))}
+
+            <div>
+              <h4 className="font-semibold text-[#1B1464] dark:text-white mb-4">Resources</h4>
+              <ul className="space-y-2">
+                <li>
+                  <Link href="https://www.ensatetouan.com" target="_blank" rel="noopener noreferrer" className="text-sm hover:text-[#FF6B00] dark:hover:text-[#FF6B00] transition-colors">
+                    ENSA Tetouan
+                  </Link>
+                </li>
+                <li>
+                  <Link href="#" className="text-sm hover:text-[#FF6B00] dark:hover:text-[#FF6B00] transition-colors">
+                    Documentation
+                  </Link>
+                </li>
+                <li>
+                  <Link href="#" className="text-sm hover:text-[#FF6B00] dark:hover:text-[#FF6B00] transition-colors">
+                    Support
+                  </Link>
+                </li>
+              </ul>
           </div>
-          <div className="border-t border-gray-200 dark:border-gray-800 mt-12 pt-8 flex flex-col md:flex-row justify-between items-center">
-            <div className="flex flex-col md:flex-row items-center gap-2">
-              <p className="text-sm">© {new Date().getFullYear()} Polaris Clubs Manager. All rights reserved.</p>
-              <span className="hidden md:inline">•</span>
-              <Link 
-                href="https://ma.linkedin.com/in/abdellah-raissouni-1419432a8" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="text-sm text-purple-600 dark:text-purple-400 font-medium hover:text-purple-500 dark:hover:text-purple-300 transition-colors flex items-center gap-1 group"
-              >
-                Made by Abdelah Raissouni
-                <Linkedin className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-all -translate-x-2 group-hover:translate-x-0" />
-              </Link>
+
+            <div>
+              <h4 className="font-semibold text-[#1B1464] dark:text-white mb-4">Contact</h4>
+              <ul className="space-y-2">
+                <li className="flex items-center space-x-2 text-sm">
+                  <svg className="h-4 w-4 text-[#1B1464] dark:text-[#FF6B00]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                  </svg>
+                  <span>ENSA Tetouan, Morocco</span>
+                </li>
+                <li className="flex items-center space-x-2 text-sm">
+                  <svg className="h-4 w-4 text-[#1B1464] dark:text-[#FF6B00]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                  </svg>
+                  <span>contact@ensatetouan.com</span>
+                </li>
+                <li className="flex items-center space-x-2 text-sm">
+                  <svg className="h-4 w-4 text-[#1B1464] dark:text-[#FF6B00]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
+                  </svg>
+                  <span>+212 539 68 80 27</span>
+                </li>
+              </ul>
             </div>
-            <div className="flex space-x-6 mt-4 md:mt-0">
-              <Link href="#" className="text-sm hover:text-gray-900 dark:hover:text-white transition-colors">Privacy Policy</Link>
-              <Link href="#" className="text-sm hover:text-gray-900 dark:hover:text-white transition-colors">Terms of Service</Link>
+          </div>
+
+          <div className="border-t border-gray-200 dark:border-gray-800 mt-12 pt-8">
+            <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
+              <div className="flex flex-col md:flex-row items-center gap-2 text-sm text-[#1B1464] dark:text-gray-400">
+                <span>© {new Date().getFullYear()} ADE ENSA Tetouan.</span>
+                <span className="hidden md:inline">|</span>
+                <span>All rights reserved.</span>
+                <span className="hidden md:inline">|</span>
+                <Link 
+                  href="https://ma.linkedin.com/in/abdellah-raissouni-1419432a8" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-[#FF6B00] hover:text-[#1B1464] dark:hover:text-white transition-colors flex items-center gap-1 group"
+                >
+                  Developed by Abdelah Raissouni
+                  <Linkedin className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-all duration-300 -translate-x-2 group-hover:translate-x-0" />
+                </Link>
+              </div>
+              <div className="flex space-x-6">
+                <Link href="#" className="text-sm hover:text-[#FF6B00] dark:hover:text-[#FF6B00] transition-colors">Privacy Policy</Link>
+                <Link href="#" className="text-sm hover:text-[#FF6B00] dark:hover:text-[#FF6B00] transition-colors">Terms of Service</Link>
+              </div>
             </div>
           </div>
         </div>
