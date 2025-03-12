@@ -15,6 +15,9 @@ interface SendNotificationParams {
   link?: string
 }
 
+// Helper function to check if code is running in browser
+const isBrowser = () => typeof window !== 'undefined'
+
 export async function sendNotification({
   recipientId,
   recipientType,
@@ -39,25 +42,28 @@ export async function sendNotification({
 
     if (error) throw error
 
-    // Show a toast notification if the recipient is the current user
-    const currentAdminId = localStorage.getItem('adminId')
-    const currentClubId = localStorage.getItem('clubId')
-    const isCurrentUser = recipientId === (recipientType === 'admin' ? currentAdminId : currentClubId)
+    // Only attempt to show toast notifications in browser environment
+    if (isBrowser()) {
+      // Show a toast notification if the recipient is the current user
+      const currentAdminId = localStorage.getItem('adminId')
+      const currentClubId = localStorage.getItem('clubId')
+      const isCurrentUser = recipientId === (recipientType === 'admin' ? currentAdminId : currentClubId)
 
-    if (isCurrentUser) {
-      switch (type) {
-        case 'success':
-          successNotification({ title, description: message })
-          break
-        case 'error':
-          errorNotification({ title, description: message })
-          break
-        case 'warning':
-          warningNotification({ title, description: message })
-          break
-        case 'info':
-          infoNotification({ title, description: message })
-          break
+      if (isCurrentUser) {
+        switch (type) {
+          case 'success':
+            successNotification({ title, description: message })
+            break
+          case 'error':
+            errorNotification({ title, description: message })
+            break
+          case 'warning':
+            warningNotification({ title, description: message })
+            break
+          case 'info':
+            infoNotification({ title, description: message })
+            break
+        }
       }
     }
 
