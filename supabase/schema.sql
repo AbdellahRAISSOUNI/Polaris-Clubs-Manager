@@ -213,7 +213,92 @@ INSERT INTO spaces (name, capacity, features, image) VALUES
   ('Conference Room B', 30, '["Whiteboard", "TV Screen"]', '/spaces/conference-b.jpg'),
   ('Student Lounge', 100, '["Casual Seating", "Kitchenette"]', '/spaces/lounge.jpg'),
   ('Outdoor Courtyard', 150, '["Open Air", "Power Outlets"]', '/spaces/courtyard.jpg')
-ON CONFLICT DO NOTHING; 
+ON CONFLICT DO NOTHING;
+
+-- Create messages table for chat functionality
+CREATE TABLE IF NOT EXISTS messages (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  sender_id TEXT NOT NULL,
+  sender_type TEXT NOT NULL CHECK (sender_type IN ('admin', 'club')),
+  recipient_id TEXT NOT NULL,
+  recipient_type TEXT NOT NULL CHECK (recipient_type IN ('admin', 'club')),
+  content TEXT NOT NULL,
+  is_read BOOLEAN DEFAULT false,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Create indexes for messages
+CREATE INDEX IF NOT EXISTS idx_messages_sender_id ON messages(sender_id);
+CREATE INDEX IF NOT EXISTS idx_messages_sender_type ON messages(sender_type);
+CREATE INDEX IF NOT EXISTS idx_messages_recipient_id ON messages(recipient_id);
+CREATE INDEX IF NOT EXISTS idx_messages_recipient_type ON messages(recipient_type);
+CREATE INDEX IF NOT EXISTS idx_messages_is_read ON messages(is_read);
+
+-- Enable Row Level Security for messages
+ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
+
+-- Create policy to allow anyone to select messages
+CREATE POLICY "Anyone can read messages" ON messages
+  FOR SELECT USING (true);
+
+-- Create policy to allow anyone to insert messages
+CREATE POLICY "Anyone can insert messages" ON messages
+  FOR INSERT WITH CHECK (true);
+
+-- Create policy to allow anyone to update messages
+CREATE POLICY "Anyone can update messages" ON messages
+  FOR UPDATE USING (true);
+
+-- Create trigger to update the updated_at timestamp
+CREATE TRIGGER update_messages_updated_at
+    BEFORE UPDATE ON messages
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- Create online_status table to track user online status
+CREATE TABLE IF NOT EXISTS online_status (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id TEXT NOT NULL,
+  user_type TEXT NOT NULL CHECK (user_type IN ('admin', 'club')),
+  is_online BOOLEAN DEFAULT false,
+  last_active TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(user_id, user_type)
+);
+
+-- Create indexes for online_status
+CREATE INDEX IF NOT EXISTS idx_online_status_user_id ON online_status(user_id);
+CREATE INDEX IF NOT EXISTS idx_online_status_user_type ON online_status(user_type);
+CREATE INDEX IF NOT EXISTS idx_online_status_is_online ON online_status(is_online);
+
+-- Enable Row Level Security for online_status
+ALTER TABLE online_status ENABLE ROW LEVEL SECURITY;
+
+-- Create policy to allow anyone to select online_status
+CREATE POLICY "Anyone can read online_status" ON online_status
+  FOR SELECT USING (true);
+
+-- Create policy to allow anyone to insert online_status
+CREATE POLICY "Anyone can insert online_status" ON online_status
+  FOR INSERT WITH CHECK (true);
+
+-- Create policy to allow anyone to update online_status
+CREATE POLICY "Anyone can update online_status" ON online_status
+  FOR UPDATE USING (true);
+
+-- Create trigger to update the last_active timestamp
+CREATE OR REPLACE FUNCTION update_last_active_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.last_active = NOW();
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+CREATE TRIGGER update_online_status_last_active
+    BEFORE UPDATE ON online_status
+    FOR EACH ROW
+    EXECUTE FUNCTION update_last_active_column();
 
 
 

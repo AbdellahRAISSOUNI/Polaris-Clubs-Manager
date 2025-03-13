@@ -18,21 +18,73 @@ export const supabase = createClient(supabaseUrl, supabaseKey, {
       'Content-Type': 'application/json',
       'Accept': 'application/json'
     }
+  },
+  realtime: {
+    params: {
+      eventsPerSecond: 20
+    },
+    timeout: 60000
   }
 });
 
-// Test the connection with a simpler query that doesn't use aggregate functions
+// Initialize global real-time subscriptions
+const initializeRealtime = () => {
+  try {
+    // Create a global channel for database changes
+    const channel = supabase.channel('global-db-changes', {
+      config: {
+        broadcast: { self: true }
+      }
+    });
+    
+    // Subscribe to messages table changes
+    channel.on('postgres_changes', 
+      { event: '*', schema: 'public', table: 'messages' }, 
+      (payload) => {
+        console.log('Global message change detected:', payload.eventType);
+      }
+    );
+    
+    // Subscribe to online_status table changes
+    channel.on('postgres_changes', 
+      { event: '*', schema: 'public', table: 'online_status' }, 
+      (payload) => {
+        console.log('Global online status change detected:', payload.eventType);
+      }
+    );
+    
+    // Subscribe to the channel
+    channel.subscribe((status) => {
+      console.log('Global real-time subscription status:', status);
+      if (status === 'SUBSCRIBED') {
+        console.log('Successfully subscribed to real-time changes');
+      } else {
+        console.error('Failed to subscribe to real-time changes:', status);
+      }
+    });
+    
+    return channel;
+  } catch (error) {
+    console.error('Error initializing real-time subscriptions:', error);
+    return null;
+  }
+};
+
+// Initialize real-time subscriptions
+const globalChannel = initializeRealtime();
+
+// Test the connection with a simpler query
 (async () => {
   try {
     const { data, error } = await supabase
-      .from('reservations')
+      .from('messages')
       .select('id')
       .limit(1);
       
     if (error) {
       console.error('Error connecting to Supabase:', error);
     } else {
-      console.log('Successfully connected to Supabase reservations table');
+      console.log('Successfully connected to Supabase messages table');
     }
   } catch (err) {
     console.error('Unexpected error testing Supabase connection:', err);

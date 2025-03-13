@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Calendar, Home, Settings, Menu, X, LogOut, Bell } from "lucide-react"
+import { Calendar, Home, Settings, Menu, X, LogOut, Bell, MessageSquare } from "lucide-react"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { toast } from "sonner"
 import { clearStorage, getClubId } from "@/lib/storage"
@@ -12,6 +12,8 @@ import { supabase } from "@/lib/supabase"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { NotificationBell } from "@/components/notification-bell"
 import { NotificationsProvider } from "@/lib/notifications-context"
+import { MessagingProvider } from "@/lib/messaging-context"
+import { MessageIndicator } from "@/components/messaging/MessageIndicator"
 
 interface Club {
   id: string
@@ -35,6 +37,11 @@ const navItems: NavItem[] = [
     href: "/club/notifications",
     label: "Notifications",
     icon: <Bell className="h-4 w-4" />
+  },
+  {
+    href: "/club/messages",
+    label: "Messages",
+    icon: <MessageSquare className="h-4 w-4" />
   },
   {
     href: "/club/reservations",
@@ -115,6 +122,11 @@ export default function ClubLayout({
             >
               {item.icon}
               {item.label}
+              {item.label === "Messages" && clubId && (
+                <MessagingProvider userId={clubId} userType="club">
+                  <MessageIndicator userId={clubId} userType="club" />
+                </MessagingProvider>
+              )}
             </Link>
           )
         })}
