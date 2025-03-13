@@ -51,6 +51,7 @@ CREATE TABLE IF NOT EXISTS notifications (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   recipient_id TEXT NOT NULL,
   recipient_type TEXT NOT NULL,
+  sender_id UUID REFERENCES clubs(id) ON DELETE SET NULL, -- Club that sent the notification
   title TEXT NOT NULL,
   message TEXT NOT NULL,
   type TEXT NOT NULL,
@@ -66,6 +67,7 @@ CREATE TABLE IF NOT EXISTS notifications (
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS notifications_recipient_id_idx ON notifications(recipient_id);
 CREATE INDEX IF NOT EXISTS notifications_recipient_type_idx ON notifications(recipient_type);
+CREATE INDEX IF NOT EXISTS notifications_sender_id_idx ON notifications(sender_id);
 CREATE INDEX IF NOT EXISTS notifications_is_read_idx ON notifications(is_read);
 
 -- Enable Row Level Security

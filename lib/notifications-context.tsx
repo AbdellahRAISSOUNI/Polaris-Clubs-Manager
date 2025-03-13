@@ -7,6 +7,7 @@ export interface Notification {
   id: string
   recipient_id: string
   recipient_type: 'admin' | 'club'
+  sender_id?: string
   title: string
   message: string
   type: 'success' | 'error' | 'warning' | 'info'

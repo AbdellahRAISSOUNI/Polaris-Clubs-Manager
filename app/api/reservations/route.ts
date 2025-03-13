@@ -198,7 +198,8 @@ export async function POST(request: Request) {
             title: 'New Reservation Request',
             message: `${clubName} has requested to reserve ${spaceName} for "${body.title}"`,
             type: 'info',
-            link: `/admin/all-reservations?id=${data[0].id}`
+            link: `/admin/all-reservations?id=${data[0].id}`,
+            sender_id: body.clubId
           });
         } catch (notifError) {
           console.error("Error sending notification to admin:", notifError);

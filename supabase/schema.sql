@@ -157,6 +157,42 @@ CREATE INDEX IF NOT EXISTS idx_reservations_space_id ON reservations(space_id);
 CREATE INDEX IF NOT EXISTS idx_reservations_club_id ON reservations(club_id);
 CREATE INDEX IF NOT EXISTS idx_reservations_status ON reservations(status);
 
+-- Create notifications table
+CREATE TABLE IF NOT EXISTS notifications (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  recipient_id TEXT NOT NULL,
+  recipient_type TEXT NOT NULL,
+  sender_id UUID REFERENCES clubs(id) ON DELETE SET NULL, -- Club that sent the notification
+  title TEXT NOT NULL,
+  message TEXT NOT NULL,
+  type TEXT NOT NULL CHECK (type IN ('success', 'error', 'warning', 'info')),
+  is_read BOOLEAN DEFAULT false,
+  link TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Create indexes for notifications
+CREATE INDEX IF NOT EXISTS notifications_recipient_id_idx ON notifications(recipient_id);
+CREATE INDEX IF NOT EXISTS notifications_recipient_type_idx ON notifications(recipient_type);
+CREATE INDEX IF NOT EXISTS notifications_sender_id_idx ON notifications(sender_id);
+CREATE INDEX IF NOT EXISTS notifications_is_read_idx ON notifications(is_read);
+
+-- Enable Row Level Security for notifications
+ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
+
+-- Create policy to allow anyone to select notifications
+CREATE POLICY "Anyone can read notifications" ON notifications
+  FOR SELECT USING (true);
+
+-- Create policy to allow anyone to insert notifications
+CREATE POLICY "Anyone can insert notifications" ON notifications
+  FOR INSERT WITH CHECK (true);
+
+-- Create policy to allow anyone to update notifications
+CREATE POLICY "Anyone can update notifications" ON notifications
+  FOR UPDATE USING (true);
+
 -- Insert sample data for testing
 INSERT INTO users (email, name, role) VALUES
   ('admin@example.com', 'Admin User', 'admin'),

@@ -13,6 +13,7 @@ interface SendNotificationParams {
   message: string
   type: 'success' | 'error' | 'warning' | 'info'
   link?: string
+  sender_id?: string  // Optional field to store the club ID that sent the notification
 }
 
 // Helper function to check if code is running in browser
@@ -25,6 +26,7 @@ export async function sendNotification({
   message,
   type,
   link,
+  sender_id,
 }: SendNotificationParams) {
   try {
     const { data, error } = await supabase
@@ -36,6 +38,7 @@ export async function sendNotification({
         message,
         type,
         link,
+        sender_id,
       })
       .select()
       .single()

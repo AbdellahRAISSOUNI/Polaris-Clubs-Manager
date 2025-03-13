@@ -149,7 +149,8 @@ export async function PATCH(
             title: notificationTitle,
             message: notificationMessage,
             type: 'info',
-            link: `/admin/all-reservations?reservationId=${id}`
+            link: `/admin/all-reservations?reservationId=${id}`,
+            sender_id: reservationData.club_id
           });
         }
       }

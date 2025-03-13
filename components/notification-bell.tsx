@@ -24,28 +24,43 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 interface NotificationBellProps {
   userType: 'admin' | 'club'
 }
 
-const NotificationIcon = ({ type }: { type: string }) => {
+const NotificationIcon = ({ type, senderId }: { type: string, senderId?: string }) => {
+  if (senderId) {
+    return (
+      <Avatar className="h-6 w-6">
+        <AvatarImage 
+          src={`/api/clubs/${senderId}/image`}
+          alt="Club logo"
+        />
+        <AvatarFallback className="bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-xs">
+          C
+        </AvatarFallback>
+      </Avatar>
+    )
+  }
+
   switch (type) {
     case 'success':
-      return <CheckCircle className="h-4 w-4 text-green-500" />
+      return <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
     case 'error':
-      return <AlertCircle className="h-4 w-4 text-red-500" />
+      return <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
     case 'warning':
-      return <AlertTriangle className="h-4 w-4 text-yellow-500" />
+      return <AlertTriangle className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
     case 'info':
-      return <Info className="h-4 w-4 text-blue-500" />
+      return <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
     default:
-      return <Bell className="h-4 w-4 text-gray-500" />
+      return <Bell className="h-4 w-4 text-gray-600 dark:text-gray-400" />
   }
 }
 
 export function NotificationBell({ userType }: NotificationBellProps) {
-  const { notifications, unreadCount, markAsRead, deleteNotification } = useNotifications()
+  const { notifications, unreadCount, markAsRead, deleteNotification, markAllAsRead } = useNotifications()
   const router = useRouter()
   const [isOpen, setIsOpen] = useState(false)
   const [notificationToDelete, setNotificationToDelete] = useState<string | null>(null)
@@ -66,6 +81,11 @@ export function NotificationBell({ userType }: NotificationBellProps) {
   const handleDeleteNotification = async (notificationId: string) => {
     await deleteNotification(notificationId)
     setNotificationToDelete(null)
+  }
+  
+  const handleMarkAllAsRead = async () => {
+    await markAllAsRead()
+    setIsOpen(false)
   }
 
   // Get the 5 most recent notifications
@@ -91,65 +111,55 @@ export function NotificationBell({ userType }: NotificationBellProps) {
             )}
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-80">
-          <div className="flex items-center justify-between px-4 py-3 border-b">
-            <h3 className="font-semibold">Notifications</h3>
-            {unreadCount > 0 && (
-              <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded-full">
-                {unreadCount} new
-              </span>
-            )}
+        <DropdownMenuContent align="end" className="w-[300px] p-0">
+          <div className="p-2 border-b">
+            <div className="flex items-center justify-between">
+              <h3 className="font-medium text-sm">Notifications</h3>
+              {unreadCount > 0 && (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-7 text-xs"
+                  onClick={handleMarkAllAsRead}
+                >
+                  Mark all as read
+                </Button>
+              )}
+            </div>
           </div>
-          
           <div className="max-h-[300px] overflow-y-auto">
-            {recentNotifications.length === 0 ? (
-              <div className="px-4 py-6 text-center text-gray-500">
-                <Bell className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                <p>No notifications yet</p>
+            {notifications.length === 0 ? (
+              <div className="p-4 text-center text-sm text-gray-500">
+                No notifications
               </div>
             ) : (
-              recentNotifications.map((notification) => (
-                <div key={notification.id} className={`px-4 py-3 border-b last:border-b-0 ${!notification.is_read ? 'bg-blue-50 dark:bg-blue-900/20' : ''}`}>
-                  <div className="flex gap-3">
-                    <div className="flex-shrink-0 mt-1">
-                      <NotificationIcon type={notification.type} />
+              notifications.slice(0, 5).map((notification) => (
+                <DropdownMenuItem
+                  key={notification.id}
+                  className={`p-3 cursor-pointer ${!notification.is_read ? 'bg-gray-50 dark:bg-gray-900' : ''}`}
+                  onClick={() => handleNotificationClick(notification.id, notification.link)}
+                >
+                  <div className="flex gap-2 w-full">
+                    <div className="flex-shrink-0 mt-0.5">
+                      <NotificationIcon type={notification.type} senderId={notification.sender_id} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex justify-between items-start gap-2">
-                        <p className={`text-sm font-medium truncate ${!notification.is_read ? 'text-black dark:text-white' : ''}`}>
+                        <p className={`text-sm font-medium truncate ${!notification.is_read ? 'text-black dark:text-white' : 'text-gray-700 dark:text-gray-300'}`}>
                           {notification.title}
                         </p>
-                        <span className="text-xs text-gray-500 whitespace-nowrap">
-                          {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true })}
-                        </span>
+                        <div className="flex-shrink-0">
+                          <span className="text-xs text-gray-500">
+                            {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true })}
+                          </span>
+                        </div>
                       </div>
-                      <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2 mt-1">
-                        {notification.message.split('\n\n')[0]}
+                      <p className="text-xs text-gray-500 line-clamp-2 mt-0.5">
+                        {notification.message}
                       </p>
-                      <div className="flex justify-between items-center mt-2">
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="h-7 px-2 text-xs text-blue-600 hover:text-blue-800 hover:bg-blue-50"
-                          onClick={() => handleNotificationClick(notification.id, notification.link)}
-                        >
-                          {notification.link ? 'View details' : 'Mark as read'}
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 w-7 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setNotificationToDelete(notification.id);
-                          }}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
                     </div>
                   </div>
-                </div>
+                </DropdownMenuItem>
               ))
             )}
           </div>

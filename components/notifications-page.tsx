@@ -26,8 +26,23 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
-const NotificationIcon = ({ type }: { type: string }) => {
+const NotificationIcon = ({ type, senderId }: { type: string, senderId?: string }) => {
+  if (senderId) {
+    return (
+      <Avatar className="h-8 w-8 sm:h-10 sm:w-10">
+        <AvatarImage 
+          src={`/api/clubs/${senderId}/image`}
+          alt="Club logo"
+        />
+        <AvatarFallback className="bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">
+          C
+        </AvatarFallback>
+      </Avatar>
+    )
+  }
+
   switch (type) {
     case 'success':
       return (
@@ -137,7 +152,7 @@ export function NotificationsPage() {
           >
             <div className="p-3 sm:p-4 md:p-5">
               <div className="flex items-start gap-3 sm:gap-4">
-                <NotificationIcon type={notification.type} />
+                <NotificationIcon type={notification.type} senderId={notification.sender_id} />
                 <div className="flex-1 min-w-0">
                   <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
                     <h3 className={`font-semibold text-base sm:text-lg ${!notification.is_read ? 'text-black dark:text-white' : 'text-gray-700 dark:text-gray-300'}`}>
