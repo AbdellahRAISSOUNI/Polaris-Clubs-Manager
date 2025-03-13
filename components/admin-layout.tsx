@@ -176,13 +176,13 @@ export function AdminLayout({ children }: AdminLayoutProps) {
 
         <div className="flex flex-1">
           {/* Sidebar - hidden on mobile */}
-          <aside className="w-56 sm:w-64 border-r bg-white dark:bg-gray-950 hidden md:block p-4 flex flex-col">
-            <div className="flex-1">
+          <aside className="w-56 sm:w-64 border-r bg-white dark:bg-gray-950 hidden md:block p-4 fixed h-screen overflow-hidden">
+            <div className="flex-1 h-full overflow-y-auto pr-2">
               <AdminSidebar onLogout={handleLogout} isLoggingOut={isLoggingOut} />
             </div>
           </aside>
 
-          <main className="flex-1 p-3 sm:p-4 md:p-6 overflow-x-hidden">{children}</main>
+          <main className="flex-1 p-3 sm:p-4 md:p-6 overflow-x-hidden md:ml-56 lg:ml-64">{children}</main>
         </div>
       </div>
     </NotificationsProvider>

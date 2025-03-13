@@ -186,7 +186,7 @@ export default function ClubLayout({
 
         <div className="flex flex-1">
           {/* Desktop Sidebar */}
-          <aside className="w-64 border-r bg-white dark:bg-gray-950 hidden lg:block p-4 fixed h-screen">
+          <aside className="w-64 border-r bg-white dark:bg-gray-950 hidden lg:block p-4 fixed h-screen overflow-hidden">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-2">
                 <Avatar className="h-8 w-8">
@@ -202,7 +202,7 @@ export default function ClubLayout({
               </div>
               <NotificationBell userType="club" />
             </div>
-            <div className="h-[calc(100vh-5rem)]">
+            <div className="h-[calc(100vh-5rem)] overflow-y-auto pr-2">
               <NavContent />
             </div>
           </aside>
