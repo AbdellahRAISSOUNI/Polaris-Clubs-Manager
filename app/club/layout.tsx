@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Calendar, Home, Settings, Menu, X, LogOut, Bell, MessageSquare } from "lucide-react"
+import { Calendar, Home, Settings, Menu, X, LogOut, Bell, MessageSquare, Users } from "lucide-react"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { toast } from "sonner"
 import { clearStorage, getClubId } from "@/lib/storage"
@@ -52,6 +52,11 @@ const navItems: NavItem[] = [
     href: "/club/all-reservations",
     label: "All Clubs Calendar",
     icon: <Calendar className="h-4 w-4" />
+  },
+  {
+    href: "/club/contact",
+    label: "Contact",
+    icon: <Users className="h-4 w-4" />
   },
   {
     href: "/club/settings",

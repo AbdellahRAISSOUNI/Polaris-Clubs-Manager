@@ -2,7 +2,8 @@
 
 import { motion } from "framer-motion"
 import { Mail, Phone, Linkedin, Github } from "lucide-react"
-import { Card } from "@/components/ui/card"
+import { useState } from "react"
+import { useTheme } from "next-themes"
 
 interface ContactPerson {
   name: string
@@ -12,132 +13,178 @@ interface ContactPerson {
   linkedin?: string
   github?: string
   image: string
-  description: string
+  color: string
 }
 
 const contacts: ContactPerson[] = [
   {
-    name: "Abdellah ElBerkaoui",
-    role: "Clubs Coordinator at ADE",
+    name: "Abdellah Elberkaoui",
+    role: "Clubs Coordinator",
     email: "abdellah.elberkaoui@aui.ma",
-    phone: "+212 XXX-XXXXXX", // Replace with actual phone
-    linkedin: "https://www.linkedin.com/in/abdellah-elberkaoui/", // Replace with actual LinkedIn
-    image: "/abdellah.jpg", // Will be replaced with actual image
-    description: "As the Clubs Coordinator at Al Akhawayn Development & Engineering (ADE), Abdellah plays a vital role in fostering student engagement and leadership through club activities. With extensive experience in student affairs and club management, he ensures that AUI's diverse club ecosystem thrives and contributes to students' personal and professional growth."
+    phone: "0691837954",
+    linkedin: "https://www.linkedin.com/in/abdellah-elberkaoui-1a3493195",
+    image: "/admin.jpeg",
+    color: "hsl(var(--primary))"
   },
   {
-    name: "Yassine Ait Mensour", // Replace with your name
-    role: "Full Stack Developer",
-    email: "y.aitmensour@aui.ma", // Replace with your email
-    github: "https://github.com/yourusername", // Replace with your GitHub
-    linkedin: "https://www.linkedin.com/in/yourusername/", // Replace with your LinkedIn
-    image: "/yassine.jpg", // Will be replaced with actual image
-    description: "A passionate full-stack developer with expertise in modern web technologies. Creator of the Polaris Clubs Manager platform, dedicated to streamlining club management and enhancing the student experience at AUI. Committed to building efficient, user-friendly solutions that make a real difference in university operations."
+    name: "Abdellah Raissouni",
+    role: "Developer & Creator of this platform.",
+    email: "a.raissouni@aui.ma",
+    github: "https://github.com/AbdellahRAISSOUNI",
+    linkedin: "https://ma.linkedin.com/in/abdellah-raissouni-1419432a8",
+    image: "/creator.jpeg",
+    color: "hsl(var(--primary))"
   }
 ]
 
-export default function ContactPage() {
-  return (
-    <div className="min-h-screen bg-background relative overflow-hidden">
-      {/* Background gradient */}
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-background -rotate-12 transform origin-top-left" />
-      
-      {/* Content */}
-      <div className="relative container mx-auto py-12">
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold mb-4">Meet the Team</h1>
-          <p className="text-muted-foreground max-w-2xl mx-auto">
-            Get to know the people behind Polaris Clubs Manager, working to enhance the club experience at Al Akhawayn University.
-          </p>
-        </div>
+// Icon animation variants
+const iconVariants = {
+  hover: {
+    rotate: [0, -10, 10, -10, 0],
+    scale: 1.2,
+    transition: {
+      duration: 0.5
+    }
+  }
+}
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+export default function ContactPage() {
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
+  const [hoveredIcon, setHoveredIcon] = useState<string | null>(null)
+  const { theme } = useTheme()
+  
+  return (
+    <div className="container mx-auto py-8 px-4">
+      <h1 className="text-3xl font-bold mb-2">Contact Us</h1>
+      <p className="text-muted-foreground mb-8">Get in touch with our team members</p>
+      
+      <div className="w-full max-w-5xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {contacts.map((contact, index) => (
             <motion.div
               key={contact.name}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.2 }}
+              transition={{ duration: 0.4, delay: index * 0.2 }}
+              className="relative"
+              onMouseEnter={() => setHoveredIndex(index)}
+              onMouseLeave={() => setHoveredIndex(null)}
             >
-              <Card className="group relative overflow-hidden">
-                <div className="aspect-[4/3] relative overflow-hidden">
-                  {/* Placeholder gradient while image loads */}
-                  <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-primary/30" />
-                  
-                  {/* Image */}
-                  <img
+              <motion.div 
+                className="overflow-hidden rounded-xl border border-border shadow-sm transition-all duration-300"
+                animate={{
+                  borderColor: hoveredIndex === index ? 'hsl(var(--primary))' : 'hsl(var(--border))',
+                  boxShadow: hoveredIndex === index ? `0 10px 25px -5px rgba(var(--primary-rgb), 0.15)` : '0 1px 3px rgba(0,0,0,0.05)'
+                }}
+              >
+                <div className="relative h-[280px] overflow-hidden">
+                  <motion.div 
+                    className="absolute inset-0 z-10"
+                    animate={{
+                      opacity: hoveredIndex === index ? 0.2 : 0.1
+                    }}
+                    style={{
+                      background: `linear-gradient(45deg, hsl(var(--primary))40, transparent)`
+                    }}
+                  />
+                  <motion.img
                     src={contact.image}
                     alt={contact.name}
-                    className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500"
+                    className="w-full h-full object-cover object-center"
+                    initial={{ scale: 1 }}
+                    animate={{ 
+                      scale: hoveredIndex === index ? 1.05 : 1
+                    }}
+                    transition={{ duration: 0.4 }}
                   />
-                  
-                  {/* Overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-background/90 to-background/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                 </div>
-
-                {/* Content */}
-                <div className="absolute inset-0 flex flex-col justify-end p-6 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                  <h2 className="text-2xl font-bold mb-2">{contact.name}</h2>
-                  <p className="text-primary font-medium mb-4">{contact.role}</p>
-                  <p className="text-sm text-muted-foreground mb-6 line-clamp-3">
-                    {contact.description}
+                
+                <div className="p-6">
+                  <h2 className="text-2xl font-semibold mb-1">
+                    {contact.name}
+                  </h2>
+                  <p 
+                    className="mb-5 text-sm text-primary"
+                  >
+                    {contact.role}
                   </p>
                   
-                  {/* Contact links */}
-                  <div className="flex gap-4">
-                    <a
+                  <div className="flex flex-wrap gap-4">
+                    <motion.a
                       href={`mailto:${contact.email}`}
-                      className="p-2 rounded-full bg-primary/10 hover:bg-primary/20 transition-colors"
-                      title="Email"
+                      className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                      whileHover={{ y: -2 }}
+                      onMouseEnter={() => setHoveredIcon(`${index}-email`)}
+                      onMouseLeave={() => setHoveredIcon(null)}
                     >
-                      <Mail className="h-5 w-5" />
-                    </a>
-                    {contact.phone && (
-                      <a
-                        href={`tel:${contact.phone}`}
-                        className="p-2 rounded-full bg-primary/10 hover:bg-primary/20 transition-colors"
-                        title="Phone"
+                      <motion.div
+                        variants={iconVariants}
+                        animate={hoveredIcon === `${index}-email` ? 'hover' : undefined}
                       >
-                        <Phone className="h-5 w-5" />
-                      </a>
+                        <Mail className="h-4 w-4 text-primary" />
+                      </motion.div>
+                      <span>Email</span>
+                    </motion.a>
+                    {contact.phone && (
+                      <motion.a
+                        href={`tel:${contact.phone}`}
+                        className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                        whileHover={{ y: -2 }}
+                        onMouseEnter={() => setHoveredIcon(`${index}-phone`)}
+                        onMouseLeave={() => setHoveredIcon(null)}
+                      >
+                        <motion.div
+                          variants={iconVariants}
+                          animate={hoveredIcon === `${index}-phone` ? 'hover' : undefined}
+                        >
+                          <Phone className="h-4 w-4 text-primary" />
+                        </motion.div>
+                        <span>Call</span>
+                      </motion.a>
                     )}
                     {contact.linkedin && (
-                      <a
+                      <motion.a
                         href={contact.linkedin}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="p-2 rounded-full bg-primary/10 hover:bg-primary/20 transition-colors"
-                        title="LinkedIn"
+                        className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                        whileHover={{ y: -2 }}
+                        onMouseEnter={() => setHoveredIcon(`${index}-linkedin`)}
+                        onMouseLeave={() => setHoveredIcon(null)}
                       >
-                        <Linkedin className="h-5 w-5" />
-                      </a>
+                        <motion.div
+                          variants={iconVariants}
+                          animate={hoveredIcon === `${index}-linkedin` ? 'hover' : undefined}
+                        >
+                          <Linkedin className="h-4 w-4 text-primary" />
+                        </motion.div>
+                        <span>LinkedIn</span>
+                      </motion.a>
                     )}
                     {contact.github && (
-                      <a
+                      <motion.a
                         href={contact.github}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="p-2 rounded-full bg-primary/10 hover:bg-primary/20 transition-colors"
-                        title="GitHub"
+                        className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                        whileHover={{ y: -2 }}
+                        onMouseEnter={() => setHoveredIcon(`${index}-github`)}
+                        onMouseLeave={() => setHoveredIcon(null)}
                       >
-                        <Github className="h-5 w-5" />
-                      </a>
+                        <motion.div
+                          variants={iconVariants}
+                          animate={hoveredIcon === `${index}-github` ? 'hover' : undefined}
+                        >
+                          <Github className="h-4 w-4 text-primary" />
+                        </motion.div>
+                        <span>GitHub</span>
+                      </motion.a>
                     )}
                   </div>
                 </div>
-              </Card>
+              </motion.div>
             </motion.div>
           ))}
-        </div>
-
-        {/* Additional Information */}
-        <div className="mt-16 text-center">
-          <h2 className="text-2xl font-bold mb-4">About Polaris Clubs Manager</h2>
-          <p className="text-muted-foreground max-w-3xl mx-auto">
-            Polaris Clubs Manager is a comprehensive platform designed to streamline club management at Al Akhawayn University.
-            Our mission is to enhance the club experience for both administrators and students, making it easier to organize,
-            participate in, and manage club activities.
-          </p>
         </div>
       </div>
     </div>

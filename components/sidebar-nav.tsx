@@ -6,6 +6,7 @@ import {
   Bell,
   MessageSquare,
   Contact,
+  CalendarDays,
 } from "lucide-react"
 
 export const adminNavItems = [
@@ -49,18 +50,8 @@ export const adminNavItems = [
 export const clubNavItems = [
   {
     title: "Dashboard",
-    href: "/club",
+    href: "/club/dashboard",
     icon: Home,
-  },
-  {
-    title: "Reservations",
-    href: "/club/reservations",
-    icon: Calendar,
-  },
-  {
-    title: "Messages",
-    href: "/club/messages",
-    icon: MessageSquare,
   },
   {
     title: "Notifications",
@@ -68,9 +59,24 @@ export const clubNavItems = [
     icon: Bell,
   },
   {
+    title: "Messages",
+    href: "/club/messages",
+    icon: MessageSquare,
+  },
+  {
+    title: "My Reservations",
+    href: "/club/reservations",
+    icon: Calendar,
+  },
+  {
+    title: "All Clubs Calendar",
+    href: "/club/calendar",
+    icon: CalendarDays,
+  },
+  {
     title: "Contact",
     href: "/club/contact",
-    icon: Contact,
+    icon: Users,
   },
   {
     title: "Settings",
