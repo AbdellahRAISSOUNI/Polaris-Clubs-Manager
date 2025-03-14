@@ -13,6 +13,7 @@ export interface Message {
   is_read: boolean
   created_at: string
   updated_at: string
+  last_read_update?: string
   reply_to_id?: string
   reactions?: Record<string, string>
   is_deleted?: boolean
@@ -290,41 +291,54 @@ export function MessagingProvider({
   // Function to mark a message as read
   const markAsRead = async (messageId: string) => {
     try {
+      // Only mark messages as read if they are sent to the current user
+      const message = messages.find(m => m.id === messageId);
+      if (!message || message.recipient_id !== userId || message.recipient_type !== userType) {
+        console.log('Cannot mark message as read: not recipient or already read', messageId);
+        return;
+      }
+
+      console.log('Marking message as read:', messageId);
+      
+      // Use the new database function to update read status
       const { error } = await supabase
-        .from('messages')
-        .update({ is_read: true })
-        .eq('id', messageId)
+        .rpc('update_message_read_status', {
+          p_message_id: messageId,
+          p_is_read: true
+        });
 
       if (error) {
-        console.error('Error marking message as read:', error)
-        throw error
+        console.error('Error marking message as read:', error);
+        throw error;
       }
 
       // Update the messages state
       setMessages(prev => 
         prev.map(msg => msg.id === messageId ? { ...msg, is_read: true } : msg)
-      )
+      );
     } catch (error) {
-      console.error('Error in markAsRead:', error)
-      throw error
+      console.error('Error in markAsRead:', error);
+      throw error;
     }
   }
 
   // Function to mark all messages in a conversation as read
   const markAllAsRead = async (conversationPartnerId: string, conversationPartnerType: 'admin' | 'club') => {
     try {
+      console.log('Marking all messages as read for conversation with:', conversationPartnerId, conversationPartnerType);
+      
+      // Use the new database function to mark all messages as read
       const { error } = await supabase
-        .from('messages')
-        .update({ is_read: true })
-        .eq('sender_id', conversationPartnerId)
-        .eq('sender_type', conversationPartnerType)
-        .eq('recipient_id', userId)
-        .eq('recipient_type', userType)
-        .eq('is_read', false)
+        .rpc('mark_conversation_messages_read', {
+          p_sender_id: conversationPartnerId,
+          p_sender_type: conversationPartnerType,
+          p_recipient_id: userId,
+          p_recipient_type: userType
+        });
 
       if (error) {
-        console.error('Error marking all messages as read:', error)
-        throw error
+        console.error('Error marking all messages as read:', error);
+        throw error;
       }
 
       // Update the messages state
@@ -338,10 +352,10 @@ export function MessagingProvider({
             ? { ...msg, is_read: true } 
             : msg
         )
-      )
+      );
     } catch (error) {
-      console.error('Error in markAllAsRead:', error)
-      throw error
+      console.error('Error in markAllAsRead:', error);
+      throw error;
     }
   }
 

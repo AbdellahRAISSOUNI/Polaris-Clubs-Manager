@@ -352,15 +352,10 @@ export function MessagingUI({ userId, userType }: MessagingUIProps) {
     }
   }, [messages, userId, userType, getConversationMessages, markAllAsRead]);
 
-  // Update conversation messages when active conversation changes
+  // Update conversation messages when global messages change
   useEffect(() => {
     if (activeConversation && activeConversationType) {
-      console.log('Loading messages for conversation:', activeConversation, activeConversationType);
-      
-      // Set loading state
-      setLoadingConversation(true);
-      
-      // First try to get messages from the global messages state
+      // Filter messages for the current conversation
       const relevantMessages = messages.filter(msg => 
         (msg.sender_id === activeConversation && msg.sender_type === activeConversationType && 
          msg.recipient_id === userId && msg.recipient_type === userType) || 
@@ -369,71 +364,51 @@ export function MessagingUI({ userId, userType }: MessagingUIProps) {
       );
       
       if (relevantMessages.length > 0) {
-        // If we have messages in the state, use them immediately
+        // Get current scroll position before updating
+        const scrollArea = scrollAreaRef.current;
+        let previousScrollTop = 0;
+        let previousScrollHeight = 0;
+        
+        if (scrollArea) {
+          previousScrollTop = scrollArea.scrollTop;
+          previousScrollHeight = scrollArea.scrollHeight;
+        }
+        
+        // Sort messages by date
         const sortedMessages = [...relevantMessages].sort(
           (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
         );
         
+        // Update conversation messages
         setConversationMessages(sortedMessages);
-        setLoadingConversation(false);
         
-        // Then fetch from API in the background to ensure we have the latest
-        const timer = setTimeout(() => {
-          getConversationMessages(activeConversation, activeConversationType)
-            .then(freshMsgs => {
-              // Only update if we have new messages
-              if (freshMsgs.length > relevantMessages.length) {
-                const sortedFreshMsgs = freshMsgs.sort((a, b) => 
-                  new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-                );
-                setConversationMessages(sortedFreshMsgs);
-              }
-              
-              // Mark unread messages as read
-              const unreadMessages = freshMsgs.filter(msg => 
-                !msg.is_read && 
-                msg.recipient_id === userId && 
-                msg.recipient_type === userType
-              );
-              
-              if (unreadMessages.length > 0) {
-                markAllAsRead(activeConversation, activeConversationType);
-              }
-            })
-            .catch(err => {
-              console.error('Error loading conversation messages in background:', err);
+        // Maintain scroll position after update
+        setTimeout(() => {
+          if (scrollArea) {
+            const newScrollHeight = scrollArea.scrollHeight;
+            const heightDifference = newScrollHeight - previousScrollHeight;
+            scrollArea.scrollTop = previousScrollTop + heightDifference;
+          }
+        });
+        
+        // Mark any unread messages as read if user is at bottom of chat
+        if (!isUserScrolling && isNearBottom) {
+          const unreadMessages = sortedMessages.filter(msg => 
+            !msg.is_read && 
+            msg.recipient_id === userId && 
+            msg.recipient_type === userType
+          );
+          
+          if (unreadMessages.length > 0) {
+            console.log('Marking messages as read on message update:', unreadMessages.length);
+            unreadMessages.forEach(msg => {
+              markAsRead(msg.id);
             });
-        }, 500);
-        
-        return () => clearTimeout(timer);
-      } else {
-        // If no messages in state, load from API
-        getConversationMessages(activeConversation, activeConversationType)
-          .then(msgs => {
-            const sortedMsgs = msgs.sort((a, b) => 
-              new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-            );
-            setConversationMessages(sortedMsgs);
-            setLoadingConversation(false);
-            
-            // Mark unread messages as read
-            const unreadMessages = msgs.filter(msg => 
-              !msg.is_read && 
-              msg.recipient_id === userId && 
-              msg.recipient_type === userType
-            );
-            
-            if (unreadMessages.length > 0) {
-              markAllAsRead(activeConversation, activeConversationType);
-            }
-          })
-          .catch(err => {
-            console.error('Error loading conversation messages:', err);
-            setLoadingConversation(false);
-          });
+          }
+        }
       }
     }
-  }, [activeConversation, activeConversationType, userId, userType, getConversationMessages, markAllAsRead]);
+  }, [messages, activeConversation, activeConversationType, userId, userType, markAsRead, isUserScrolling, isNearBottom]);
 
   // Handle scroll events
   const handleScroll = useCallback(() => {
@@ -653,50 +628,8 @@ export function MessagingUI({ userId, userType }: MessagingUIProps) {
 
   // Handle selecting a conversation
   const handleSelectConversation = async (partnerId: string, partnerType: 'admin' | 'club') => {
-    console.log('Selecting conversation:', partnerId, partnerType);
-    
-    // Mark all messages as read immediately when entering the conversation
-    await markAllAsRead(partnerId, partnerType);
-    
-    // First, check if we already have messages for this conversation in the global state
-    const relevantMessages = messages.filter(msg => 
-      (msg.sender_id === partnerId && msg.sender_type === partnerType && 
-       msg.recipient_id === userId && msg.recipient_type === userType) || 
-      (msg.sender_id === userId && msg.sender_type === userType && 
-       msg.recipient_id === partnerId && msg.recipient_type === partnerType)
-    ).map(msg => ({
-      ...msg,
-      is_read: true // Mark messages as read in the local state
-    }));
-    
-    // If we have messages, display them immediately
-    if (relevantMessages.length > 0) {
-      const sortedMessages = [...relevantMessages].sort(
-        (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-      );
-      setConversationMessages(sortedMessages);
-    } else {
-      // If no messages, show loading state
-      setConversationMessages([]);
-    }
-    
-    // Update active conversation
-    setActiveConversation(partnerId);
-    setActiveConversationType(partnerType);
-    setShowNewConversation(false);
-    
-    // Then load messages from API (this will update if there are new messages)
-    const freshMessages = await getConversationMessages(partnerId, partnerType);
-    
-    // Update the messages with read status
-    const updatedMessages = freshMessages.map(msg => ({
-      ...msg,
-      is_read: true
-    }));
-    
-    setConversationMessages(updatedMessages.sort(
-      (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-    ));
+    // Use the new handleOpenConversation function
+    handleOpenConversation(partnerId, partnerType);
   }
 
   // Format timestamp for display
@@ -786,6 +719,97 @@ export function MessagingUI({ userId, userType }: MessagingUIProps) {
     setReplyingTo(message)
     textareaRef.current?.focus()
   }
+
+  // Handle opening a conversation
+  const handleOpenConversation = async (partnerId: string, partnerType: 'admin' | 'club') => {
+    setLoadingConversation(true);
+    setActiveConversation(partnerId);
+    setActiveConversationType(partnerType);
+    setReplyingTo(null);
+    
+    // Check if we have messages for this conversation in state
+    const cachedMessages = messages.filter(msg => 
+      (msg.sender_id === partnerId && msg.sender_type === partnerType && 
+       msg.recipient_id === userId && msg.recipient_type === userType) || 
+      (msg.sender_id === userId && msg.sender_type === userType && 
+       msg.recipient_id === partnerId && msg.recipient_type === partnerType)
+    );
+    
+    if (cachedMessages.length > 0) {
+      // Use cached messages first for immediate display
+      const sortedCachedMsgs = cachedMessages.sort((a, b) => 
+        new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      );
+      setConversationMessages(sortedCachedMsgs);
+      setLoadingConversation(false);
+      setShouldScrollToBottom(true);
+      
+      // Mark unread messages as read
+      const unreadMessages = cachedMessages.filter(msg => 
+        !msg.is_read && 
+        msg.recipient_id === userId && 
+        msg.recipient_type === userType
+      );
+      
+      if (unreadMessages.length > 0) {
+        console.log('Marking messages as read on conversation open:', unreadMessages.length);
+        await markAllAsRead(partnerId, partnerType);
+      }
+      
+      // In the background, fetch fresh messages to ensure we have the latest
+      getConversationMessages(partnerId, partnerType)
+        .then(freshMsgs => {
+          if (freshMsgs.length > 0) {
+            const sortedFreshMsgs = freshMsgs.sort((a, b) => 
+              new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+            );
+            setConversationMessages(sortedFreshMsgs);
+          }
+          
+          // Mark any new unread messages as read
+          const unreadMessages = freshMsgs.filter(msg => 
+            !msg.is_read && 
+            msg.recipient_id === userId && 
+            msg.recipient_type === userType
+          );
+          
+          if (unreadMessages.length > 0) {
+            console.log('Marking new messages as read after refresh:', unreadMessages.length);
+            markAllAsRead(partnerId, partnerType);
+          }
+        })
+        .catch(err => {
+          console.error('Error loading conversation messages in background:', err);
+        });
+    } else {
+      // If no messages in state, load from API
+      getConversationMessages(partnerId, partnerType)
+        .then(msgs => {
+          const sortedMsgs = msgs.sort((a, b) => 
+            new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+          );
+          setConversationMessages(sortedMsgs);
+          setLoadingConversation(false);
+          setShouldScrollToBottom(true);
+          
+          // Mark unread messages as read
+          const unreadMessages = msgs.filter(msg => 
+            !msg.is_read && 
+            msg.recipient_id === userId && 
+            msg.recipient_type === userType
+          );
+          
+          if (unreadMessages.length > 0) {
+            console.log('Marking messages as read on initial load:', unreadMessages.length);
+            markAllAsRead(partnerId, partnerType);
+          }
+        })
+        .catch(err => {
+          console.error('Error loading conversation messages:', err);
+          setLoadingConversation(false);
+        });
+    }
+  };
 
   return (
     <div className="flex h-[calc(100vh-4rem)] lg:h-full overflow-hidden">
@@ -1010,8 +1034,10 @@ export function MessagingUI({ userId, userType }: MessagingUIProps) {
                                   )}
                                 </div>
                               )}
-                              {/* Add edited indicator */}
-                              {new Date(msg.updated_at).getTime() > new Date(msg.created_at).getTime() + 1000 && (
+                              {/* Add edited indicator - only show if content was actually edited */}
+                              {new Date(msg.updated_at).getTime() > new Date(msg.created_at).getTime() + 1000 && 
+                               !msg.is_deleted && 
+                               (msg.reactions === null || Object.keys(msg.reactions || {}).length === 0) && (
                                 <div className="flex items-center">
                                   <span className="mx-1">·</span>
                                   <span>Edited</span>
