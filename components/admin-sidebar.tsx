@@ -2,7 +2,7 @@
 
 import { usePathname } from "next/navigation"
 import Link from "next/link"
-import { Home, Calendar, Users, MapPin, PieChart, Settings, LogOut, Bell, MessageSquare } from "lucide-react"
+import { Home, Calendar, Users, MapPin, PieChart, Settings, LogOut, Bell, MessageSquare, Contact } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { MessagingProvider } from "@/lib/messaging-context"
 import { MessageIndicator } from "@/components/messaging/MessageIndicator"
@@ -95,6 +95,15 @@ export function AdminSidebar({ onLogout, isLoggingOut = false }: AdminSidebarPro
         >
           <PieChart className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
           Analytics
+        </Link>
+        <Link
+          href="/admin/contact"
+          className={`flex items-center gap-1.5 sm:gap-2 p-1.5 sm:p-2 rounded-md text-xs sm:text-sm hover:bg-gray-100 dark:hover:bg-gray-800 ${
+            pathname === "/admin/contact" ? "bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400" : ""
+          }`}
+        >
+          <Contact className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+          Contact
         </Link>
         <Link
           href="/admin/settings"
