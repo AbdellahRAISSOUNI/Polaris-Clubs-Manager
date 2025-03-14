@@ -546,7 +546,7 @@ export function MessagingProvider({
   }
   
   // Function to react to a message
-  const reactToMessage = async (messageId: string, emoji: string) => {
+  const reactToMessage = async (messageId: string, emoji: string): Promise<void> => {
     try {
       // Get the current message
       const message = messages.find(m => m.id === messageId)
@@ -568,21 +568,28 @@ export function MessagingProvider({
         // Otherwise add/update the reaction
         newReactions[reactionKey] = emoji
       }
+
+      console.log('Updating reactions in database:', {
+        messageId,
+        newReactions,
+        currentReactions
+      })
       
-      const { error } = await supabase
-        .from('messages')
-        .update({ 
-          reactions: newReactions,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', messageId)
+      // Update in the database using raw SQL to ensure proper JSONB handling
+      const { data, error } = await supabase.rpc('update_message_reactions', {
+        p_message_id: messageId,
+        p_reactions: newReactions,
+        p_updated_at: new Date().toISOString()
+      })
 
       if (error) {
         console.error('Error reacting to message:', error)
         throw error
       }
-      
-      // Optimistically update the messages state
+
+      console.log('Database update successful:', data)
+
+      // Update local state
       setMessages(prev => prev.map(msg => 
         msg.id === messageId 
           ? { ...msg, reactions: newReactions, updated_at: new Date().toISOString() } 
