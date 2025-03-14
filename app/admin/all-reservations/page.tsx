@@ -185,6 +185,10 @@ const CalendarPDF = ({ reservations, year }: { reservations: Reservation[], year
           const monthStart = startOfMonth(monthDate);
           const monthEnd = endOfMonth(monthDate);
           const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
+          const firstDayOfMonth = daysInMonth[0].getDay(); // 0 = Sunday, 1 = Monday, etc.
+
+          // Create array for empty cells before the first day
+          const emptyDays = Array(firstDayOfMonth).fill(null);
 
           return (
             <View key={format(monthDate, 'MMMM')} style={styles.monthContainer}>
@@ -192,11 +196,18 @@ const CalendarPDF = ({ reservations, year }: { reservations: Reservation[], year
                 {format(monthDate, 'MMMM yyyy')}
               </Text>
               <View style={styles.calendarGrid}>
-                {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, index) => (
+                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, index) => (
                   <Text key={index} style={styles.weekdayHeader}>{day}</Text>
                 ))}
               </View>
               <View style={styles.calendarGrid}>
+                {/* Empty cells for days before the first of the month */}
+                {emptyDays.map((_, index) => (
+                  <View key={`empty-${index}`} style={styles.dayCell}>
+                    <Text style={styles.dayNumber}></Text>
+                  </View>
+                ))}
+                {/* Actual days of the month */}
                 {daysInMonth.map((day) => {
                   const dayReservations = yearReservations.filter(res => 
                     isSameDay(parseISO(res.start_time), day)
