@@ -23,7 +23,9 @@ import {
   MoreVertical, 
   Trash, 
   Reply, 
-  Smile 
+  Smile,
+  Menu,
+  ArrowLeft
 } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -220,6 +222,37 @@ export function MessagingUI({ userId, userType }: MessagingUIProps) {
   const lastScrollPosition = useRef<number>(0)
   const [isNearBottom, setIsNearBottom] = useState(true)
   const [shouldScrollToBottom, setShouldScrollToBottom] = useState(false)
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true)
+  const [isMobile, setIsMobile] = useState(false)
+
+  // Check if we're on mobile
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768)
+      if (window.innerWidth < 768) {
+        setIsSidebarOpen(false)
+      } else {
+        setIsSidebarOpen(true)
+      }
+    }
+    
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
+
+  // Add effect to handle body scroll lock
+  useEffect(() => {
+    if (isMobile && isSidebarOpen) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = 'auto'
+    }
+    
+    return () => {
+      document.body.style.overflow = 'auto'
+    }
+  }, [isMobile, isSidebarOpen])
 
   // Fetch conversations when messages change
   useEffect(() => {
@@ -628,8 +661,10 @@ export function MessagingUI({ userId, userType }: MessagingUIProps) {
 
   // Handle selecting a conversation
   const handleSelectConversation = async (partnerId: string, partnerType: 'admin' | 'club') => {
-    // Use the new handleOpenConversation function
-    handleOpenConversation(partnerId, partnerType);
+    if (isMobile) {
+      setIsSidebarOpen(false)
+    }
+    handleOpenConversation(partnerId, partnerType)
   }
 
   // Format timestamp for display
@@ -812,43 +847,58 @@ export function MessagingUI({ userId, userType }: MessagingUIProps) {
   };
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] lg:h-full overflow-hidden">
-      {/* Fixed sidebar */}
-      <div className="w-80 border-r flex flex-col bg-background">
+    <div className="flex h-[calc(100vh-4rem)] lg:h-full overflow-hidden bg-background">
+      {/* Sidebar */}
+      <div className={cn(
+        "w-full md:w-80 border-r flex flex-col bg-background fixed md:relative z-30",
+        "transition-transform duration-200 ease-in-out h-[calc(100vh-4rem)]",
+        isSidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
+        isMobile && !isSidebarOpen ? "hidden" : "block"
+      )}>
         {/* Fixed search and new conversation button */}
-        <div className="p-4 border-b space-y-4">
+        <div className="sticky top-0 p-4 border-b space-y-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          {isMobile && activeConversation && (
+            <Button
+              variant="ghost"
+              className="md:hidden w-full justify-start mb-2 h-12 text-base"
+              onClick={() => setIsSidebarOpen(false)}
+            >
+              <ArrowLeft className="h-5 w-5 mr-2" />
+              Back to conversation
+            </Button>
+          )}
           <div className="relative">
-            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
             <Input
               placeholder="Search conversations..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-8"
+              className="pl-10 h-12 text-base md:text-sm"
             />
           </div>
           {userType === 'admin' ? (
             <Tabs defaultValue="new" className="w-full">
-              <TabsList className="w-full">
-                <TabsTrigger value="new" className="flex-1">New Chat</TabsTrigger>
-                <TabsTrigger value="broadcast" className="flex-1">Broadcast</TabsTrigger>
+              <TabsList className="w-full h-12">
+                <TabsTrigger value="new" className="flex-1 text-base md:text-sm">New Chat</TabsTrigger>
+                <TabsTrigger value="broadcast" className="flex-1 text-base md:text-sm">Broadcast</TabsTrigger>
               </TabsList>
               <TabsContent value="new">
                 <Button
                   variant="outline"
-                  className="w-full flex items-center gap-2"
+                  className="w-full flex items-center gap-2 h-12 text-base md:text-sm"
                   onClick={() => setShowNewConversation(true)}
                 >
-                  <UserPlus className="h-4 w-4" />
+                  <UserPlus className="h-5 w-5" />
                   New Conversation
                 </Button>
               </TabsContent>
               <TabsContent value="broadcast">
                 <Button
                   variant="outline"
-                  className="w-full flex items-center gap-2"
+                  className="w-full flex items-center gap-2 h-12 text-base md:text-sm"
                   onClick={() => setShowNewConversation('broadcast')}
                 >
-                  <MessageSquare className="h-4 w-4" />
+                  <MessageSquare className="h-5 w-5" />
                   Send Broadcast
                 </Button>
               </TabsContent>
@@ -856,16 +906,16 @@ export function MessagingUI({ userId, userType }: MessagingUIProps) {
           ) : (
             <Button
               variant="outline"
-              className="w-full flex items-center gap-2"
+              className="w-full flex items-center gap-2 h-12 text-base md:text-sm"
               onClick={() => setShowNewConversation(true)}
             >
-              <UserPlus className="h-4 w-4" />
+              <UserPlus className="h-5 w-5" />
               New Conversation
             </Button>
           )}
         </div>
         {/* Scrollable conversation list */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto overscroll-contain">
           {showNewConversation ? (
             <div className="p-4">
               {showNewConversation === 'broadcast' ? (
@@ -882,7 +932,7 @@ export function MessagingUI({ userId, userType }: MessagingUIProps) {
               )}
             </div>
           ) : (
-            <div className="space-y-2 p-2">
+            <div className="space-y-1 p-2 pb-safe">
               {filteredConversations.map((convo) => {
                 const isActive = activeConversation === convo.id
                 const isOnline = isUserOnline(convo.id, convo.type)
@@ -892,14 +942,14 @@ export function MessagingUI({ userId, userType }: MessagingUIProps) {
                     key={`${convo.type}-${convo.id}`}
                     onClick={() => handleSelectConversation(convo.id, convo.type)}
                     className={cn(
-                      "w-full p-3 flex items-start gap-3 rounded-lg transition-colors",
+                      "w-full p-4 flex items-start gap-3 rounded-lg transition-colors min-h-[4.5rem]",
                       isActive
                         ? "bg-secondary"
                         : "hover:bg-secondary/50"
                     )}
                   >
                     <div className="relative">
-                      <Avatar className="h-10 w-10">
+                      <Avatar className="h-12 w-12 md:h-10 md:w-10">
                         <AvatarImage src={convo.avatar} />
                         <AvatarFallback>{convo.name[0]}</AvatarFallback>
                       </Avatar>
@@ -909,9 +959,9 @@ export function MessagingUI({ userId, userType }: MessagingUIProps) {
                     </div>
                     <div className="flex-1 text-left space-y-1 min-w-0">
                       <div className="flex items-center justify-between gap-2">
-                        <p className="font-medium truncate">{convo.name}</p>
+                        <p className="font-medium truncate text-base">{convo.name}</p>
                         {convo.unreadCount > 0 && (
-                          <Badge variant="default" className="h-5 min-w-[20px] flex items-center justify-center rounded-full">
+                          <Badge variant="default" className="h-6 min-w-[24px] text-xs flex items-center justify-center rounded-full">
                             {convo.unreadCount}
                           </Badge>
                         )}
@@ -931,24 +981,37 @@ export function MessagingUI({ userId, userType }: MessagingUIProps) {
       </div>
       
       {/* Main chat area */}
-      <div className="flex-1 flex flex-col min-w-0 bg-background">
+      <div className={cn(
+        "flex-1 flex flex-col min-w-0 bg-background relative h-[calc(100vh-4rem)]",
+        isMobile && isSidebarOpen && "fixed inset-0 overflow-hidden"
+      )}>
         {activeConversation && activeConversationType ? (
           <>
             {/* Fixed header */}
-            <div className="p-4 border-b sticky top-0 bg-background z-10">
+            <div className="p-4 border-b sticky top-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-20">
               <div className="flex items-center gap-3">
+                {isMobile && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="md:hidden h-12 w-12"
+                    onClick={() => setIsSidebarOpen(true)}
+                  >
+                    <Menu className="h-6 w-6" />
+                  </Button>
+                )}
                 {(() => {
                   const convo = conversations.find(c => c.id === activeConversation)
                   if (!convo) return null
                   
                   return (
                     <>
-                      <Avatar className="h-10 w-10">
+                      <Avatar className="h-12 w-12 md:h-10 md:w-10">
                         <AvatarImage src={convo.avatar} />
                         <AvatarFallback>{convo.name[0]}</AvatarFallback>
                       </Avatar>
                       <div>
-                        <h2 className="font-semibold">{convo.name}</h2>
+                        <h2 className="font-semibold text-base">{convo.name}</h2>
                         <p className="text-sm text-muted-foreground">
                           {isUserOnline(convo.id, convo.type) ? 'Online' : 'Offline'}
                         </p>
@@ -962,10 +1025,10 @@ export function MessagingUI({ userId, userType }: MessagingUIProps) {
             {/* Scrollable messages area */}
             <div 
               ref={scrollAreaRef}
-              className="flex-1 overflow-y-auto p-4"
+              className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4"
               onScroll={handleScroll}
             >
-              <div className="space-y-2 min-h-full">
+              <div className="space-y-4 min-h-full pb-4">
                 {loadingConversation ? (
                   <div className="space-y-4">
                     {[...Array(3)].map((_, i) => (
@@ -982,23 +1045,23 @@ export function MessagingUI({ userId, userType }: MessagingUIProps) {
                     const formattedReactions = formatReactions(msg.reactions)
                     
                     return (
-                      <div key={msg.id} className="space-y-2">
+                      <div key={msg.id} className="space-y-3">
                         {showTimestamp && (
                           <div className="flex justify-center">
-                            <span className="text-xs text-muted-foreground bg-secondary/50 px-2 py-1 rounded-md">
+                            <span className="text-xs text-muted-foreground bg-secondary/50 px-3 py-1.5 rounded-full">
                               {formatMessageTime(msg.created_at)}
                             </span>
                           </div>
                         )}
                         <div
                           className={cn(
-                            "flex",
+                            "flex gap-2",
                             isUserMessage ? "justify-end" : "justify-start"
                           )}
                         >
                           <div
                             className={cn(
-                              "rounded-lg px-3 py-1.5 max-w-[70%] group relative",
+                              "rounded-2xl px-4 py-2.5 max-w-[85%] md:max-w-[70%] group relative",
                               msg.is_deleted 
                                 ? "bg-muted text-muted-foreground italic"
                                 : isUserMessage
@@ -1008,7 +1071,7 @@ export function MessagingUI({ userId, userType }: MessagingUIProps) {
                           >
                             {msg.reply_to_id && (
                               <div className={cn(
-                                "text-xs mb-1 px-2 py-1 rounded border-l-2",
+                                "text-sm mb-2 px-3 py-1.5 rounded-xl border-l-2",
                                 isUserMessage 
                                   ? "bg-primary-foreground/10 border-primary-foreground/20" 
                                   : "bg-background border-muted-foreground/20"
@@ -1016,9 +1079,9 @@ export function MessagingUI({ userId, userType }: MessagingUIProps) {
                                 {conversationMessages.find(m => m.id === msg.reply_to_id)?.content || 'Original message not found'}
                               </div>
                             )}
-                            <div className="break-words">{msg.content}</div>
+                            <div className="break-words text-base">{msg.content}</div>
                             <div className={cn(
-                              "flex items-center gap-1 text-[10px] mt-0.5",
+                              "flex items-center gap-1 text-xs mt-1",
                               isUserMessage
                                 ? "text-primary-foreground/70"
                                 : "text-muted-foreground"
@@ -1034,28 +1097,63 @@ export function MessagingUI({ userId, userType }: MessagingUIProps) {
                                   )}
                                 </div>
                               )}
-                              {/* Add edited indicator - only show if content was actually edited */}
-                              {new Date(msg.updated_at).getTime() > new Date(msg.created_at).getTime() + 1000 && 
-                               !msg.is_deleted && 
-                               (msg.reactions === null || Object.keys(msg.reactions || {}).length === 0) && (
-                                <div className="flex items-center">
-                                  <span className="mx-1">·</span>
-                                  <span>Edited</span>
-                                </div>
-                              )}
+                            </div>
+                            
+                            {/* Message actions */}
+                            <div className={cn(
+                              "absolute flex gap-2 top-2",
+                              isUserMessage 
+                                ? "-left-20 md:-left-28" 
+                                : "-right-20 md:-right-28"
+                            )}>
+                              {/* Reply button */}
+                              <Button
+                                variant="secondary"
+                                size="icon"
+                                className="h-8 w-8 rounded-full shadow-sm"
+                                onClick={() => handleReply(msg)}
+                              >
+                                <Reply className="h-4 w-4" />
+                              </Button>
+                              
+                              {/* Reaction button */}
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <Button
+                                    variant="secondary"
+                                    size="icon"
+                                    className="h-8 w-8 rounded-full shadow-sm"
+                                  >
+                                    <Smile className="h-4 w-4" />
+                                  </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-2" align="center">
+                                  <div className="flex gap-1.5">
+                                    {commonEmojis.map(emoji => (
+                                      <button
+                                        key={emoji}
+                                        className="text-xl hover:bg-muted p-2 rounded-lg"
+                                        onClick={() => handleReactToMessage(msg.id, emoji)}
+                                      >
+                                        {emoji}
+                                      </button>
+                                    ))}
+                                  </div>
+                                </PopoverContent>
+                              </Popover>
                             </div>
                             
                             {/* Reactions display */}
                             {formattedReactions.length > 0 && (
                               <div className={cn(
-                                "absolute -bottom-3 flex gap-0.5",
+                                "absolute -bottom-3 flex gap-1",
                                 isUserMessage ? "right-2" : "left-2"
                               )}>
                                 {formattedReactions.map(({ emoji, count, userReacted }) => (
                                   <button
                                     key={emoji}
                                     className={cn(
-                                      "text-base rounded-full px-1 py-0.5 flex items-center",
+                                      "text-base rounded-full px-2 py-1 flex items-center",
                                       userReacted 
                                         ? "bg-primary text-primary-foreground" 
                                         : "bg-background border shadow-sm"
@@ -1067,72 +1165,6 @@ export function MessagingUI({ userId, userType }: MessagingUIProps) {
                                 ))}
                               </div>
                             )}
-                            
-                            {/* Message actions */}
-                            <div className={cn(
-                              "absolute flex gap-1 top-1",
-                              isUserMessage ? "-left-24" : "-right-24"
-                            )}>
-                              {/* Reply button */}
-                              <Button
-                                variant="secondary"
-                                size="icon"
-                                className="h-7 w-7 rounded-full shadow-sm"
-                                onClick={() => handleReply(msg)}
-                              >
-                                <Reply className="h-3.5 w-3.5" />
-                              </Button>
-                              
-                              {/* Reaction button */}
-                              <Popover>
-                                <PopoverTrigger asChild>
-                                  <Button
-                                    variant="secondary"
-                                    size="icon"
-                                    className="h-7 w-7 rounded-full shadow-sm"
-                                  >
-                                    <Smile className="h-3.5 w-3.5" />
-                                  </Button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-auto p-2" align="center">
-                                  <div className="flex gap-1">
-                                    {commonEmojis.map(emoji => (
-                                      <button
-                                        key={emoji}
-                                        className="text-lg hover:bg-muted p-1 rounded"
-                                        onClick={() => handleReactToMessage(msg.id, emoji)}
-                                      >
-                                        {emoji}
-                                      </button>
-                                    ))}
-                                  </div>
-                                </PopoverContent>
-                              </Popover>
-                              
-                              {/* More actions (delete) */}
-                              {canDeleteMessage(msg) && (
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                    <Button
-                                      variant="secondary"
-                                      size="icon"
-                                      className="h-7 w-7 rounded-full shadow-sm"
-                                    >
-                                      <MoreVertical className="h-3.5 w-3.5" />
-                                    </Button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent align={isUserMessage ? "start" : "end"}>
-                                    <DropdownMenuItem 
-                                      className="text-destructive focus:text-destructive"
-                                      onClick={() => handleDeleteMessage(msg.id)}
-                                    >
-                                      <Trash className="h-4 w-4 mr-2" />
-                                      Unsend
-                                    </DropdownMenuItem>
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
-                              )}
-                            </div>
                           </div>
                         </div>
                       </div>
@@ -1144,11 +1176,11 @@ export function MessagingUI({ userId, userType }: MessagingUIProps) {
             </div>
             
             {/* Fixed input area */}
-            <div className="p-4 border-t sticky bottom-0 bg-background z-10">
+            <div className="p-4 border-t sticky bottom-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-20">
               {replyingTo && (
-                <div className="mb-2 flex items-center justify-between p-2 rounded bg-muted">
+                <div className="mb-3 flex items-center justify-between p-3 rounded-lg bg-muted">
                   <div className="flex items-center gap-2">
-                    <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                    <MessageSquare className="h-5 w-5 text-muted-foreground" />
                     <span className="text-sm text-muted-foreground">
                       Replying to: {replyingTo.content.substring(0, 50)}
                       {replyingTo.content.length > 50 ? '...' : ''}
@@ -1157,47 +1189,57 @@ export function MessagingUI({ userId, userType }: MessagingUIProps) {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-6 w-6"
+                    className="h-8 w-8"
                     onClick={() => setReplyingTo(null)}
                   >
-                    <X className="h-4 w-4" />
+                    <X className="h-5 w-5" />
                   </Button>
                 </div>
               )}
-              <div className="flex gap-2">
+              <div className="flex gap-3">
                 <Textarea
                   ref={textareaRef}
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
+                    if (e.key === 'Enter' && !e.shiftKey && !isMobile) {
                       e.preventDefault()
                       handleSendMessage()
                     }
                   }}
                   placeholder="Type a message..."
-                  className="min-h-[2.5rem] max-h-[150px] resize-none"
+                  className="min-h-[3rem] max-h-[150px] resize-none text-base rounded-full px-4 py-2"
                   rows={1}
                 />
                 <Button
                   onClick={handleSendMessage}
                   disabled={!newMessage.trim()}
                   size="icon"
+                  className="shrink-0 h-12 w-12 rounded-full"
                 >
-                  <Send className="h-4 w-4" />
+                  <Send className="h-5 w-5" />
                 </Button>
               </div>
             </div>
           </>
         ) : (
-          <div className="flex-1 flex items-center justify-center">
-            <div className="text-center space-y-2">
-              <MessageSquare className="h-12 w-12 text-muted-foreground mx-auto" />
-              <p className="text-muted-foreground">Select a conversation or start a new one</p>
+          <div className="flex-1 flex items-center justify-center p-4">
+            <div className="text-center space-y-3">
+              <MessageSquare className="h-14 w-14 text-muted-foreground mx-auto" />
+              <p className="text-muted-foreground text-base">Select a conversation or start a new one</p>
             </div>
           </div>
         )}
       </div>
+      
+      {/* Mobile overlay to close sidebar when clicking outside */}
+      {isMobile && isSidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-background/80 backdrop-blur-sm z-20"
+          onClick={() => setIsSidebarOpen(false)}
+          aria-hidden="true"
+        />
+      )}
     </div>
   )
 } 

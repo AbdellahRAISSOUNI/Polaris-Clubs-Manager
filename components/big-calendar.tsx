@@ -9,6 +9,7 @@ import { ChevronLeft, ChevronRight, Info, ZoomIn, ZoomOut, Maximize, Minimize, X
 import { supabase } from "@/lib/supabase"
 import { addDays, addMonths, addWeeks, format, getDay, getDaysInMonth, isSameDay, isSameMonth, startOfMonth, startOfWeek, subMonths, subWeeks } from "date-fns"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
+import { cn } from "@/lib/utils"
 
 interface Reservation {
   id: string;
@@ -214,11 +215,15 @@ export function BigCalendar({
   }
 
   // Get cell height based on zoom level
-  const getCellHeight = () => {
+  const getCellHeight = (hasReservations: boolean) => {
+    if (!hasReservations) {
+      return 'min-h-[50px] sm:min-h-[60px]' // Smaller height on mobile
+    }
+    
     switch (zoomLevel) {
-      case 'compact': return 'min-h-[80px]'
-      case 'normal': return 'min-h-[120px]'
-      case 'expanded': return 'min-h-[180px]'
+      case 'compact': return 'min-h-[70px] sm:min-h-[80px]'
+      case 'normal': return 'min-h-[100px] sm:min-h-[120px]'
+      case 'expanded': return 'min-h-[140px] sm:min-h-[180px]'
     }
   }
 
@@ -232,7 +237,11 @@ export function BigCalendar({
   }
 
   // Get week cell height based on zoom level
-  const getWeekCellHeight = () => {
+  const getWeekCellHeight = (hasReservations: boolean) => {
+    if (!hasReservations) {
+      return 'min-h-[60px] md:min-h-[100px]' // Smaller height for empty cells
+    }
+    
     switch (zoomLevel) {
       case 'compact': return 'min-h-[80px] md:min-h-[300px]'
       case 'normal': return 'min-h-[100px] md:min-h-[400px]'
@@ -264,135 +273,137 @@ export function BigCalendar({
       days.push(
         <div 
           key={day.toString()} 
-          className={`${getCellHeight()} p-2 border ${
+          className={cn(
+            getCellHeight(dayReservations.length > 0),
+            "p-1 sm:p-2 border transition-all duration-200 ease-in-out",
             isCurrentMonth 
               ? 'bg-white dark:bg-gray-950' 
-              : 'bg-gray-50 dark:bg-gray-900 text-gray-400 dark:text-gray-600'
-          } ${
+              : 'bg-gray-50 dark:bg-gray-900 text-gray-400 dark:text-gray-600',
             isToday 
               ? 'ring-2 ring-blue-500 dark:ring-blue-400 ring-inset' 
-              : ''
-          } hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors`}
+              : '',
+            'hover:bg-gray-50 dark:hover:bg-gray-900/50'
+          )}
           onClick={() => onDateSelect && onDateSelect(day)}
         >
-          <div className={`text-right mb-2 font-medium ${
+          <div className={cn(
+            "text-right mb-0.5 sm:mb-1",
+            "text-xs sm:text-sm font-medium",
             isToday 
               ? 'text-blue-600 dark:text-blue-400' 
               : ''
-          }`}>
+          )}>
             {formattedDate}
           </div>
           
-          <div className="space-y-1.5 overflow-y-auto max-h-[90%] pr-1">
-            {dayReservations.slice(0, getMaxReservations()).map(reservation => {
-              const clubColor = getClubColor(reservation.club_id)
-              const statusColor = getStatusColor(reservation.status)
-              const isHighlighted = highlightedReservationId === reservation.id
-              
-              return (
-                <TooltipProvider key={reservation.id}>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <div 
-                        className={`text-xs p-1.5 rounded-md border ${clubColor.bg} ${clubColor.text} ${clubColor.border} ${clubColor.hover} transition-colors cursor-pointer shadow-sm overflow-hidden ${isHighlighted ? 'ring-2 ring-blue-500 dark:ring-blue-400' : ''}`}
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          onReservationSelect && onReservationSelect(reservation)
-                        }}
-                      >
-                        <div className="flex items-center justify-between gap-1">
-                          <div className="flex items-center gap-1 flex-1 min-w-0">
-                            {isHighlighted && (
-                              <Bell className="h-3 w-3 text-blue-500 dark:text-blue-400 animate-pulse flex-shrink-0" />
-                            )}
-                            <img
-                              src={`/api/clubs/${reservation.club_id}/image`}
-                              alt={reservation.club_name || 'Club logo'}
-                              className="h-4 w-4 flex-shrink-0 rounded-full object-cover"
-                              onError={(e) => {
-                                e.currentTarget.src = '/default-club-image.png'
-                              }}
-                            />
-                            <span className="font-medium truncate">{reservation.title}</span>
-                          </div>
-                          <div className={`h-3 w-3 flex-shrink-0 rounded-full ${
-                            reservation.status === 'approved' ? 'bg-green-500' :
-                            reservation.status === 'pending' ? 'bg-yellow-500' :
-                            'bg-red-500'
-                          }`}></div>
-                        </div>
-                        {zoomLevel !== 'compact' && (
-                          <div className="text-xs opacity-80 mt-0.5 truncate">{formatTime(reservation.start_time, reservation)}</div>
-                        )}
-                      </div>
-                    </TooltipTrigger>
-                    <TooltipContent className="p-3 max-w-xs">
-                      <div className="space-y-2">
-                        <p className="font-semibold">{reservation.title}</p>
-                        <div className="flex items-center gap-2 text-xs">
-                          <Badge variant="outline" className={`${statusColor.bg} ${statusColor.text}`}>
-                            {reservation.status}
-                          </Badge>
-                          <span>•</span>
-                          <span>{reservation.space_name}</span>
-                        </div>
-                        <p className="text-xs">
-                          {reservation.is_full_day 
-                            ? "Full Day" 
-                            : `${format(new Date(reservation.start_time), 'h:mm a')} - ${format(new Date(reservation.end_time), 'h:mm a')}`}
-                        </p>
-                        <Badge variant="outline" className={`${clubColor.bg} ${clubColor.text}`}>
-                          {reservation.club_name}
-                        </Badge>
-                        {isHighlighted && (
-                          <div className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400">
-                            <Bell className="h-3 w-3" />
-                            <span>From notification</span>
-                          </div>
-                        )}
-                      </div>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              )
-            })}
-            
-            {dayReservations.length > getMaxReservations() && (
-              <div className="text-xs text-center py-1 bg-gray-100 dark:bg-gray-800 rounded-md cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  // Create a dialog or popover to show all reservations for this day
-                  const allReservationsForDay = dayReservations.map(reservation => {
-                    return (
-                      <div 
-                        key={reservation.id}
-                        className="p-2 border-b last:border-b-0 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
-                        onClick={() => onReservationSelect && onReservationSelect(reservation)}
-                      >
-                        <div className="flex items-center gap-2">
-                          <div className={`h-3 w-3 rounded-full ${
-                            reservation.status === 'approved' ? 'bg-green-500' :
-                            reservation.status === 'pending' ? 'bg-yellow-500' :
-                            'bg-red-500'
-                          }`}></div>
-                          <div className="font-medium">{reservation.title}</div>
-                        </div>
-                        <div className="text-xs text-gray-500 mt-1">
-                          {reservation.is_full_day 
-                            ? "Full Day" 
-                            : formatTime(reservation.start_time, reservation)}
-                          {' • '}
-                          {reservation.space_name || 'No location'}
-                        </div>
-                      </div>
-                    )
-                  })
-                  
-                  // Show a dialog with all reservations
-                  openDayReservationsDialog(day, dayReservations)
-                }}>
-                +{dayReservations.length - getMaxReservations()} more
+          <div className={cn(
+            dayReservations.length > 0 
+              ? "space-y-0.5 sm:space-y-1 overflow-y-auto max-h-[90%]" 
+              : "h-[calc(100%-1.75rem)]",
+            "pr-0.5 sm:pr-1"
+          )}>
+            {dayReservations.length === 0 ? (
+              <div className="h-full w-full flex items-center justify-center">
+                <span className="text-gray-400 dark:text-gray-500">
+                  <span className="sm:hidden text-lg">-</span>
+                  <span className="hidden sm:inline text-xs">No reservations</span>
+                </span>
               </div>
+            ) : (
+              <>
+                {dayReservations.slice(0, getMaxReservations()).map(reservation => {
+                  const clubColor = getClubColor(reservation.club_id)
+                  const statusColor = getStatusColor(reservation.status)
+                  const isHighlighted = highlightedReservationId === reservation.id
+                  
+                  return (
+                    <TooltipProvider key={reservation.id}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div 
+                            className={cn(
+                              `text-[10px] sm:text-xs p-1 sm:p-1.5 rounded-md border`,
+                              clubColor.bg,
+                              clubColor.text,
+                              clubColor.border,
+                              clubColor.hover,
+                              'transition-colors cursor-pointer shadow-sm overflow-hidden',
+                              isHighlighted ? 'ring-2 ring-blue-500 dark:ring-blue-400' : ''
+                            )}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              onReservationSelect && onReservationSelect(reservation)
+                            }}
+                          >
+                            <div className="flex items-center justify-between gap-0.5 sm:gap-1">
+                              <div className="flex items-center gap-0.5 sm:gap-1 flex-1 min-w-0">
+                                {isHighlighted && (
+                                  <Bell className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-blue-500 dark:text-blue-400 animate-pulse flex-shrink-0" />
+                                )}
+                                <img
+                                  src={`/api/clubs/${reservation.club_id}/image`}
+                                  alt={reservation.club_name || 'Club logo'}
+                                  className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0 rounded-full object-cover"
+                                  onError={(e) => {
+                                    e.currentTarget.src = '/default-club-image.png'
+                                  }}
+                                />
+                                <span className="font-medium truncate">{reservation.title}</span>
+                              </div>
+                              <div className={`h-2.5 w-2.5 sm:h-3 sm:w-3 flex-shrink-0 rounded-full ${
+                                reservation.status === 'approved' ? 'bg-green-500' :
+                                reservation.status === 'pending' ? 'bg-yellow-500' :
+                                'bg-red-500'
+                              }`}></div>
+                            </div>
+                            {zoomLevel !== 'compact' && (
+                              <div className="text-[10px] sm:text-xs opacity-80 mt-0.5 truncate">
+                                {formatTime(reservation.start_time, reservation)}
+                              </div>
+                            )}
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent className="p-3 max-w-xs">
+                          <div className="space-y-2">
+                            <p className="font-semibold">{reservation.title}</p>
+                            <div className="flex items-center gap-2 text-xs">
+                              <Badge variant="outline" className={`${statusColor.bg} ${statusColor.text}`}>
+                                {reservation.status}
+                              </Badge>
+                              <span>•</span>
+                              <span>{reservation.space_name}</span>
+                            </div>
+                            <p className="text-xs">
+                              {reservation.is_full_day 
+                                ? "Full Day" 
+                                : `${format(new Date(reservation.start_time), 'h:mm a')} - ${format(new Date(reservation.end_time), 'h:mm a')}`}
+                            </p>
+                            <Badge variant="outline" className={`${clubColor.bg} ${clubColor.text}`}>
+                              {reservation.club_name}
+                            </Badge>
+                            {isHighlighted && (
+                              <div className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400">
+                                <Bell className="h-3 w-3" />
+                                <span>From notification</span>
+                              </div>
+                            )}
+                          </div>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )
+                })}
+                
+                {dayReservations.length > getMaxReservations() && (
+                  <div className="text-[10px] sm:text-xs text-center py-0.5 sm:py-1 bg-gray-100 dark:bg-gray-800 rounded-md cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      openDayReservationsDialog(day, dayReservations)
+                    }}>
+                    +{dayReservations.length - getMaxReservations()} more
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>
@@ -412,12 +423,12 @@ export function BigCalendar({
     
     return (
       <div className="space-y-1">
-        <div className="grid grid-cols-7 text-center py-2 border-b font-medium bg-gray-50 dark:bg-gray-900 rounded-t-md">
+        <div className="grid grid-cols-7 text-center py-1 sm:py-2 border-b font-medium bg-gray-50 dark:bg-gray-900 rounded-t-md">
           {dayNames.map(name => (
-            <div key={name} className="py-1">{name}</div>
+            <div key={name} className="py-1 text-xs sm:text-sm">{name}</div>
           ))}
         </div>
-        <div className="space-y-1 rounded-b-md overflow-hidden border border-t-0">
+        <div className="space-y-0.5 sm:space-y-1 rounded-b-md overflow-hidden border border-t-0">
           {weeks}
         </div>
       </div>
@@ -438,21 +449,21 @@ export function BigCalendar({
       
       // Mobile view: Stack days vertically
       days.push(
-        <div key={`day-${i}`} className={`
-          md:border-r md:last:border-r-0 
-          border-b last:border-b-0 md:border-b-0
-          ${isToday ? 'bg-blue-50/30 dark:bg-blue-900/20' : ''}
-        `}>
+        <div key={`day-${i}`} className={cn(
+          "md:border-r md:last:border-r-0 border-b last:border-b-0 md:border-b-0",
+          isToday ? 'bg-blue-50/30 dark:bg-blue-900/20' : '',
+          "transition-all duration-200 ease-in-out"
+        )}>
           {/* Day header - Always visible */}
-          <div className={`
-            flex md:block items-center justify-between 
-            border-b md:border-b-0 
-            p-3 md:p-2 
-            sticky md:static top-0 
-            bg-gray-50 dark:bg-gray-900 md:bg-transparent
-            z-10
-            ${isToday ? 'text-blue-600 dark:text-blue-400' : ''}
-          `}>
+          <div className={cn(
+            "flex md:block items-center justify-between",
+            "border-b md:border-b-0",
+            "p-2 md:p-2",
+            "sticky md:static top-0",
+            "bg-gray-50 dark:bg-gray-900 md:bg-transparent",
+            "z-10",
+            isToday ? 'text-blue-600 dark:text-blue-400' : ''
+          )}>
             <div className="flex md:block items-baseline gap-2 md:gap-0 md:text-center">
               <div className="text-sm font-medium opacity-80">{dayName}</div>
               <div className="text-xl font-semibold md:mt-0.5">{dayNumber}</div>
@@ -466,91 +477,96 @@ export function BigCalendar({
           </div>
 
           {/* Reservations */}
-          <div className={`p-2 space-y-2 ${getWeekCellHeight()}`}>
-            {dayReservations.map(reservation => {
-              const clubColor = getClubColor(reservation.club_id)
-              const statusColor = getStatusColor(reservation.status)
-              const isHighlighted = highlightedReservationId === reservation.id
-              
-              return (
-                <TooltipProvider key={reservation.id}>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <div 
-                        className={`
-                          p-2 rounded-md border shadow-sm 
-                          ${clubColor.bg} ${clubColor.text} ${clubColor.border} ${clubColor.hover} 
-                          transition-colors cursor-pointer text-sm
-                        `}
-                        onClick={() => onReservationSelect && onReservationSelect(reservation)}
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex items-center gap-2 flex-1 min-w-0">
-                            {isHighlighted && (
-                              <Bell className="h-3 w-3 text-blue-500 dark:text-blue-400 animate-pulse flex-shrink-0" />
-                            )}
-                            <img
-                              src={`/api/clubs/${reservation.club_id}/image`}
-                              alt={reservation.club_name || 'Club logo'}
-                              className="h-5 w-5 flex-shrink-0 rounded-full object-cover"
-                              onError={(e) => {
-                                e.currentTarget.src = '/default-club-image.png'
-                              }}
-                            />
-                            <div className="font-medium truncate">
-                              {reservation.title || 'Untitled'}
-                            </div>
-                          </div>
-                          <div className={`h-4 w-4 flex-shrink-0 rounded-full ${
-                            reservation.status === 'approved' ? 'bg-green-500' :
-                            reservation.status === 'pending' ? 'bg-yellow-500' :
-                            'bg-red-500'
-                          }`}></div>
-                        </div>
-                        <div className="mt-1.5 text-xs space-y-1 opacity-90">
-                          <div className="font-medium truncate">
-                            {reservation.is_full_day 
-                              ? "Full Day" 
-                              : `${formatTime(reservation.start_time, reservation)} - ${formatTime(reservation.end_time, reservation)}`}
-                          </div>
-                          <div className="truncate">{reservation.space_name || 'No location'}</div>
-                          {zoomLevel !== 'compact' && (
-                            <div className="truncate opacity-75">{reservation.club_name || 'Unknown Club'}</div>
-                          )}
-                        </div>
-                      </div>
-                    </TooltipTrigger>
-                    <TooltipContent side="right" className="p-3 max-w-xs">
-                      <div className="space-y-2">
-                        <p className="font-semibold">{reservation.title}</p>
-                        <div className="flex items-center gap-2 text-xs">
-                          <Badge variant="outline" className={`${statusColor.bg} ${statusColor.text}`}>
-                            {reservation.status}
-                          </Badge>
-                          <span>•</span>
-                          <span>{reservation.space_name}</span>
-                        </div>
-                        <p className="text-xs">
-                          {reservation.is_full_day 
-                            ? "Full Day" 
-                            : `${format(new Date(reservation.start_time), 'h:mm a')} - ${format(new Date(reservation.end_time), 'h:mm a')}`}
-                        </p>
-                        <Badge variant="outline" className={`${clubColor.bg} ${clubColor.text}`}>
-                          {reservation.club_name}
-                        </Badge>
-                        {reservation.description && (
-                          <p className="text-xs border-t pt-1 mt-1">{reservation.description}</p>
-                        )}
-                      </div>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              )
-            })}
-            {dayReservations.length === 0 && (
-              <div className="h-full flex items-center justify-center text-sm text-gray-500 dark:text-gray-400">
+          <div className={cn(
+            "p-2 space-y-2",
+            getWeekCellHeight(dayReservations.length > 0),
+            dayReservations.length === 0 ? "flex items-center justify-center" : ""
+          )}>
+            {dayReservations.length === 0 ? (
+              <div className="text-xs text-gray-400 dark:text-gray-500">
                 No reservations
               </div>
+            ) : (
+              dayReservations.map(reservation => {
+                const clubColor = getClubColor(reservation.club_id)
+                const statusColor = getStatusColor(reservation.status)
+                const isHighlighted = highlightedReservationId === reservation.id
+                
+                return (
+                  <TooltipProvider key={reservation.id}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div 
+                          className={`
+                            p-2 rounded-md border shadow-sm 
+                            ${clubColor.bg} ${clubColor.text} ${clubColor.border} ${clubColor.hover} 
+                            transition-colors cursor-pointer text-sm
+                          `}
+                          onClick={() => onReservationSelect && onReservationSelect(reservation)}
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex items-center gap-2 flex-1 min-w-0">
+                              {isHighlighted && (
+                                <Bell className="h-3 w-3 text-blue-500 dark:text-blue-400 animate-pulse flex-shrink-0" />
+                              )}
+                              <img
+                                src={`/api/clubs/${reservation.club_id}/image`}
+                                alt={reservation.club_name || 'Club logo'}
+                                className="h-5 w-5 flex-shrink-0 rounded-full object-cover"
+                                onError={(e) => {
+                                  e.currentTarget.src = '/default-club-image.png'
+                                }}
+                              />
+                              <div className="font-medium truncate">
+                                {reservation.title || 'Untitled'}
+                              </div>
+                            </div>
+                            <div className={`h-4 w-4 flex-shrink-0 rounded-full ${
+                              reservation.status === 'approved' ? 'bg-green-500' :
+                              reservation.status === 'pending' ? 'bg-yellow-500' :
+                              'bg-red-500'
+                            }`}></div>
+                          </div>
+                          <div className="mt-1.5 text-xs space-y-1 opacity-90">
+                            <div className="font-medium truncate">
+                              {reservation.is_full_day 
+                                ? "Full Day" 
+                                : `${formatTime(reservation.start_time, reservation)} - ${formatTime(reservation.end_time, reservation)}`}
+                            </div>
+                            <div className="truncate">{reservation.space_name || 'No location'}</div>
+                            {zoomLevel !== 'compact' && (
+                              <div className="truncate opacity-75">{reservation.club_name || 'Unknown Club'}</div>
+                            )}
+                          </div>
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent side="right" className="p-3 max-w-xs">
+                        <div className="space-y-2">
+                          <p className="font-semibold">{reservation.title}</p>
+                          <div className="flex items-center gap-2 text-xs">
+                            <Badge variant="outline" className={`${statusColor.bg} ${statusColor.text}`}>
+                              {reservation.status}
+                            </Badge>
+                            <span>•</span>
+                            <span>{reservation.space_name}</span>
+                          </div>
+                          <p className="text-xs">
+                            {reservation.is_full_day 
+                              ? "Full Day" 
+                              : `${format(new Date(reservation.start_time), 'h:mm a')} - ${format(new Date(reservation.end_time), 'h:mm a')}`}
+                          </p>
+                          <Badge variant="outline" className={`${clubColor.bg} ${clubColor.text}`}>
+                            {reservation.club_name}
+                          </Badge>
+                          {reservation.description && (
+                            <p className="text-xs border-t pt-1 mt-1">{reservation.description}</p>
+                          )}
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )
+              })
             )}
           </div>
         </div>

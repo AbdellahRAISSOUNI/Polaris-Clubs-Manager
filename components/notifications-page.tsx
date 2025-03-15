@@ -27,6 +27,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { cn } from "@/lib/utils"
 
 const NotificationIcon = ({ type, senderId }: { type: string, senderId?: string }) => {
   if (senderId) {
@@ -245,12 +246,12 @@ export function NotificationsPage() {
         <div className="flex flex-wrap items-center gap-2 self-start">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="flex items-center gap-1 sm:gap-2 text-xs h-7 sm:h-8">
-                <Filter className="h-3 w-3 sm:h-4 sm:w-4" />
+              <Button variant="outline" size="sm" className="flex items-center gap-1.5 text-sm h-9">
+                <Filter className="h-4 w-4" />
                 Filter
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="text-xs sm:text-sm">
+            <DropdownMenuContent align="start" className="text-sm">
               <DropdownMenuItem onClick={() => { setFilter('all'); setActiveTab('all'); }}>
                 All notifications
               </DropdownMenuItem>
@@ -267,7 +268,7 @@ export function NotificationsPage() {
             onClick={refreshNotifications} 
             variant="outline" 
             size="sm"
-            className="flex items-center gap-1 sm:gap-2 text-xs h-7 sm:h-8"
+            className="flex items-center gap-1.5 text-sm h-9"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -277,7 +278,7 @@ export function NotificationsPage() {
               strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
-              className="h-3 w-3 sm:h-4 sm:w-4"
+              className="h-4 w-4"
             >
               <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
               <path d="M3 3v5h5" />
@@ -292,9 +293,9 @@ export function NotificationsPage() {
               onClick={markAllAsRead} 
               variant="outline" 
               size="sm"
-              className="flex items-center gap-1 sm:gap-2 text-xs h-7 sm:h-8"
+              className="flex items-center gap-1.5 text-sm h-9"
             >
-              <MailOpen className="h-3 w-3 sm:h-4 sm:w-4" />
+              <MailOpen className="h-4 w-4" />
               Mark all as read
             </Button>
           )}
@@ -304,40 +305,40 @@ export function NotificationsPage() {
               onClick={() => setIsDeleteAllDialogOpen(true)} 
               variant="outline" 
               size="sm"
-              className="flex items-center gap-1 sm:gap-2 text-xs h-7 sm:h-8 text-red-500 hover:text-red-700 hover:bg-red-50"
+              className="flex items-center gap-1.5 text-sm h-9 text-red-500 hover:text-red-700 hover:bg-red-50"
             >
-              <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
+              <Trash2 className="h-4 w-4" />
               Delete all
             </Button>
           )}
         </div>
       </div>
 
-      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'all' | 'unread' | 'read')} className="w-full">
-        <TabsList className="mb-3 sm:mb-4 h-9 sm:h-10 grid grid-cols-3">
-          <TabsTrigger value="all" className="text-xs sm:text-sm">
+      <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="mb-4 h-10 grid grid-cols-3 sticky top-0 bg-background z-10">
+          <TabsTrigger value="all" className="text-sm">
             All
-            <Badge variant="secondary" className="ml-1 sm:ml-2 text-[10px] sm:text-xs">{notifications.length}</Badge>
+            <Badge variant="secondary" className="ml-2 text-xs">{notifications.length}</Badge>
           </TabsTrigger>
-          <TabsTrigger value="unread" className="text-xs sm:text-sm">
+          <TabsTrigger value="unread" className="text-sm">
             Unread
-            <Badge variant="secondary" className="ml-1 sm:ml-2 text-[10px] sm:text-xs">{unreadCount}</Badge>
+            <Badge variant="secondary" className="ml-2 text-xs">{unreadCount}</Badge>
           </TabsTrigger>
-          <TabsTrigger value="read" className="text-xs sm:text-sm">
+          <TabsTrigger value="read" className="text-sm">
             Read
-            <Badge variant="secondary" className="ml-1 sm:ml-2 text-[10px] sm:text-xs">{readCount}</Badge>
+            <Badge variant="secondary" className="ml-2 text-xs">{readCount}</Badge>
           </TabsTrigger>
         </TabsList>
         
-        <TabsContent value="all" className="mt-0">
+        <TabsContent value="all" className="mt-0 focus-visible:outline-none focus-visible:ring-0">
           {renderNotificationList()}
         </TabsContent>
         
-        <TabsContent value="unread" className="mt-0">
+        <TabsContent value="unread" className="mt-0 focus-visible:outline-none focus-visible:ring-0">
           {renderNotificationList()}
         </TabsContent>
         
-        <TabsContent value="read" className="mt-0">
+        <TabsContent value="read" className="mt-0 focus-visible:outline-none focus-visible:ring-0">
           {renderNotificationList()}
         </TabsContent>
       </Tabs>
@@ -347,15 +348,15 @@ export function NotificationsPage() {
         <AlertDialogContent className="max-w-[90vw] sm:max-w-[425px] p-4 sm:p-6">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-base sm:text-lg">Delete Notification</AlertDialogTitle>
-            <AlertDialogDescription className="text-xs sm:text-sm">
+            <AlertDialogDescription className="text-sm">
               Are you sure you want to delete this notification? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="gap-2 sm:gap-2 flex-col sm:flex-row">
-            <AlertDialogCancel className="mt-0 text-xs sm:text-sm h-8 sm:h-10">Cancel</AlertDialogCancel>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <AlertDialogCancel className="mt-0 text-sm h-9">Cancel</AlertDialogCancel>
             <AlertDialogAction 
               onClick={() => notificationToDelete && handleDeleteNotification(notificationToDelete)}
-              className="bg-red-500 hover:bg-red-600 text-xs sm:text-sm h-8 sm:h-10"
+              className="bg-red-500 hover:bg-red-600 text-sm h-9"
             >
               Delete
             </AlertDialogAction>
@@ -368,15 +369,15 @@ export function NotificationsPage() {
         <AlertDialogContent className="max-w-[90vw] sm:max-w-[425px] p-4 sm:p-6">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-base sm:text-lg">Delete All Notifications</AlertDialogTitle>
-            <AlertDialogDescription className="text-xs sm:text-sm">
+            <AlertDialogDescription className="text-sm">
               Are you sure you want to delete all notifications? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="gap-2 sm:gap-2 flex-col sm:flex-row">
-            <AlertDialogCancel className="mt-0 text-xs sm:text-sm h-8 sm:h-10">Cancel</AlertDialogCancel>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <AlertDialogCancel className="mt-0 text-sm h-9">Cancel</AlertDialogCancel>
             <AlertDialogAction 
               onClick={handleDeleteAllNotifications}
-              className="bg-red-500 hover:bg-red-600 text-xs sm:text-sm h-8 sm:h-10"
+              className="bg-red-500 hover:bg-red-600 text-sm h-9"
             >
               Delete All
             </AlertDialogAction>
