@@ -847,35 +847,40 @@ export function MessagingUI({ userId, userType }: MessagingUIProps) {
   };
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] lg:h-full overflow-hidden bg-background">
+    <div className="flex h-full">
       {/* Sidebar */}
-      <div className={cn(
-        "w-full md:w-80 border-r flex flex-col bg-background fixed md:relative z-30",
-        "transition-transform duration-200 ease-in-out h-[calc(100vh-4rem)]",
-        isSidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
-        isMobile && !isSidebarOpen ? "hidden" : "block"
+      <aside className={cn(
+        "w-80 lg:w-96 border-r bg-background flex flex-col h-full",
+        isMobile ? (
+          isSidebarOpen 
+            ? "fixed inset-y-0 left-0 z-50" 
+            : "hidden"
+        ) : "relative"
       )}>
-        {/* Fixed search and new conversation button */}
-        <div className="sticky top-0 p-4 border-b space-y-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          {isMobile && activeConversation && (
-            <Button
-              variant="ghost"
-              className="md:hidden w-full justify-start mb-2 h-12 text-base"
-              onClick={() => setIsSidebarOpen(false)}
-            >
-              <ArrowLeft className="h-5 w-5 mr-2" />
-              Back to conversation
-            </Button>
-          )}
-          <div className="relative">
-            <Search className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
+        {/* Mobile close button */}
+        {isMobile && isSidebarOpen && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute right-2 top-2 h-8 w-8 md:hidden"
+            onClick={() => setIsSidebarOpen(false)}
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        )}
+
+        {/* Search and new conversation section */}
+        <div className="flex-shrink-0 p-4 border-b">
+          <div className="relative mb-4">
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search conversations..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 h-12 text-base md:text-sm"
+              className="pl-9"
             />
           </div>
+
           {userType === 'admin' ? (
             <Tabs defaultValue="new" className="w-full">
               <TabsList className="w-full h-12">
@@ -914,8 +919,9 @@ export function MessagingUI({ userId, userType }: MessagingUIProps) {
             </Button>
           )}
         </div>
-        {/* Scrollable conversation list */}
-        <div className="flex-1 overflow-y-auto overscroll-contain">
+
+        {/* Conversations list */}
+        <div className="flex-1 overflow-y-auto">
           {showNewConversation ? (
             <div className="p-4">
               {showNewConversation === 'broadcast' ? (
@@ -978,26 +984,26 @@ export function MessagingUI({ userId, userType }: MessagingUIProps) {
             </div>
           )}
         </div>
-      </div>
-      
+      </aside>
+
       {/* Main chat area */}
-      <div className={cn(
-        "flex-1 flex flex-col min-w-0 bg-background relative h-[calc(100vh-4rem)]",
-        isMobile && isSidebarOpen && "fixed inset-0 overflow-hidden"
+      <main className={cn(
+        "flex-1 flex flex-col min-w-0 bg-background h-full",
+        isMobile && isSidebarOpen && "hidden"
       )}>
         {activeConversation && activeConversationType ? (
           <>
-            {/* Fixed header */}
-            <div className="p-4 border-b sticky top-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-20">
+            {/* Chat header */}
+            <div className="p-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
               <div className="flex items-center gap-3">
                 {isMobile && (
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="md:hidden h-12 w-12"
+                    className="md:hidden h-10 w-10"
                     onClick={() => setIsSidebarOpen(true)}
                   >
-                    <Menu className="h-6 w-6" />
+                    <Menu className="h-5 w-5" />
                   </Button>
                 )}
                 {(() => {
@@ -1021,11 +1027,11 @@ export function MessagingUI({ userId, userType }: MessagingUIProps) {
                 })()}
               </div>
             </div>
-            
-            {/* Scrollable messages area */}
+
+            {/* Messages area */}
             <div 
               ref={scrollAreaRef}
-              className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4"
+              className="flex-1 overflow-y-auto p-4 space-y-4"
               onScroll={handleScroll}
             >
               <div className="space-y-4 min-h-full pb-4">
@@ -1175,8 +1181,8 @@ export function MessagingUI({ userId, userType }: MessagingUIProps) {
               </div>
             </div>
             
-            {/* Fixed input area */}
-            <div className="p-4 border-t sticky bottom-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-20">
+            {/* Message input */}
+            <div className="p-4 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
               {replyingTo && (
                 <div className="mb-3 flex items-center justify-between p-3 rounded-lg bg-muted">
                   <div className="flex items-center gap-2">
@@ -1223,19 +1229,22 @@ export function MessagingUI({ userId, userType }: MessagingUIProps) {
             </div>
           </>
         ) : (
-          <div className="flex-1 flex items-center justify-center p-4">
-            <div className="text-center space-y-3">
-              <MessageSquare className="h-14 w-14 text-muted-foreground mx-auto" />
-              <p className="text-muted-foreground text-base">Select a conversation or start a new one</p>
+          <div className="flex-1 flex items-center justify-center p-8 text-center">
+            <div className="max-w-sm space-y-2">
+              <MessageSquare className="h-12 w-12 mx-auto text-muted-foreground" />
+              <h3 className="text-lg font-semibold">No conversation selected</h3>
+              <p className="text-sm text-muted-foreground">
+                Choose a conversation from the sidebar or start a new one.
+              </p>
             </div>
           </div>
         )}
-      </div>
-      
-      {/* Mobile overlay to close sidebar when clicking outside */}
+      </main>
+
+      {/* Mobile overlay */}
       {isMobile && isSidebarOpen && (
         <div 
-          className="fixed inset-0 bg-background/80 backdrop-blur-sm z-20"
+          className="fixed inset-0 bg-background/80 backdrop-blur-sm z-40"
           onClick={() => setIsSidebarOpen(false)}
           aria-hidden="true"
         />

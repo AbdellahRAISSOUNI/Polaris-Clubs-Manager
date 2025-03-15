@@ -42,7 +42,7 @@ export default function AdminMessagesPage() {
 
   return (
     <AdminLayout>
-      <div className="h-[calc(100vh-4rem)] overflow-hidden -m-6">
+      <div className="h-[calc(100vh-4rem)] -mx-6">
         <MessagingProvider userId={adminId} userType="admin">
           <MessagingUI userId={adminId} userType="admin" />
         </MessagingProvider>
