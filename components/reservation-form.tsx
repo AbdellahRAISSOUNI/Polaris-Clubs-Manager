@@ -17,7 +17,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Calendar, Clock, Info, MapPin, Users, X } from "lucide-react"
+import { Calendar, Clock, Info, MapPin, Users } from "lucide-react"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
 import { format } from "date-fns"
@@ -178,236 +178,326 @@ export function ReservationForm({ selectedDate, onClose }: ReservationFormProps)
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[600px] p-0 overflow-hidden">
-        <form onSubmit={handleSubmit} className="max-h-[85vh] flex flex-col">
-          <DialogHeader className="px-4 py-3 sm:p-6 border-b bg-white dark:bg-gray-950">
-            <div className="flex items-center justify-between">
-              <DialogTitle className="text-base sm:text-lg flex items-center gap-2">
-                <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 dark:text-blue-400" />
-                New Reservation
-              </DialogTitle>
-              <Button 
-                type="button" 
-                variant="ghost" 
-                size="sm" 
-                className="h-8 w-8 p-0 rounded-full"
-                onClick={onClose}
-              >
-                <X className="h-4 w-4" />
-                <span className="sr-only">Close</span>
-              </Button>
-            </div>
-            <DialogDescription className="text-xs sm:text-sm mt-1">
-              Fill in the details for your reservation request
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+        <form onSubmit={handleSubmit}>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Calendar className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              Create New Reservation
+            </DialogTitle>
+            <DialogDescription>
+              Fill in the details for your reservation request. All fields marked with * are required.
             </DialogDescription>
           </DialogHeader>
+          {error && (
+            <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 p-3 rounded-md text-sm">
+              {error}
+            </div>
+          )}
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="title" className="flex items-center gap-1">
+                Event Title <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Enter a descriptive title for your event"
+                required
+              />
+            </div>
 
-          <div className="flex-1 overflow-y-auto">
-            <div className="px-4 py-3 sm:p-6 space-y-4 sm:space-y-5">
-              {error && (
-                <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 p-3 rounded-lg text-sm">
-                  {error}
-                </div>
-              )}
+            <div className="grid gap-2">
+              <Label htmlFor="date" className="flex items-center gap-1">
+                Date <span className="text-red-500">*</span>
+              </Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn("w-full justify-start text-left font-normal", !date && "text-muted-foreground")}
+                  >
+                    <Calendar className="mr-2 h-4 w-4" />
+                    {date ? format(date, "PPP") : <span>Pick a date</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <CalendarComponent mode="single" selected={date} onSelect={setDate} initialFocus />
+                </PopoverContent>
+              </Popover>
+            </div>
 
-              <div className="space-y-3 sm:space-y-4">
-                <div>
-                  <Label htmlFor="title" className="text-sm font-medium mb-1.5 block">
-                    Event Title <span className="text-red-500">*</span>
-                  </Label>
+            <div className="flex items-center space-x-2 mb-2">
+              <Checkbox
+                id="full-day"
+                checked={isFullDay}
+                onCheckedChange={(checked) => setIsFullDay(checked === true)}
+              />
+              <Label htmlFor="full-day" className="flex items-center gap-1">
+                Full Day Reservation
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-5 w-5">
+                      <Info className="h-3 w-3" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-80">
+                    <p className="text-sm">
+                      Full day reservations will book the venue from 00:00 to 23:59. This is useful for events that require the venue for the entire day.
+                    </p>
+                  </PopoverContent>
+                </Popover>
+              </Label>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="startTime" className="flex items-center gap-1">
+                  Start Time <span className="text-red-500">*</span>
+                  {isFullDay && <span className="text-xs text-muted-foreground ml-2">(Full day)</span>}
+                </Label>
+                <div className="relative">
+                  <Clock className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
-                    id="title"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    placeholder="Enter event title"
-                    className="h-10 sm:h-11"
+                    id="startTime"
+                    type="time"
+                    value={startTime}
+                    onChange={(e) => setStartTime(e.target.value)}
+                    className={cn("pl-8", isFullDay && "bg-muted")}
                     required
+                    disabled={isFullDay}
                   />
                 </div>
-
-                <div>
-                  <Label htmlFor="date" className="text-sm font-medium mb-1.5 block">
-                    Date <span className="text-red-500">*</span>
-                  </Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "w-full justify-start text-left font-normal h-10 sm:h-11",
-                          !date && "text-muted-foreground"
-                        )}
-                      >
-                        <Calendar className="mr-2 h-4 w-4" />
-                        {date ? format(date, "PPP") : <span>Pick a date</span>}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <CalendarComponent
-                        mode="single"
-                        selected={date}
-                        onSelect={setDate}
-                        initialFocus
-                        className="rounded-md border-0"
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-
-                <div>
-                  <div className="flex items-center gap-2 mb-3">
-                    <Checkbox
-                      id="full-day"
-                      checked={isFullDay}
-                      onCheckedChange={(checked) => setIsFullDay(checked === true)}
-                      className="h-4 w-4 sm:h-5 sm:w-5"
-                    />
-                    <Label htmlFor="full-day" className="text-sm font-medium">
-                      Full Day Reservation
-                    </Label>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                    <div>
-                      <Label htmlFor="startTime" className="text-sm font-medium mb-1.5 block">
-                        Start Time <span className="text-red-500">*</span>
-                      </Label>
-                      <div className="relative">
-                        <Clock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          id="startTime"
-                          type="time"
-                          value={startTime}
-                          onChange={(e) => setStartTime(e.target.value)}
-                          className={cn("pl-9 h-10 sm:h-11", isFullDay && "bg-muted")}
-                          required
-                          disabled={isFullDay}
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <Label htmlFor="endTime" className="text-sm font-medium mb-1.5 block">
-                        End Time <span className="text-red-500">*</span>
-                      </Label>
-                      <div className="relative">
-                        <Clock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          id="endTime"
-                          type="time"
-                          value={endTime}
-                          onChange={(e) => setEndTime(e.target.value)}
-                          className={cn("pl-9 h-10 sm:h-11", isFullDay && "bg-muted")}
-                          required
-                          disabled={isFullDay}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <Label htmlFor="venue" className="text-sm font-medium mb-1.5 block">
-                    Venue <span className="text-red-500">*</span>
-                  </Label>
-                  <div className="relative">
-                    <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Select onValueChange={setVenue} required>
-                      <SelectTrigger className="pl-9 h-10 sm:h-11">
-                        <SelectValue placeholder={isLoadingSpaces ? "Loading venues..." : "Select a venue"} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {isLoadingSpaces ? (
-                          <SelectItem value="loading" disabled>Loading venues...</SelectItem>
-                        ) : spaces.length > 0 ? (
-                          spaces.map((space) => (
-                            <SelectItem key={space.id} value={space.id} className="py-2.5 sm:py-3">
-                              {space.name} {space.capacity > 0 ? `(Capacity: ${space.capacity})` : ''}
-                            </SelectItem>
-                          ))
-                        ) : (
-                          <SelectItem value="none" disabled>No venues available</SelectItem>
-                        )}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <div>
-                  <Label htmlFor="attendees" className="text-sm font-medium mb-1.5 block">
-                    Expected Attendees <span className="text-red-500">*</span>
-                  </Label>
-                  <div className="relative">
-                    <Users className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="attendees"
-                      type="number"
-                      min="1"
-                      value={attendees}
-                      onChange={(e) => setAttendees(e.target.value)}
-                      placeholder="Number of attendees"
-                      className="pl-9 h-10 sm:h-11"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <Label htmlFor="description" className="text-sm font-medium mb-1.5 block">
-                    Description
-                  </Label>
-                  <Textarea
-                    id="description"
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Add any additional details about your event"
-                    className="min-h-[100px] resize-none"
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="endTime" className="flex items-center gap-1">
+                  End Time <span className="text-red-500">*</span>
+                  {isFullDay && <span className="text-xs text-muted-foreground ml-2">(Full day)</span>}
+                </Label>
+                <div className="relative">
+                  <Clock className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="endTime"
+                    type="time"
+                    value={endTime}
+                    onChange={(e) => setEndTime(e.target.value)}
+                    className={cn("pl-8", isFullDay && "bg-muted")}
+                    required
+                    disabled={isFullDay}
                   />
-                </div>
-
-                <div>
-                  <Label className="text-sm font-medium mb-2 block">
-                    Equipment Needed
-                  </Label>
-                  <div className="space-y-2 sm:space-y-3">
-                    {[
-                      { id: "projector", label: "Projector" },
-                      { id: "sound-system", label: "Sound System" },
-                      { id: "chairs", label: "Extra Chairs" },
-                      { id: "tables", label: "Extra Tables" }
-                    ].map(item => (
-                      <div key={item.id} className="flex items-center gap-2">
-                        <Checkbox
-                          id={item.id}
-                          checked={equipment.includes(item.id)}
-                          onCheckedChange={(checked) => {
-                            if (checked) {
-                              setEquipment([...equipment, item.id])
-                            } else {
-                              setEquipment(equipment.filter((eq) => eq !== item.id))
-                            }
-                          }}
-                          className="h-4 w-4 sm:h-5 sm:w-5"
-                        />
-                        <Label htmlFor={item.id} className="text-sm">
-                          {item.label}
-                        </Label>
-                      </div>
-                    ))}
-                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          <div className="border-t bg-gray-50/80 dark:bg-gray-900/50 px-4 py-3 sm:px-6 sm:py-4">
-            <Button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full bg-blue-600 hover:bg-blue-700 h-11"
-            >
-              {isSubmitting ? "Creating..." : "Create Reservation"}
-            </Button>
+            <div className="grid gap-2">
+              <Label htmlFor="venue" className="flex items-center gap-1">
+                Venue <span className="text-red-500">*</span>
+              </Label>
+              <div className="relative">
+                <MapPin className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Select onValueChange={setVenue} required>
+                  <SelectTrigger className="pl-8">
+                    <SelectValue placeholder={isLoadingSpaces ? "Loading venues..." : "Select a venue"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {isLoadingSpaces ? (
+                      <SelectItem value="loading" disabled>Loading venues...</SelectItem>
+                    ) : spaces.length > 0 ? (
+                      spaces.map((space) => (
+                        <SelectItem key={space.id} value={space.id}>
+                          {space.name} {space.capacity > 0 ? `(Capacity: ${space.capacity})` : ''}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="none" disabled>No venues available</SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="attendees" className="flex items-center gap-1">
+                Expected Attendees <span className="text-red-500">*</span>
+              </Label>
+              <div className="relative">
+                <Users className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="attendees"
+                  type="number"
+                  min="1"
+                  value={attendees}
+                  onChange={(e) => setAttendees(e.target.value)}
+                  placeholder="Number of expected participants"
+                  className="pl-8"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="grid gap-2">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="recurring"
+                  checked={isRecurring}
+                  onCheckedChange={(checked) => setIsRecurring(checked === true)}
+                />
+                <Label htmlFor="recurring" className="flex items-center gap-1">
+                  Recurring Event
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-5 w-5">
+                        <Info className="h-3 w-3" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-80">
+                      <p className="text-sm">
+                        Recurring events will create multiple reservations based on your selected pattern. All recurring
+                        reservations must be approved by an administrator.
+                      </p>
+                    </PopoverContent>
+                  </Popover>
+                </Label>
+              </div>
+
+              {isRecurring && (
+                <div className="pl-6 space-y-4 mt-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="recurrence-type">Recurrence Pattern</Label>
+                    <RadioGroup
+                      id="recurrence-type"
+                      value={recurrenceType}
+                      onValueChange={setRecurrenceType}
+                      className="flex flex-col space-y-1"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="daily" id="daily" />
+                        <Label htmlFor="daily">Daily</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="weekly" id="weekly" />
+                        <Label htmlFor="weekly">Weekly</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="monthly" id="monthly" />
+                        <Label htmlFor="monthly">Monthly</Label>
+                      </div>
+                    </RadioGroup>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="recurrence-end">End Date</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          id="recurrence-end"
+                          variant="outline"
+                          className={cn(
+                            "w-full justify-start text-left font-normal",
+                            !recurrenceEndDate && "text-muted-foreground",
+                          )}
+                        >
+                          <Calendar className="mr-2 h-4 w-4" />
+                          {recurrenceEndDate ? format(recurrenceEndDate, "PPP") : <span>Pick an end date</span>}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0">
+                        <CalendarComponent
+                          mode="single"
+                          selected={recurrenceEndDate}
+                          onSelect={setRecurrenceEndDate}
+                          initialFocus
+                          disabled={(date) => date < (selectedDate || new Date())}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="equipment">Additional Equipment Needed</Label>
+              <div className="space-y-2">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="projector"
+                    checked={equipment.includes("projector")}
+                    onCheckedChange={(checked) => {
+                      if (checked) {
+                        setEquipment([...equipment, "projector"])
+                      } else {
+                        setEquipment(equipment.filter((item) => item !== "projector"))
+                      }
+                    }}
+                  />
+                  <Label htmlFor="projector">Projector</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="sound-system"
+                    checked={equipment.includes("sound-system")}
+                    onCheckedChange={(checked) => {
+                      if (checked) {
+                        setEquipment([...equipment, "sound-system"])
+                      } else {
+                        setEquipment(equipment.filter((item) => item !== "sound-system"))
+                      }
+                    }}
+                  />
+                  <Label htmlFor="sound-system">Sound System</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="chairs"
+                    checked={equipment.includes("chairs")}
+                    onCheckedChange={(checked) => {
+                      if (checked) {
+                        setEquipment([...equipment, "chairs"])
+                      } else {
+                        setEquipment(equipment.filter((item) => item !== "chairs"))
+                      }
+                    }}
+                  />
+                  <Label htmlFor="chairs">Extra Chairs</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="tables"
+                    checked={equipment.includes("tables")}
+                    onCheckedChange={(checked) => {
+                      if (checked) {
+                        setEquipment([...equipment, "tables"])
+                      } else {
+                        setEquipment(equipment.filter((item) => item !== "tables"))
+                      }
+                    }}
+                  />
+                  <Label htmlFor="tables">Extra Tables</Label>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Provide details about your event, special requirements, or any additional information"
+                className="min-h-[100px]"
+              />
+            </div>
           </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? "Submitting..." : "Submit Request"}
+            </Button>
+          </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
