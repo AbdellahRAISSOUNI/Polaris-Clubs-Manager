@@ -231,11 +231,11 @@ export default function LandingPage() {
         <div className="container mx-auto px-4 py-6 h-full flex flex-col">
           <div className="flex justify-between items-center">
             <div className="flex items-center space-x-2">
-              <div className="relative h-12 w-auto">
-                <img src="/images/polaris-logo.png" alt="ADE ENSA Tetouan" className="h-full w-auto" style={{ minWidth: '120px' }} />
+              <div className="relative h-8 w-8">
+                <img src="/images/polaris-logo.svg" alt="Polaris Logo" className="h-8 w-8" />
               </div>
-              <div className="text-xl font-extrabold text-[#1B1464] dark:text-white">
-                ADE <span className="text-[#FF6B00]">ENSA Tetouan</span>
+              <div className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent">
+                Polaris Clubs Manager
               </div>
             </div>
             <div className="flex items-center space-x-2">
