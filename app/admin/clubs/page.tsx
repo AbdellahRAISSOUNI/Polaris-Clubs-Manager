@@ -370,88 +370,88 @@ export default function ClubsPage() {
 
   return (
     <AdminLayout>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-6 mb-6">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Club Management</h1>
           <p className="text-muted-foreground">Manage club accounts and access</p>
         </div>
-        <Button onClick={() => setShowAddClub(true)} className="gap-2">
+        <Button onClick={() => setShowAddClub(true)} className="w-full sm:w-auto gap-2">
           <Plus className="h-4 w-4" />
           Add New Club
         </Button>
       </div>
 
       {/* Stats Overview */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
+      <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4 mb-6">
         <Card>
-          <CardContent className="p-6">
-            <div className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <h3 className="text-sm font-medium">Total Clubs</h3>
-              <Users className="h-4 w-4 text-muted-foreground" />
+          <CardContent className="p-3 sm:p-4 lg:p-6">
+            <div className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2">
+              <h3 className="text-xs sm:text-sm font-medium">Total Clubs</h3>
+              <Users className="h-3.5 sm:h-4 w-3.5 sm:w-4 text-muted-foreground" />
             </div>
-            <div className="flex items-baseline gap-2">
-              <div className="text-2xl font-bold">{clubs.length}</div>
-              <p className="text-xs text-muted-foreground">registered clubs</p>
+            <div className="flex items-baseline gap-1 sm:gap-2">
+              <div className="text-lg sm:text-xl lg:text-2xl font-bold">{clubs.length}</div>
+              <p className="text-[10px] sm:text-xs text-muted-foreground">registered clubs</p>
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-6">
-            <div className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <h3 className="text-sm font-medium">Active Clubs</h3>
-              <CheckCircle className="h-4 w-4 text-muted-foreground" />
+          <CardContent className="p-3 sm:p-4 lg:p-6">
+            <div className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2">
+              <h3 className="text-xs sm:text-sm font-medium">Active Clubs</h3>
+              <CheckCircle className="h-3.5 sm:h-4 w-3.5 sm:w-4 text-muted-foreground" />
             </div>
-            <div className="flex items-baseline gap-2">
-              <div className="text-2xl font-bold">{clubs.filter(club => club.status === 'active').length}</div>
-              <p className="text-xs text-muted-foreground">currently active</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <h3 className="text-sm font-medium">Total Members</h3>
-              <UserPlus className="h-4 w-4 text-muted-foreground" />
-            </div>
-            <div className="flex items-baseline gap-2">
-              <div className="text-2xl font-bold">{clubs.reduce((acc, club) => acc + (club.members || 0), 0)}</div>
-              <p className="text-xs text-muted-foreground">across all clubs</p>
+            <div className="flex items-baseline gap-1 sm:gap-2">
+              <div className="text-lg sm:text-xl lg:text-2xl font-bold">{clubs.filter(club => club.status === 'active').length}</div>
+              <p className="text-[10px] sm:text-xs text-muted-foreground">currently active</p>
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-6">
-            <div className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <h3 className="text-sm font-medium">New This Month</h3>
-              <CalendarPlus className="h-4 w-4 text-muted-foreground" />
+          <CardContent className="p-3 sm:p-4 lg:p-6">
+            <div className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2">
+              <h3 className="text-xs sm:text-sm font-medium">Total Members</h3>
+              <UserPlus className="h-3.5 sm:h-4 w-3.5 sm:w-4 text-muted-foreground" />
             </div>
-            <div className="flex items-baseline gap-2">
-              <div className="text-2xl font-bold">
+            <div className="flex items-baseline gap-1 sm:gap-2">
+              <div className="text-lg sm:text-xl lg:text-2xl font-bold">{clubs.reduce((acc, club) => acc + (club.members || 0), 0)}</div>
+              <p className="text-[10px] sm:text-xs text-muted-foreground">across all clubs</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-3 sm:p-4 lg:p-6">
+            <div className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2">
+              <h3 className="text-xs sm:text-sm font-medium">New This Month</h3>
+              <CalendarPlus className="h-3.5 sm:h-4 w-3.5 sm:w-4 text-muted-foreground" />
+            </div>
+            <div className="flex items-baseline gap-1 sm:gap-2">
+              <div className="text-lg sm:text-xl lg:text-2xl font-bold">
                 {clubs.filter(club => {
                   const createdDate = new Date(club.created_at);
                   const now = new Date();
                   return createdDate.getMonth() === now.getMonth() && createdDate.getFullYear() === now.getFullYear();
                 }).length}
               </div>
-              <p className="text-xs text-muted-foreground">clubs added</p>
+              <p className="text-[10px] sm:text-xs text-muted-foreground">clubs added</p>
             </div>
           </CardContent>
         </Card>
       </div>
 
       <Card className="shadow-sm">
-        <CardHeader className="border-b bg-muted/40 p-6">
-          <div className="flex items-center justify-between">
+        <CardHeader className="border-b bg-muted/40 p-4 sm:p-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
               <CardTitle>Registered Clubs</CardTitle>
               <CardDescription>View and manage club accounts</CardDescription>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="relative w-64">
+            <div className="w-full sm:w-64">
+              <div className="relative">
                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Search clubs..."
-                  className="pl-8"
+                  className="pl-8 w-full"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
@@ -466,7 +466,7 @@ export default function ClubsPage() {
             </div>
           ) : (
             <div className="relative">
-              <div className="sticky top-0 border-b bg-muted/50 backdrop-blur-sm">
+              <div className="hidden sm:block sticky top-0 border-b bg-muted/50 backdrop-blur-sm">
                 <div className="grid grid-cols-6 gap-4 p-4 text-sm font-medium text-muted-foreground">
                   <div className="col-span-2">Club</div>
                   <div>Status</div>
@@ -477,21 +477,97 @@ export default function ClubsPage() {
               </div>
               <div className="divide-y">
                 {filteredClubs.map((club) => (
-                  <div key={club.id} className="grid grid-cols-6 gap-4 p-4 items-center hover:bg-muted/50 transition-colors">
-                    <div className="col-span-2 flex items-center gap-3">
+                  <div key={club.id} className="grid grid-cols-1 sm:grid-cols-6 gap-2 sm:gap-4 p-4 items-start sm:items-center hover:bg-muted/50 transition-colors">
+                    <div className="col-span-1 sm:col-span-2 flex items-center gap-3">
                       <Avatar className="h-10 w-10 border">
                         <AvatarImage src={club.logo || ""} alt={club.name} />
                         <AvatarFallback className="bg-primary/10">{club.name.substring(0, 2).toUpperCase()}</AvatarFallback>
                       </Avatar>
-                      <div>
+                      <div className="flex-1 min-w-0">
                         <p className="font-medium text-foreground">{club.name}</p>
                         <p className="text-sm text-muted-foreground flex items-center gap-1">
                           <Mail className="h-3 w-3" />
                           {club.email}
                         </p>
                       </div>
+                      <div className="sm:hidden">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="hover:bg-muted">
+                              <MoreHorizontal className="h-4 w-4" />
+                              <span className="sr-only">Open menu</span>
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-48">
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setSelectedClub(club)
+                                setShowAddClub(true)
+                              }}
+                              className="gap-2"
+                            >
+                              <Edit className="h-4 w-4" />
+                              Edit Details
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setSelectedClub(club)
+                                setClubPassword("")
+                                setConfirmPassword("")
+                                setShowResetPassword(true)
+                              }}
+                              className="gap-2"
+                            >
+                              <Key className="h-4 w-4" />
+                              Reset Password
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              className="text-red-600 dark:text-red-400 gap-2"
+                              onClick={() => {
+                                setSelectedClub(club)
+                                setShowDeleteConfirm(true)
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                              Delete Club
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
                     </div>
-                    <div>
+                    
+                    <div className="sm:hidden space-y-2 text-sm">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          {club.status === "active" ? (
+                            <Badge variant="default" className="flex w-fit items-center gap-1 bg-green-500/15 text-green-600 hover:bg-green-500/25 hover:text-green-600">
+                              <CheckCircle className="h-3 w-3" />
+                              Active
+                            </Badge>
+                          ) : (
+                            <Badge variant="secondary" className="flex w-fit items-center gap-1 bg-gray-500/15 text-gray-600 hover:bg-gray-500/25 hover:text-gray-600">
+                              <XCircle className="h-3 w-3" />
+                              Inactive
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="text-muted-foreground">
+                          {club.last_login ? (
+                            <div className="flex items-center gap-1">
+                              <Clock className="h-3 w-3" />
+                              {new Date(club.last_login).toLocaleDateString()}
+                            </div>
+                          ) : (
+                            "Never logged in"
+                          )}
+                        </div>
+                      </div>
+                      <div className="text-muted-foreground">
+                        {club.description || "No description provided"}
+                      </div>
+                    </div>
+
+                    <div className="hidden sm:block">
                       {club.status === "active" ? (
                         <Badge variant="default" className="flex w-fit items-center gap-1 bg-green-500/15 text-green-600 hover:bg-green-500/25 hover:text-green-600">
                           <CheckCircle className="h-3 w-3" />
@@ -504,7 +580,7 @@ export default function ClubsPage() {
                         </Badge>
                       )}
                     </div>
-                    <div className="text-sm text-muted-foreground">
+                    <div className="hidden sm:block text-sm text-muted-foreground">
                       {club.last_login ? (
                         <div className="flex items-center gap-1">
                           <Clock className="h-3 w-3" />
@@ -514,10 +590,10 @@ export default function ClubsPage() {
                         "Never"
                       )}
                     </div>
-                    <div className="text-sm text-muted-foreground line-clamp-2">
+                    <div className="hidden sm:block text-sm text-muted-foreground line-clamp-2">
                       {club.description || "No description provided"}
                     </div>
-                    <div className="text-right">
+                    <div className="hidden sm:block text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="icon" className="hover:bg-muted">
@@ -586,50 +662,52 @@ export default function ClubsPage() {
           setSelectedClub(null)
         }
       }}>
-        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
-          <form onSubmit={handleAddClub}>
-            <DialogHeader>
-              <DialogTitle>{selectedClub ? "Edit Club" : "Add New Club"}</DialogTitle>
-              <DialogDescription>
+        <DialogContent className="max-w-md w-[95%] sm:w-full max-h-[85vh] sm:max-h-[90vh] overflow-y-auto p-3 sm:p-6">
+          <form onSubmit={handleAddClub} className="space-y-4 sm:space-y-6">
+            <DialogHeader className="space-y-2">
+              <DialogTitle className="text-lg sm:text-xl">{selectedClub ? "Edit Club" : "Add New Club"}</DialogTitle>
+              <DialogDescription className="text-xs sm:text-sm">
                 {selectedClub
                   ? "Edit the club details below."
                   : "Create a new club account. The club will be able to login with these credentials."}
               </DialogDescription>
             </DialogHeader>
 
-            <div className="grid gap-3 py-3">
-              <div className="grid gap-2">
-                <Label htmlFor="club-name">Club Name</Label>
+            <div className="grid gap-3 sm:gap-4">
+              <div className="grid gap-1.5 sm:gap-2">
+                <Label htmlFor="club-name" className="text-xs sm:text-sm font-medium">Club Name</Label>
                 <Input 
                   id="club-name" 
                   name="club-name"
                   defaultValue={selectedClub?.name} 
                   placeholder="Enter club name" 
                   required 
+                  className="h-8 sm:h-10 text-sm"
                 />
               </div>
 
-              <div className="grid gap-2">
-                <Label htmlFor="club-description">Description</Label>
+              <div className="grid gap-1.5 sm:gap-2">
+                <Label htmlFor="club-description" className="text-xs sm:text-sm font-medium">Description</Label>
                 <Textarea
                   id="club-description"
                   name="club-description"
                   defaultValue={selectedClub?.description}
                   placeholder="Brief description of the club"
                   rows={2}
+                  className="min-h-[50px] sm:min-h-[80px] text-sm"
                 />
               </div>
 
-              <div className="grid gap-2">
-                <Label htmlFor="club-email">Primary Email Address</Label>
+              <div className="grid gap-1.5 sm:gap-2">
+                <Label htmlFor="club-email" className="text-xs sm:text-sm font-medium">Primary Email Address</Label>
                 <div className="relative">
-                  <Mail className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Mail className="absolute left-2 top-1.5 sm:top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="club-email"
                     name="club-email"
                     type="email"
                     defaultValue={selectedClub?.email}
-                    className="pl-8"
+                    className="pl-8 h-8 sm:h-10 text-sm"
                     placeholder="club@example.com"
                     required
                   />
@@ -637,68 +715,69 @@ export default function ClubsPage() {
               </div>
 
               {!selectedClub && (
-                <div className="grid gap-2">
-                  <Label htmlFor="club-password">Password</Label>
-                  <div className="relative">
-                    <Key className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="club-password"
-                      type="password"
-                      className="pl-8"
-                      placeholder="Set password"
-                      value={clubPassword}
-                      onChange={(e) => setClubPassword(e.target.value)}
-                      required={!selectedClub}
-                    />
+                <>
+                  <div className="grid gap-1.5 sm:gap-2">
+                    <Label htmlFor="club-password" className="text-xs sm:text-sm font-medium">Password</Label>
+                    <div className="relative">
+                      <Key className="absolute left-2 top-1.5 sm:top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="club-password"
+                        type="password"
+                        className="pl-8 h-8 sm:h-10 text-sm"
+                        placeholder="Set password"
+                        value={clubPassword}
+                        onChange={(e) => setClubPassword(e.target.value)}
+                        required={!selectedClub}
+                      />
+                    </div>
                   </div>
-                </div>
+
+                  <div className="grid gap-1.5 sm:gap-2">
+                    <Label htmlFor="confirm-password" className="text-xs sm:text-sm font-medium">Confirm Password</Label>
+                    <div className="relative">
+                      <Key className="absolute left-2 top-1.5 sm:top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="confirm-password"
+                        type="password"
+                        className="pl-8 h-8 sm:h-10 text-sm"
+                        placeholder="Confirm password"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        required={!selectedClub}
+                      />
+                    </div>
+                  </div>
+                </>
               )}
 
-              {!selectedClub && (
-                <div className="grid gap-2">
-                  <Label htmlFor="confirm-password">Confirm Password</Label>
-                  <div className="relative">
-                    <Key className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="confirm-password"
-                      type="password"
-                      className="pl-8"
-                      placeholder="Confirm password"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      required={!selectedClub}
-                    />
-                  </div>
-                </div>
-              )}
-
-              <div className="grid gap-2">
-                <Label htmlFor="club-logo">Club Logo</Label>
+              <div className="grid gap-1.5 sm:gap-2">
+                <Label htmlFor="club-logo" className="text-xs sm:text-sm font-medium">Club Logo</Label>
                 <Input 
                   id="club-logo" 
                   type="file" 
                   accept="image/*"
                   onChange={handleLogoChange}
+                  className="h-8 sm:h-10 text-xs sm:text-sm"
                 />
                 {selectedClub?.logo && !clubLogo && (
                   <div className="mt-1 flex items-center gap-2">
                     <img 
                       src={selectedClub.logo} 
                       alt="Current logo" 
-                      className="h-8 w-8 rounded-full object-cover"
+                      className="h-6 w-6 sm:h-8 sm:w-8 rounded-full object-cover"
                     />
-                    <span className="text-xs text-muted-foreground">Current logo</span>
+                    <span className="text-[10px] sm:text-xs text-muted-foreground">Current logo</span>
                   </div>
                 )}
-                <p className="text-xs text-muted-foreground">Optional. Maximum file size: 2MB</p>
+                <p className="text-[10px] sm:text-xs text-muted-foreground">Optional. Maximum file size: 2MB</p>
               </div>
 
-              <div className="grid gap-2">
-                <Label htmlFor="club-status">Status</Label>
+              <div className="grid gap-1.5 sm:gap-2">
+                <Label htmlFor="club-status" className="text-xs sm:text-sm font-medium">Status</Label>
                 <select 
                   id="club-status" 
                   name="club-status"
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="h-8 sm:h-10 w-full rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                   defaultValue={selectedClub?.status || "active"}
                 >
                   <option value="active">Active</option>
@@ -706,21 +785,22 @@ export default function ClubsPage() {
                 </select>
               </div>
 
-              <div className="grid gap-2">
-                <Label htmlFor="club-members">Number of Members</Label>
+              <div className="grid gap-1.5 sm:gap-2">
+                <Label htmlFor="club-members" className="text-xs sm:text-sm font-medium">Number of Members</Label>
                 <Input 
                   id="club-members" 
                   name="club-members"
                   type="number"
                   min="0"
                   defaultValue={selectedClub?.members || 0} 
-                  placeholder="Enter number of members" 
+                  placeholder="Enter number of members"
+                  className="h-8 sm:h-10 text-sm" 
                 />
-                <p className="text-xs text-muted-foreground">Specify the total number of members in this club</p>
+                <p className="text-[10px] sm:text-xs text-muted-foreground">Specify the total number of members in this club</p>
               </div>
             </div>
 
-            <DialogFooter>
+            <DialogFooter className="flex flex-col sm:flex-row gap-2 sm:gap-0 pt-2 sm:pt-4">
               <Button
                 type="button"
                 variant="outline"
@@ -728,10 +808,16 @@ export default function ClubsPage() {
                   setSelectedClub(null)
                   setShowAddClub(false)
                 }}
+                className="w-full sm:w-auto order-1 sm:order-none h-8 sm:h-10 text-xs sm:text-sm"
               >
                 Cancel
               </Button>
-              <Button type="submit">{selectedClub ? "Save Changes" : "Create Club"}</Button>
+              <Button 
+                type="submit" 
+                className="w-full sm:w-auto h-8 sm:h-10 text-xs sm:text-sm"
+              >
+                {selectedClub ? "Save Changes" : "Create Club"}
+              </Button>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -739,39 +825,39 @@ export default function ClubsPage() {
 
       {/* Reset Password Dialog */}
       <Dialog open={showResetPassword} onOpenChange={setShowResetPassword}>
-        <DialogContent>
-          <form onSubmit={handleResetPassword}>
-            <DialogHeader>
-              <DialogTitle>Reset Club Password</DialogTitle>
-              <DialogDescription>
+        <DialogContent className="max-w-md w-[95%] sm:w-full p-3 sm:p-6">
+          <form onSubmit={handleResetPassword} className="space-y-4 sm:space-y-6">
+            <DialogHeader className="space-y-2">
+              <DialogTitle className="text-lg sm:text-xl">Reset Club Password</DialogTitle>
+              <DialogDescription className="text-xs sm:text-sm">
                 Set a new password for {selectedClub?.name}.
               </DialogDescription>
             </DialogHeader>
 
-            <div className="grid gap-4 py-4">
-              <div className="grid gap-2">
-                <Label htmlFor="current-password">Current Password</Label>
+            <div className="grid gap-3 sm:gap-4">
+              <div className="grid gap-1.5 sm:gap-2">
+                <Label htmlFor="current-password" className="text-xs sm:text-sm font-medium">Current Password</Label>
                 <div className="relative">
-                  <Key className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Key className="absolute left-2 top-1.5 sm:top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input 
                     id="current-password" 
                     type="text" 
-                    className="pl-8 font-mono text-sm"
+                    className="pl-8 font-mono text-xs sm:text-sm h-8 sm:h-10"
                     value={selectedClub?.password || ""}
                     readOnly
                   />
                 </div>
-                <p className="text-xs text-muted-foreground">This is the current stored password</p>
+                <p className="text-[10px] sm:text-xs text-muted-foreground">This is the current stored password</p>
               </div>
 
-              <div className="grid gap-2">
-                <Label htmlFor="new-password">New Password</Label>
+              <div className="grid gap-1.5 sm:gap-2">
+                <Label htmlFor="new-password" className="text-xs sm:text-sm font-medium">New Password</Label>
                 <div className="relative">
-                  <Key className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Key className="absolute left-2 top-1.5 sm:top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input 
                     id="new-password" 
                     type="password" 
-                    className="pl-8" 
+                    className="pl-8 h-8 sm:h-10 text-sm" 
                     placeholder="Enter new password" 
                     value={clubPassword}
                     onChange={(e) => setClubPassword(e.target.value)}
@@ -780,14 +866,14 @@ export default function ClubsPage() {
                 </div>
               </div>
 
-              <div className="grid gap-2">
-                <Label htmlFor="confirm-password">Confirm New Password</Label>
+              <div className="grid gap-1.5 sm:gap-2">
+                <Label htmlFor="confirm-password" className="text-xs sm:text-sm font-medium">Confirm New Password</Label>
                 <div className="relative">
-                  <Key className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Key className="absolute left-2 top-1.5 sm:top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="confirm-password"
                     type="password"
-                    className="pl-8"
+                    className="pl-8 h-8 sm:h-10 text-sm"
                     placeholder="Confirm new password"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
@@ -797,7 +883,7 @@ export default function ClubsPage() {
               </div>
             </div>
 
-            <DialogFooter>
+            <DialogFooter className="flex flex-col sm:flex-row gap-2 sm:gap-0 pt-2 sm:pt-4">
               <Button
                 type="button"
                 variant="outline"
@@ -805,10 +891,16 @@ export default function ClubsPage() {
                   setSelectedClub(null)
                   setShowResetPassword(false)
                 }}
+                className="w-full sm:w-auto order-1 sm:order-none h-8 sm:h-10 text-xs sm:text-sm"
               >
                 Cancel
               </Button>
-              <Button type="submit">Reset Password</Button>
+              <Button 
+                type="submit" 
+                className="w-full sm:w-auto h-8 sm:h-10 text-xs sm:text-sm"
+              >
+                Reset Password
+              </Button>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -816,17 +908,25 @@ export default function ClubsPage() {
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription>
+        <AlertDialogContent className="w-[95%] sm:w-full p-3 sm:p-6">
+          <AlertDialogHeader className="space-y-2">
+            <AlertDialogTitle className="text-lg sm:text-xl">Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription className="text-xs sm:text-sm">
               This will permanently delete the club "{selectedClub?.name}" and all associated data.
               This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setSelectedClub(null)}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteClub} className="bg-red-600 hover:bg-red-700">
+          <AlertDialogFooter className="flex flex-col sm:flex-row gap-2 sm:gap-0">
+            <AlertDialogCancel 
+              onClick={() => setSelectedClub(null)}
+              className="w-full sm:w-auto order-1 sm:order-none h-8 sm:h-10 text-xs sm:text-sm"
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteClub} 
+              className="w-full sm:w-auto h-8 sm:h-10 text-xs sm:text-sm bg-red-600 hover:bg-red-700"
+            >
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>
