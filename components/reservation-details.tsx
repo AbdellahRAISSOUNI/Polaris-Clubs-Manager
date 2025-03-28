@@ -27,6 +27,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { MapPin } from "lucide-react"
 
 interface ReservationDetailsProps {
   reservation: {
@@ -39,6 +40,7 @@ interface ReservationDetailsProps {
     clubLogo?: string;
     isFullDay?: boolean;
     message?: string;
+    location?: string;
   }
   onClose: () => void
   onStatusChange?: (status: string) => void
@@ -304,6 +306,15 @@ export function ReservationDetails({ reservation, onClose, onStatusChange }: Res
                       )}
                     </div>
                   </div>
+                  {reservation.location && (
+                    <div className="col-span-2">
+                      <div className="text-[10px] sm:text-xs uppercase tracking-wider text-muted-foreground font-medium">Location</div>
+                      <div className="text-sm sm:font-medium mt-0.5 sm:mt-1 flex items-center gap-1.5">
+                        <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
+                        {reservation.location}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {reservation.message && (

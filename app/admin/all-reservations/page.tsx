@@ -45,7 +45,7 @@ interface Reservation {
   is_full_day?: boolean;
 }
 
-type SortField = 'date' | 'club' | 'title' | 'time' | 'status' | 'created_at';
+type SortField = 'date' | 'club' | 'title' | 'time' | 'status' | 'created_at' | 'location';
 type SortDirection = 'asc' | 'desc';
 
 // PDF styles
@@ -326,7 +326,8 @@ function AllReservationsContent() {
         : `${format(new Date(reservation.start_time), "h:mm a")} - ${format(new Date(reservation.end_time), "h:mm a")}`,
       clubName: reservation.club_name || "Unknown Club",
       clubLogo: `/api/clubs/${reservation.club_id}/image`,
-      isFullDay: reservation.is_full_day
+      isFullDay: reservation.is_full_day,
+      location: reservation.space_name
     };
     
     setSelectedReservation(reservation);
@@ -446,6 +447,8 @@ function AllReservationsContent() {
           return direction * (new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
         case 'club':
           return direction * ((a.club_name || '').localeCompare(b.club_name || ''));
+        case 'location':
+          return direction * ((a.space_name || '').localeCompare(b.space_name || ''));
         case 'title':
           return direction * (a.title.localeCompare(b.title));
         case 'time':
@@ -682,7 +685,7 @@ function AllReservationsContent() {
                 </Popover>
               </div>
             </div>
-            <div className="rounded-md border overflow-x-auto">
+            <div className="rounded-md border overflow-x-auto md:overflow-x-auto lg:overflow-visible">
               {isLoading ? (
                 <div className="p-6 sm:p-8 text-center text-sm sm:text-base text-muted-foreground">
                   Loading reservations...
@@ -696,12 +699,12 @@ function AllReservationsContent() {
                   No reservations found
                 </div>
               ) : (
-                <div className="min-w-[700px]">
-                  <Table>
+                <div className="min-w-[600px] md:min-w-0">
+                  <Table className="table-fixed w-full">
                     <TableHeader>
                       <TableRow>
                         <TableHead 
-                          className="cursor-pointer text-xs sm:text-sm py-2 sm:py-3"
+                          className="cursor-pointer text-xs sm:text-sm py-2 sm:py-3 w-[10%]"
                           onClick={() => handleSort('date')}
                         >
                           <div className="flex items-center">
@@ -710,7 +713,7 @@ function AllReservationsContent() {
                           </div>
                         </TableHead>
                         <TableHead 
-                          className="cursor-pointer text-xs sm:text-sm py-2 sm:py-3"
+                          className="cursor-pointer text-xs sm:text-sm py-2 sm:py-3 w-[15%]"
                           onClick={() => handleSort('club')}
                         >
                           <div className="flex items-center">
@@ -719,7 +722,7 @@ function AllReservationsContent() {
                           </div>
                         </TableHead>
                         <TableHead 
-                          className="cursor-pointer text-xs sm:text-sm py-2 sm:py-3"
+                          className="cursor-pointer text-xs sm:text-sm py-2 sm:py-3 w-[15%]"
                           onClick={() => handleSort('title')}
                         >
                           <div className="flex items-center">
@@ -728,7 +731,16 @@ function AllReservationsContent() {
                           </div>
                         </TableHead>
                         <TableHead 
-                          className="cursor-pointer text-xs sm:text-sm py-2 sm:py-3"
+                          className="cursor-pointer text-xs sm:text-sm py-2 sm:py-3 w-[15%]"
+                          onClick={() => handleSort('location')}
+                        >
+                          <div className="flex items-center">
+                            Location
+                            {getSortIcon('location')}
+                          </div>
+                        </TableHead>
+                        <TableHead 
+                          className="cursor-pointer text-xs sm:text-sm py-2 sm:py-3 w-[12%]"
                           onClick={() => handleSort('time')}
                         >
                           <div className="flex items-center">
@@ -737,7 +749,7 @@ function AllReservationsContent() {
                           </div>
                         </TableHead>
                         <TableHead 
-                          className="cursor-pointer text-xs sm:text-sm py-2 sm:py-3"
+                          className="cursor-pointer text-xs sm:text-sm py-2 sm:py-3 w-[10%]"
                           onClick={() => handleSort('created_at')}
                         >
                           <div className="flex items-center">
@@ -746,7 +758,7 @@ function AllReservationsContent() {
                           </div>
                         </TableHead>
                         <TableHead 
-                          className="cursor-pointer text-xs sm:text-sm py-2 sm:py-3"
+                          className="cursor-pointer text-xs sm:text-sm py-2 sm:py-3 w-[10%]"
                           onClick={() => handleSort('status')}
                         >
                           <div className="flex items-center">
@@ -754,7 +766,7 @@ function AllReservationsContent() {
                             {getSortIcon('status')}
                           </div>
                         </TableHead>
-                        <TableHead className="text-xs sm:text-sm py-2 sm:py-3">Actions</TableHead>
+                        <TableHead className="text-xs sm:text-sm py-2 sm:py-3 w-[13%]">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -775,22 +787,32 @@ function AllReservationsContent() {
                                 <img
                                   src={`/api/clubs/${reservation.club_id}/image`}
                                   alt={reservation.club_name || 'Club logo'}
-                                  className="h-5 w-5 sm:h-6 sm:w-6 rounded-full object-cover"
+                                  className="h-5 w-5 sm:h-6 sm:w-6 rounded-full object-cover flex-shrink-0"
                                   onError={(e) => {
                                     // If image fails to load, replace with default
                                     e.currentTarget.src = '/default-club-image.png'
                                   }}
                                 />
-                                <span className="truncate max-w-[100px] sm:max-w-[150px]">
+                                <span className="truncate max-w-[80px] sm:max-w-[120px] inline-block">
                                   {reservation.club_name || 'Unknown Club'}
                                 </span>
                               </div>
                             </TableCell>
                             <TableCell 
-                              className="cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 py-2 sm:py-3 truncate max-w-[120px] sm:max-w-[200px]"
+                              className="cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 py-2 sm:py-3 truncate max-w-[80px] sm:max-w-[150px]"
                               onClick={() => handleReservationSelect(reservation)}
                             >
-                              {reservation.title}
+                              <div className="truncate max-w-[100%]">
+                                {reservation.title}
+                              </div>
+                            </TableCell>
+                            <TableCell className="py-2 sm:py-3">
+                              <div className="flex items-center gap-1.5 sm:gap-2">
+                                <MapPin className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                                <span className="truncate max-w-[80px] sm:max-w-[120px] inline-block">
+                                  {reservation.space_name || 'Unknown Space'}
+                                </span>
+                              </div>
                             </TableCell>
                             <TableCell className="py-2 sm:py-3">
                               {reservation.is_full_day ? (
@@ -819,7 +841,7 @@ function AllReservationsContent() {
                               </Badge>
                             </TableCell>
                             <TableCell className="py-2 sm:py-3">
-                              <div className="flex items-center gap-1 sm:gap-2">
+                              <div className="flex flex-nowrap items-center gap-1 sm:gap-2">
                                 <Button
                                   variant="ghost"
                                   size="sm"
@@ -910,7 +932,8 @@ function AllReservationsContent() {
                 : `${format(new Date(selectedReservation.start_time), "h:mm a")} - ${format(new Date(selectedReservation.end_time), "h:mm a")}`,
               clubName: selectedReservation.club_name || "Unknown Club",
               clubLogo: `/api/clubs/${selectedReservation.club_id}/image`,
-              isFullDay: selectedReservation.is_full_day
+              isFullDay: selectedReservation.is_full_day,
+              location: selectedReservation.space_name
             }}
             onClose={() => setIsDetailsOpen(false)}
             onStatusChange={async (newStatus) => {
@@ -920,16 +943,13 @@ function AllReservationsContent() {
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ status: newStatus })
                 });
-                
                 if (!response.ok) throw new Error('Failed to update status');
-                
-                // Update local state
+                // Refresh reservations
                 const updatedReservations = reservations.map(r => 
                   r.id === selectedReservation.id ? { ...r, status: newStatus } : r
                 );
                 setReservations(updatedReservations);
                 setSelectedReservation({ ...selectedReservation, status: newStatus });
-                
               } catch (error) {
                 console.error('Error updating reservation:', error);
               }
@@ -938,5 +958,5 @@ function AllReservationsContent() {
         )}
       </div>
     </AdminLayout>
-  )
-} 
+  );
+}

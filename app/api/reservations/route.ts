@@ -80,10 +80,24 @@ export async function GET(request: Request) {
     // Create a map of club IDs to club names
     const clubMap = new Map(clubsData.map(club => [club.id, club.name]));
 
-    // Transform the reservations data to include club names
+    // Get all spaces to create a mapping
+    const { data: spacesData, error: spacesError } = await supabase
+      .from('spaces')
+      .select('id, name');
+
+    if (spacesError) {
+      console.error("Error fetching spaces:", spacesError);
+      return NextResponse.json(mockReservations);
+    }
+
+    // Create a map of space IDs to space names
+    const spaceMap = new Map(spacesData.map(space => [space.id, space.name]));
+
+    // Transform the reservations data to include club names and space names
     const transformedData = reservationsData.map(reservation => ({
       ...reservation,
-      club_name: clubMap.get(reservation.club_id) || 'Unknown Club'
+      club_name: clubMap.get(reservation.club_id) || 'Unknown Club',
+      space_name: spaceMap.get(reservation.space_id) || 'Unknown Space'
     }));
 
     return NextResponse.json(transformedData);
