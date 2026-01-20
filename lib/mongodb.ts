@@ -69,15 +69,18 @@ export async function connectMongo() {
     cached.promise = mongoose
       .connect(uriWithDb, {
         // Serverless/Atlas connection options
-        serverSelectionTimeoutMS: 5000, // Timeout after 5s instead of 30s
+        serverSelectionTimeoutMS: 10000, // Timeout after 10s
         socketTimeoutMS: 45000, // Close sockets after 45s of inactivity
-        // For serverless environments (Vercel, etc.)
+        // For serverless environments (Vercel, etc.) - disable buffering
         bufferCommands: false,
-        bufferMaxEntries: 0,
         // Retry options
         retryWrites: true,
         w: 'majority',
-      })
+        // Connection pool options for serverless
+        maxPoolSize: 1, // Maintain up to 1 socket connection
+        minPoolSize: 0, // Allow 0 connections when idle
+        maxIdleTimeMS: 30000, // Close connections after 30s of inactivity
+      } as mongoose.ConnectOptions)
       .then((mongooseInstance) => {
         console.log(`✅ Connected to MongoDB database: ${mongooseInstance.connection.name}`)
         return mongooseInstance
