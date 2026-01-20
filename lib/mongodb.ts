@@ -68,7 +68,15 @@ export async function connectMongo() {
 
     cached.promise = mongoose
       .connect(uriWithDb, {
-        // Modern mongoose options are mostly inferred; keep explicit if needed.
+        // Serverless/Atlas connection options
+        serverSelectionTimeoutMS: 5000, // Timeout after 5s instead of 30s
+        socketTimeoutMS: 45000, // Close sockets after 45s of inactivity
+        // For serverless environments (Vercel, etc.)
+        bufferCommands: false,
+        bufferMaxEntries: 0,
+        // Retry options
+        retryWrites: true,
+        w: 'majority',
       })
       .then((mongooseInstance) => {
         console.log(`✅ Connected to MongoDB database: ${mongooseInstance.connection.name}`)
@@ -76,6 +84,14 @@ export async function connectMongo() {
       })
       .catch((err) => {
         console.error("Failed to connect to MongoDB:", err)
+        // More detailed error logging
+        if (err.message?.includes('IP')) {
+          console.error("⚠️  IP Whitelist Issue: Make sure your deployment platform's IP is whitelisted in MongoDB Atlas")
+          console.error("⚠️  For Vercel: You may need to whitelist 0.0.0.0/0 (all IPs) in Atlas")
+        }
+        if (err.message?.includes('authentication')) {
+          console.error("⚠️  Authentication Issue: Check your MongoDB username and password")
+        }
         throw err
       })
   }
