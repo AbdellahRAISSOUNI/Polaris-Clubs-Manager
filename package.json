@@ -13,6 +13,8 @@
     "test:api": "tsx scripts/test-api-endpoints.ts"
   },
   "dependencies": {
+    "@cloudinary/react": "^1.14.3",
+    "@cloudinary/url-gen": "^1.22.0",
     "@hookform/resolvers": "^3.9.1",
     "@radix-ui/react-accordion": "^1.2.2",
     "@radix-ui/react-alert-dialog": "^1.1.4",
@@ -44,6 +46,7 @@
     "@react-pdf/renderer": "^4.3.0",
     "autoprefixer": "^10.4.20",
     "class-variance-authority": "^0.7.1",
+    "cloudinary": "^2.9.0",
     "clsx": "^2.1.1",
     "cmdk": "1.0.4",
     "date-fns": "^2.30.0",

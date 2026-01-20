@@ -91,25 +91,40 @@ export default function ClubsPage() {
     }
   }, [showAddClub])
 
-  // Handle file upload
-  // TODO: File storage needs to be implemented separately (e.g., AWS S3, Cloudinary, etc.)
+  // Handle file upload to Cloudinary
   const uploadLogo = async (file: File, clubId: string) => {
     try {
-      const fileExt = file.name.split('.').pop()
-      const fileName = `${clubId}.${fileExt}`
-      const filePath = `/club-logos/${fileName}`
-      
-      // In a real implementation, upload to a storage service and get the URL
-      // For now, using a placeholder path
-      warningNotification({
-        title: "Logo Upload",
-        description: "File storage not yet implemented. Using placeholder path."
+      // Validate file type
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
+      if (!allowedTypes.includes(file.type)) {
+        throw new Error('Invalid file type. Only images (JPEG, PNG, GIF, WebP) are allowed.')
+      }
+
+      // Validate file size (max 10MB)
+      const maxSize = 10 * 1024 * 1024 // 10MB
+      if (file.size > maxSize) {
+        throw new Error('File size too large. Maximum size is 10MB.')
+      }
+
+      // Upload to Cloudinary via API
+      const formData = new FormData()
+      formData.append('file', file)
+
+      const response = await fetch(`/api/clubs/${clubId}/image`, {
+        method: 'POST',
+        body: formData,
       })
-      
-      return filePath
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to upload logo')
+      }
+
+      const data = await response.json()
+      return data.url // Return the Cloudinary URL
     } catch (error: any) {
       console.error('Error in uploadLogo:', error.message)
-      return null
+      throw error
     }
   }
 
@@ -140,8 +155,12 @@ export default function ClubsPage() {
             if (newLogoUrl) {
               logoUrl = newLogoUrl
             }
-          } catch (logoError) {
+          } catch (logoError: any) {
             console.error('Logo upload error during update:', logoError)
+            errorNotification({
+              title: "Logo Upload Failed",
+              description: logoError.message || "Failed to upload logo. Club updated without logo."
+            })
             // Continue with club update even if logo upload fails
           }
         }
@@ -239,8 +258,12 @@ export default function ClubsPage() {
                 body: JSON.stringify({ logo: logoUrl }),
               })
             }
-          } catch (logoError) {
+          } catch (logoError: any) {
             console.error('Logo upload/update error:', logoError)
+            errorNotification({
+              title: "Logo Upload Failed",
+              description: logoError.message || "Failed to upload logo. Club created without logo."
+            })
             // Continue anyway, the club is created
           }
         }

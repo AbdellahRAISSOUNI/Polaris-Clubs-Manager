@@ -47,21 +47,50 @@ export async function POST(
       );
     }
 
-    // TODO: Implement file storage solution (Cloudinary, AWS S3, or local storage)
-    // For now, we'll store a placeholder URL
-    // In production, you should:
-    // 1. Upload file to cloud storage (Cloudinary, AWS S3, etc.)
-    // 2. Get the public URL
-    // 3. Store the URL in MongoDB
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      return NextResponse.json(
+        { error: "Invalid file type. Only images (JPEG, PNG, GIF, WebP) are allowed." },
+        { status: 400 }
+      );
+    }
+
+    // Validate file size (max 10MB)
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    if (file.size > maxSize) {
+      return NextResponse.json(
+        { error: "File size too large. Maximum size is 10MB." },
+        { status: 400 }
+      );
+    }
+
+    // Upload to Cloudinary
+    const { uploadToCloudinary, deleteFromCloudinary, extractPublicId } = await import('@/lib/cloudinary');
     
-    // Placeholder: Store a relative path
-    // In a real implementation, upload to cloud storage first
-    const imageUrl = `/spaces/${params.id}.jpg`; // Placeholder path
+    // Get existing space to check for old image
+    const existingSpace = await Space.findOne({ id: params.id }).select('image').lean();
+    
+    // Delete old image from Cloudinary if it exists
+    if (existingSpace?.image) {
+      const oldPublicId = extractPublicId(existingSpace.image);
+      if (oldPublicId) {
+        try {
+          await deleteFromCloudinary(oldPublicId);
+        } catch (error) {
+          console.error('Error deleting old image:', error);
+          // Continue even if deletion fails
+        }
+      }
+    }
+
+    // Upload new image to Cloudinary
+    const uploadResult = await uploadToCloudinary(file, 'spaces', `space-${params.id}`);
 
     // Update the space record with the new image URL
     const updatedSpace = await Space.findOneAndUpdate(
       { id: params.id },
-      { image: imageUrl },
+      { $set: { image: uploadResult.secure_url, updated_at: new Date() } },
       { new: true }
     );
 
@@ -73,13 +102,14 @@ export async function POST(
     }
 
     return NextResponse.json({ 
-      url: imageUrl,
-      message: "Image URL updated. Note: File storage needs to be configured for actual file uploads."
+      url: uploadResult.secure_url,
+      public_id: uploadResult.public_id,
+      message: "Image uploaded successfully"
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in space image upload:', error);
     return NextResponse.json(
-      { error: "Failed to process image upload" },
+      { error: error.message || "Failed to process image upload" },
       { status: 500 }
     );
   }

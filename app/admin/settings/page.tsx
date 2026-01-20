@@ -73,32 +73,38 @@ export default function SettingsPage() {
         return
       }
 
-      // TODO: File storage needs to be implemented separately (e.g., AWS S3, Cloudinary, etc.)
-      // MongoDB doesn't handle file storage directly
-      // For now, we'll create a placeholder URL
-      const fileExt = file.name.split('.').pop()
-      const fileName = `${adminId}.${fileExt}`
-      
-      // In a real implementation, upload to a storage service and get the URL
-      // For now, using a placeholder
-      const placeholderUrl = `/admin-profiles/${fileName}`
+      // Validate file type
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
+      if (!allowedTypes.includes(file.type)) {
+        throw new Error('Invalid file type. Only images (JPEG, PNG, GIF, WebP) are allowed.')
+      }
 
-      // Update the user record with the new avatar URL
-      const response = await fetch(`/api/users?id=${adminId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ avatar_url: placeholderUrl }),
+      // Validate file size (max 10MB)
+      const maxSize = 10 * 1024 * 1024 // 10MB
+      if (file.size > maxSize) {
+        throw new Error('File size too large. Maximum size is 10MB.')
+      }
+
+      // Upload to Cloudinary via API
+      const formData = new FormData()
+      formData.append('file', file)
+
+      const response = await fetch(`/api/users/${adminId}/avatar`, {
+        method: 'POST',
+        body: formData,
       })
 
       if (!response.ok) {
         const error = await response.json()
-        throw new Error(error.error || 'Failed to update avatar URL')
+        throw new Error(error.error || 'Failed to upload avatar')
       }
+
+      const data = await response.json()
 
       // Update local state
       setAdminInfo(prev => ({
         ...prev,
-        avatar_url: placeholderUrl
+        avatar_url: data.url
       }))
 
       toast({
