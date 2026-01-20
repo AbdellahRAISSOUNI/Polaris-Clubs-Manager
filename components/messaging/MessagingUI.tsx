@@ -11,7 +11,6 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { supabase } from '@/lib/supabase'
 import { 
   Search, 
   Send, 
@@ -67,18 +66,16 @@ function BroadcastMessage({ onClose, userId, sendMessage }: {
   // Fetch clubs on mount
   useEffect(() => {
     const fetchClubs = async () => {
-      const { data, error } = await supabase
-        .from('clubs')
-        .select('id, name')
-        .order('name')
+      const response = await fetch('/api/clubs')
       
-      if (error) {
-        console.error('Error fetching clubs:', error)
+      if (!response.ok) {
+        console.error('Error fetching clubs:', response.statusText)
         toast.error('Failed to load clubs')
         return
       }
       
-      setClubs(data.map(club => ({ ...club, selected: false })))
+      const data = await response.json()
+      setClubs(data.map((club: any) => ({ ...club, selected: false })))
       setLoadingClubs(false)
     }
     
@@ -266,26 +263,18 @@ export function MessagingUI({ userId, userType }: MessagingUIProps) {
           let avatar = undefined
           
           if (convo.type === 'admin') {
-            const { data } = await supabase
-              .from('users')
-              .select('name, avatar_url')
-              .eq('id', convo.id)
-              .single()
-              
-            if (data) {
+            const response = await fetch(`/api/users?id=${convo.id}`)
+            if (response.ok) {
+              const data = await response.json()
               name = data.name || 'Admin'
               avatar = data.avatar_url
             } else {
               name = 'Admin'
             }
           } else if (convo.type === 'club') {
-            const { data } = await supabase
-              .from('clubs')
-              .select('name, logo')
-              .eq('id', convo.id)
-              .single()
-              
-            if (data) {
+            const response = await fetch(`/api/clubs?id=${convo.id}`)
+            if (response.ok) {
+              const data = await response.json()
               name = data.name
               avatar = data.logo
             }

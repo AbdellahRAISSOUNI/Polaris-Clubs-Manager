@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { connectMongo } from "@/lib/mongodb";
+import { Space } from "@/models/Space";
+import { Reservation } from "@/models/Reservation";
+import { randomUUID } from "crypto";
 
 // Mock data for initial setup - will be used if Supabase connection fails
 const mockSpaces = [
@@ -42,18 +45,24 @@ const mockSpaces = [
 
 export async function GET() {
   try {
-    // Fetch spaces from Supabase
-    const { data, error } = await supabase
-      .from('spaces')
-      .select('*');
+    await connectMongo();
     
-    if (error) {
-      console.error("Error fetching spaces:", error);
-      // Fall back to mock data if there's an error
-      return NextResponse.json(mockSpaces);
-    }
+    // Fetch spaces from MongoDB
+    const spaces = await Space.find({}).lean();
     
-    return NextResponse.json(data);
+    // Transform MongoDB documents to match expected format (convert _id to id, handle dates)
+    const transformedSpaces = spaces.map(space => ({
+      id: space.id,
+      name: space.name,
+      capacity: space.capacity,
+      features: space.features || [],
+      image: space.image || "/spaces/default.jpg",
+      description: space.description,
+      is_active: space.is_active !== undefined ? space.is_active : true,
+      created_at: space.created_at ? new Date(space.created_at).toISOString() : new Date().toISOString(),
+    }));
+    
+    return NextResponse.json(transformedSpaces);
   } catch (error) {
     console.error("Error in spaces API:", error);
     // Fall back to mock data if there's an error
@@ -63,6 +72,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    await connectMongo();
     const body = await request.json();
     
     // Validate required fields
@@ -73,27 +83,33 @@ export async function POST(request: Request) {
       );
     }
     
-    // Insert into Supabase
-    const { data, error } = await supabase
-      .from('spaces')
-      .insert({
-        name: body.name,
-        capacity: body.capacity,
-        features: body.features || [],
-        image: body.image || "/spaces/default.jpg",
-      })
-      .select()
-      .single();
+    // Create new space with generated ID
+    const newSpace = new Space({
+      id: randomUUID(),
+      name: body.name,
+      capacity: body.capacity,
+      features: body.features || [],
+      image: body.image || "/spaces/default.jpg",
+      description: body.description,
+      is_active: body.is_active !== undefined ? body.is_active : true,
+      created_at: new Date(),
+    });
     
-    if (error) {
-      console.error("Error creating space:", error);
-      return NextResponse.json(
-        { error: "Failed to create space" },
-        { status: 500 }
-      );
-    }
+    const savedSpace = await newSpace.save();
     
-    return NextResponse.json(data, { status: 201 });
+    // Transform to match expected format
+    const transformedSpace = {
+      id: savedSpace.id,
+      name: savedSpace.name,
+      capacity: savedSpace.capacity,
+      features: savedSpace.features || [],
+      image: savedSpace.image || "/spaces/default.jpg",
+      description: savedSpace.description,
+      is_active: savedSpace.is_active !== undefined ? savedSpace.is_active : true,
+      created_at: savedSpace.created_at ? new Date(savedSpace.created_at).toISOString() : new Date().toISOString(),
+    };
+    
+    return NextResponse.json(transformedSpace, { status: 201 });
   } catch (error) {
     console.error("Error in spaces API:", error);
     return NextResponse.json(
@@ -105,6 +121,7 @@ export async function POST(request: Request) {
 
 export async function PUT(request: Request) {
   try {
+    await connectMongo();
     const body = await request.json();
     
     // Validate required fields
@@ -115,28 +132,40 @@ export async function PUT(request: Request) {
       );
     }
     
-    // Update in Supabase
-    const { data, error } = await supabase
-      .from('spaces')
-      .update({
+    // Update in MongoDB
+    const updatedSpace = await Space.findOneAndUpdate(
+      { id: body.id },
+      {
         name: body.name,
         capacity: body.capacity,
         features: body.features || [],
         image: body.image || "/spaces/default.jpg",
-      })
-      .eq('id', body.id)
-      .select()
-      .single();
+        description: body.description,
+        is_active: body.is_active !== undefined ? body.is_active : true,
+      },
+      { new: true, runValidators: true }
+    );
     
-    if (error) {
-      console.error("Error updating space:", error);
+    if (!updatedSpace) {
       return NextResponse.json(
-        { error: "Failed to update space" },
-        { status: 500 }
+        { error: "Space not found" },
+        { status: 404 }
       );
     }
     
-    return NextResponse.json(data);
+    // Transform to match expected format
+    const transformedSpace = {
+      id: updatedSpace.id,
+      name: updatedSpace.name,
+      capacity: updatedSpace.capacity,
+      features: updatedSpace.features || [],
+      image: updatedSpace.image || "/spaces/default.jpg",
+      description: updatedSpace.description,
+      is_active: updatedSpace.is_active !== undefined ? updatedSpace.is_active : true,
+      created_at: updatedSpace.created_at ? new Date(updatedSpace.created_at).toISOString() : new Date().toISOString(),
+    };
+    
+    return NextResponse.json(transformedSpace);
   } catch (error) {
     console.error("Error in spaces API:", error);
     return NextResponse.json(
@@ -148,6 +177,7 @@ export async function PUT(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
+    await connectMongo();
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
     
@@ -159,38 +189,22 @@ export async function DELETE(request: Request) {
     }
     
     // Check if space has reservations
-    const { data: reservations, error: reservationError } = await supabase
-      .from('reservations')
-      .select('id')
-      .eq('space_id', id)
-      .limit(1);
+    const reservationCount = await Reservation.countDocuments({ space_id: id });
     
-    if (reservationError) {
-      console.error("Error checking reservations:", reservationError);
-      return NextResponse.json(
-        { error: "Failed to check if space has reservations" },
-        { status: 500 }
-      );
-    }
-    
-    if (reservations && reservations.length > 0) {
+    if (reservationCount > 0) {
       return NextResponse.json(
         { error: "Cannot delete space with existing reservations" },
         { status: 400 }
       );
     }
     
-    // Delete from Supabase
-    const { error } = await supabase
-      .from('spaces')
-      .delete()
-      .eq('id', id);
+    // Delete from MongoDB
+    const result = await Space.findOneAndDelete({ id });
     
-    if (error) {
-      console.error("Error deleting space:", error);
+    if (!result) {
       return NextResponse.json(
-        { error: "Failed to delete space" },
-        { status: 500 }
+        { error: "Space not found" },
+        { status: 404 }
       );
     }
     

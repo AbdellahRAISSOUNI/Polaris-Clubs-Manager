@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { connectMongo } from "@/lib/mongodb";
+import { Reservation } from "@/models/Reservation";
+import { Club } from "@/models/Club";
+import { Space } from "@/models/Space";
+import { User } from "@/models/User";
 import { sendNotification } from "@/lib/send-notification";
+import { randomUUID } from "crypto";
 
 // Mock data for initial setup - will be used if Supabase connection fails
 const mockReservations = [
@@ -39,63 +44,43 @@ const mockReservations = [
 
 export async function GET(request: Request) {
   try {
+    await connectMongo();
     const { searchParams } = new URL(request.url);
     const clubId = searchParams.get('clubId');
     const spaceId = searchParams.get('spaceId');
     const status = searchParams.get('status');
 
-    // First, get all reservations
-    let query = supabase
-      .from('reservations')
-      .select('*');
+    // Build MongoDB query
+    const query: any = {};
+    if (clubId) query.club_id = clubId;
+    if (spaceId) query.space_id = spaceId;
+    if (status) query.status = status;
 
-    // Apply filters if provided
-    if (clubId) {
-      query = query.eq('club_id', clubId);
-    }
-    if (spaceId) {
-      query = query.eq('space_id', spaceId);
-    }
-    if (status) {
-      query = query.eq('status', status);
-    }
-
-    const { data: reservationsData, error: reservationsError } = await query;
-
-    if (reservationsError) {
-      console.error("Error fetching reservations:", reservationsError);
-      return NextResponse.json(mockReservations);
-    }
+    // Fetch reservations from MongoDB
+    const reservationsData = await Reservation.find(query).lean();
 
     // Get all clubs to create a mapping
-    const { data: clubsData, error: clubsError } = await supabase
-      .from('clubs')
-      .select('id, name');
-
-    if (clubsError) {
-      console.error("Error fetching clubs:", clubsError);
-      return NextResponse.json(mockReservations);
-    }
-
-    // Create a map of club IDs to club names
+    const clubsData = await Club.find({}).select('id name').lean();
     const clubMap = new Map(clubsData.map(club => [club.id, club.name]));
 
     // Get all spaces to create a mapping
-    const { data: spacesData, error: spacesError } = await supabase
-      .from('spaces')
-      .select('id, name');
-
-    if (spacesError) {
-      console.error("Error fetching spaces:", spacesError);
-      return NextResponse.json(mockReservations);
-    }
-
-    // Create a map of space IDs to space names
+    const spacesData = await Space.find({}).select('id name').lean();
     const spaceMap = new Map(spacesData.map(space => [space.id, space.name]));
 
     // Transform the reservations data to include club names and space names
     const transformedData = reservationsData.map(reservation => ({
-      ...reservation,
+      id: reservation.id,
+      space_id: reservation.space_id,
+      club_id: reservation.club_id,
+      title: reservation.title,
+      description: reservation.description || '',
+      start_time: reservation.start_time ? new Date(reservation.start_time).toISOString() : '',
+      end_time: reservation.end_time ? new Date(reservation.end_time).toISOString() : '',
+      status: reservation.status,
+      is_full_day: reservation.is_full_day || false,
+      admin_message: reservation.admin_message || '',
+      created_at: reservation.created_at ? new Date(reservation.created_at).toISOString() : new Date().toISOString(),
+      updated_at: reservation.updated_at ? new Date(reservation.updated_at).toISOString() : new Date().toISOString(),
       club_name: clubMap.get(reservation.club_id) || 'Unknown Club',
       space_name: spaceMap.get(reservation.space_id) || 'Unknown Space'
     }));
@@ -129,80 +114,41 @@ export async function POST(request: Request) {
       );
     }
     
+    await connectMongo();
+    
     // Prepare the data for insertion
     const reservationData = {
+      id: randomUUID(),
       space_id: body.spaceId,
       club_id: body.clubId,
       title: body.title,
       description: body.description || "",
-      start_time: body.startTime,
-      end_time: body.endTime,
-      status: "pending", // All new reservations start as pending
-      is_full_day: body.isFullDay || false, // Store whether this is a full day reservation
+      start_time: new Date(body.startTime),
+      end_time: new Date(body.endTime),
+      status: "pending" as const, // All new reservations start as pending
+      is_full_day: body.isFullDay || false,
+      created_at: new Date(),
+      updated_at: new Date(),
     };
     
     console.log("Inserting reservation data:", reservationData);
     
-    // Try inserting without the .single() method first
-    const { data, error } = await supabase
-      .from('reservations')
-      .insert(reservationData)
-      .select();
-    
-    if (error) {
-      // Log the detailed error from Supabase
-      console.error("Supabase error creating reservation:", {
-        message: error.message,
-        details: error.details,
-        hint: error.hint,
-        code: error.code
-      });
-      
-      // If there's an error, use mock data as a fallback
-      console.log("Using mock data as fallback");
-      
-      // Generate a unique ID for the mock reservation
-      const mockId = Date.now().toString();
-      
-      // Create a mock reservation with the same data structure as the database
-      const mockReservation = {
-        id: mockId,
-        ...reservationData,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      };
-      
-      // Add the mock reservation to the mockReservations array so it appears in GET requests
-      mockReservations.push(mockReservation);
-      
-      return NextResponse.json(mockReservation, { status: 201 });
-    }
+    // Create new reservation in MongoDB
+    const newReservation = new Reservation(reservationData);
+    const savedReservation = await newReservation.save();
     
     // Get club name for the notification
-    const { data: clubData, error: clubError } = await supabase
-      .from('clubs')
-      .select('name')
-      .eq('id', body.clubId)
-      .single();
-    
-    const clubName = clubError ? 'A club' : clubData.name;
+    const clubData = await Club.findOne({ id: body.clubId }).select('name').lean();
+    const clubName = clubData?.name || 'A club';
     
     // Get space name for the notification
-    const { data: spaceData, error: spaceError } = await supabase
-      .from('spaces')
-      .select('name')
-      .eq('id', body.spaceId)
-      .single();
-    
-    const spaceName = spaceError ? 'a space' : spaceData.name;
+    const spaceData = await Space.findOne({ id: body.spaceId }).select('name').lean();
+    const spaceName = spaceData?.name || 'a space';
     
     // Get all admin IDs to send notifications to
-    const { data: adminData, error: adminError } = await supabase
-      .from('users')
-      .select('id')
-      .eq('role', 'admin');
+    const adminData = await User.find({ role: 'admin' }).select('id').lean();
     
-    if (!adminError && adminData.length > 0) {
+    if (adminData.length > 0) {
       // Send notification to all admins
       for (const admin of adminData) {
         try {
@@ -212,7 +158,7 @@ export async function POST(request: Request) {
             title: 'New Reservation Request',
             message: `${clubName} has requested to reserve ${spaceName} for "${body.title}"`,
             type: 'info',
-            link: `/admin/all-reservations?id=${data[0].id}`,
+            link: `/admin/all-reservations?id=${savedReservation.id}`,
             sender_id: body.clubId
           });
         } catch (notifError) {
@@ -235,7 +181,23 @@ export async function POST(request: Request) {
       console.error("Error sending notification to club:", notifError);
     }
     
-    return NextResponse.json(data[0], { status: 201 });
+    // Transform to match expected format
+    const transformedReservation = {
+      id: savedReservation.id,
+      space_id: savedReservation.space_id,
+      club_id: savedReservation.club_id,
+      title: savedReservation.title,
+      description: savedReservation.description || '',
+      start_time: savedReservation.start_time ? new Date(savedReservation.start_time).toISOString() : '',
+      end_time: savedReservation.end_time ? new Date(savedReservation.end_time).toISOString() : '',
+      status: savedReservation.status,
+      is_full_day: savedReservation.is_full_day || false,
+      admin_message: savedReservation.admin_message || '',
+      created_at: savedReservation.created_at ? new Date(savedReservation.created_at).toISOString() : new Date().toISOString(),
+      updated_at: savedReservation.updated_at ? new Date(savedReservation.updated_at).toISOString() : new Date().toISOString(),
+    };
+    
+    return NextResponse.json(transformedReservation, { status: 201 });
   } catch (error) {
     // Log the detailed error
     console.error("Unexpected error in reservations API:", error);

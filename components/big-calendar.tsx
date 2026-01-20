@@ -6,7 +6,6 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { ChevronLeft, ChevronRight, Info, ZoomIn, ZoomOut, Maximize, Minimize, X, Bell } from "lucide-react"
-import { supabase } from "@/lib/supabase"
 import { addDays, addMonths, addWeeks, format, getDay, getDaysInMonth, isSameDay, isSameMonth, startOfMonth, startOfWeek, subMonths, subWeeks } from "date-fns"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
@@ -100,31 +99,25 @@ export function BigCalendar({
       setError(null)
       
       try {
-        // Fetch reservations
-        const { data: reservationsData, error: reservationsError } = await supabase
-          .from('reservations')
-          .select('*')
+        // Fetch reservations, clubs, and spaces from API
+        const [reservationsRes, clubsRes, spacesRes] = await Promise.all([
+          fetch('/api/reservations'),
+          fetch('/api/clubs'),
+          fetch('/api/spaces'),
+        ])
         
-        if (reservationsError) throw reservationsError
+        if (!reservationsRes.ok) throw new Error('Failed to fetch reservations')
+        if (!clubsRes.ok) throw new Error('Failed to fetch clubs')
+        if (!spacesRes.ok) throw new Error('Failed to fetch spaces')
         
-        // Fetch clubs
-        const { data: clubsData, error: clubsError } = await supabase
-          .from('clubs')
-          .select('*')
-        
-        if (clubsError) throw clubsError
-        
-        // Fetch spaces
-        const { data: spacesData, error: spacesError } = await supabase
-          .from('spaces')
-          .select('*')
-        
-        if (spacesError) throw spacesError
+        const reservationsData = await reservationsRes.json()
+        const clubsData = await clubsRes.json()
+        const spacesData = await spacesRes.json()
         
         // Enhance reservations with club and space names
-        const enhancedReservations = reservationsData?.map(reservation => {
-          const club = clubsData?.find(c => c.id === reservation.club_id)
-          const space = spacesData?.find(s => s.id === reservation.space_id)
+        const enhancedReservations = reservationsData?.map((reservation: any) => {
+          const club = clubsData?.find((c: any) => c.id === reservation.club_id)
+          const space = spacesData?.find((s: any) => s.id === reservation.space_id)
           
           return {
             ...reservation,

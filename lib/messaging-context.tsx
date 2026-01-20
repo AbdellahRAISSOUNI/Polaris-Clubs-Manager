@@ -1,7 +1,7 @@
 "use client"
 
 import React, { createContext, useContext, useEffect, useState } from 'react'
-import { supabase } from '@/lib/supabase'
+import { getPusherClient } from '@/lib/pusher-client'
 
 export interface Message {
   id: string
@@ -59,17 +59,16 @@ export function MessagingProvider({
   const fetchMessages = async () => {
     setLoading(true)
     try {
-      const { data, error } = await supabase
-        .from('messages')
-        .select('*')
-        .or(`sender_id.eq.${userId},recipient_id.eq.${userId}`)
-        .order('created_at', { ascending: false })
-
-      if (error) {
-        console.error('Error fetching messages:', error)
-        return
+      const response = await fetch('/api/messages', {
+        headers: {
+          'x-user-id': userId,
+          'x-user-type': userType,
+        },
+      })
+      if (!response.ok) {
+        throw new Error('Failed to fetch messages')
       }
-
+      const data = await response.json()
       setMessages(data || [])
     } catch (error) {
       console.error('Error in fetchMessages:', error)
@@ -81,162 +80,86 @@ export function MessagingProvider({
   // Function to fetch online statuses
   const fetchOnlineStatuses = async () => {
     try {
-      const { data, error } = await supabase
-        .from('online_status')
-        .select('*')
-
-      if (error) {
-        console.error('Error fetching online statuses:', error)
-        return
+      const response = await fetch('/api/messages/online-status')
+      if (!response.ok) {
+        throw new Error('Failed to fetch online statuses')
       }
-
-      const statusMap: Record<string, OnlineStatus> = {}
-      data.forEach(status => {
-        statusMap[`${status.user_type}-${status.user_id}`] = status
-      })
-
-      setOnlineStatuses(statusMap)
+      const data = await response.json()
+      setOnlineStatuses(data || {})
     } catch (error) {
       console.error('Error in fetchOnlineStatuses:', error)
     }
   }
 
-  // Set up real-time subscription for messages
+  // Set up Pusher subscriptions for realtime messages and online statuses
   useEffect(() => {
     if (!userId) return
 
     fetchMessages()
     fetchOnlineStatuses()
 
-    // Create a single channel for all message-related events
-    const messagesChannel = supabase.channel('messages-channel', {
-      config: {
-        broadcast: { self: true },
-        presence: { key: `${userType}-${userId}` }
-      }
-    })
-    
-    // Subscribe to messages sent by this user
-    messagesChannel.on('postgres_changes', {
-      event: 'INSERT',
-      schema: 'public',
-      table: 'messages',
-      filter: `sender_id=eq.${userId}`
-    }, (payload) => {
-      setMessages(prev => {
-        // Check if message already exists to avoid duplicates
-        if (prev.some(msg => msg.id === payload.new.id)) {
-          return prev;
-        }
-        return [payload.new as Message, ...prev];
-      });
-    });
-    
-    // Subscribe to messages received by this user
-    messagesChannel.on('postgres_changes', {
-      event: 'INSERT',
-      schema: 'public',
-      table: 'messages',
-      filter: `recipient_id=eq.${userId}`
-    }, (payload) => {
-      setMessages(prev => {
-        // Check if message already exists to avoid duplicates
-        if (prev.some(msg => msg.id === payload.new.id)) {
-          return prev;
-        }
-        return [payload.new as Message, ...prev];
-      });
-    });
-    
-    // Subscribe to message updates (read status changes)
-    messagesChannel.on('postgres_changes', {
-      event: 'UPDATE',
-      schema: 'public',
-      table: 'messages',
-      filter: `or(sender_id.eq.${userId},recipient_id.eq.${userId})`
-    }, (payload) => {
-      console.log('Message update detected:', payload.new);
-      setMessages(prev => {
-        // Check if the message already exists and if it's actually different
-        const existingMsgIndex = prev.findIndex(msg => msg.id === payload.new.id);
-        if (existingMsgIndex === -1) {
-          return [...prev, payload.new as Message];
-        }
-        
-        const existingMsg = prev[existingMsgIndex];
-        const newMsg = payload.new as Message;
-        
-        // Only update if something actually changed
-        if (
-          existingMsg.content !== newMsg.content ||
-          existingMsg.is_read !== newMsg.is_read ||
-          existingMsg.is_deleted !== newMsg.is_deleted ||
-          JSON.stringify(existingMsg.reactions) !== JSON.stringify(newMsg.reactions) ||
-          existingMsg.updated_at !== newMsg.updated_at
-        ) {
-          console.log('Updating message in state:', newMsg);
-          const newMessages = [...prev];
-          newMessages[existingMsgIndex] = newMsg;
-          return newMessages;
-        }
-        
-        return prev;
-      });
-    });
-    
-    // Subscribe to the channel
-    messagesChannel.subscribe(async (status) => {
-      if (status === 'SUBSCRIBED') {
-        console.log('Successfully subscribed to messages channel')
-      } else if (status === 'CLOSED') {
-        console.log('Messages channel closed, attempting to reconnect...')
-        await messagesChannel.subscribe()
-      } else if (status === 'CHANNEL_ERROR') {
-        console.error('Messages channel error, will retry...')
-        setTimeout(() => messagesChannel.subscribe(), 1000)
-      }
-    })
-
-    // Create online status channel
-    const onlineStatusChannel = supabase.channel('online-status-channel', {
-      config: {
-        broadcast: { self: true },
-        presence: { key: `${userType}-${userId}` }
-      }
-    })
-    
-    onlineStatusChannel.on('postgres_changes', {
-      event: '*',
-      schema: 'public',
-      table: 'online_status'
-    }, (payload) => {
-      if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-        const status = payload.new as OnlineStatus
-        setOnlineStatuses(prev => ({
-          ...prev,
-          [`${status.user_type}-${status.user_id}`]: status
-        }))
-      }
-    })
-    
-    // Subscribe to the channel
-    onlineStatusChannel.subscribe(async (status) => {
-      if (status === 'SUBSCRIBED') {
-        console.log('Successfully subscribed to online status channel')
-      } else if (status === 'CLOSED') {
-        console.log('Online status channel closed, attempting to reconnect...')
-        await onlineStatusChannel.subscribe()
-      } else if (status === 'CHANNEL_ERROR') {
-        console.error('Online status channel error, will retry...')
-        setTimeout(() => onlineStatusChannel.subscribe(), 1000)
-      }
-    })
-
     // Update user's online status when they load the page
     updateOnlineStatus(true)
 
+    // Set up Pusher subscriptions
+    const pusher = getPusherClient()
+    
+    // Subscribe to user-specific messages channel
+    const messagesChannel = pusher.subscribe(`messages-${userType}-${userId}`)
+    
+    messagesChannel.bind('new-message', (data: Message) => {
+      setMessages(prev => {
+        // Check if message already exists to avoid duplicates
+        if (prev.some(msg => msg.id === data.id)) {
+          return prev
+        }
+        return [data, ...prev]
+      })
+    })
+
+    messagesChannel.bind('message-updated', (data: Message) => {
+      setMessages(prev => {
+        const existingMsgIndex = prev.findIndex(msg => msg.id === data.id)
+        if (existingMsgIndex === -1) {
+          return [...prev, data]
+        }
+        const newMessages = [...prev]
+        newMessages[existingMsgIndex] = data
+        return newMessages
+      })
+    })
+
+    messagesChannel.bind('messages-read-all', () => {
+      // Refresh messages to get updated read statuses
+      fetchMessages()
+    })
+
+    // Subscribe to general messages channel for all messages
+    const generalMessagesChannel = pusher.subscribe('messages')
+    generalMessagesChannel.bind('new-message', (data: Message) => {
+      // Only add if it's relevant to this user
+      if (data.sender_id === userId && data.sender_type === userType ||
+          data.recipient_id === userId && data.recipient_type === userType) {
+        setMessages(prev => {
+          if (prev.some(msg => msg.id === data.id)) {
+            return prev
+          }
+          return [data, ...prev]
+        })
+      }
+    })
+
+    // Subscribe to online status channel
+    const onlineStatusChannel = pusher.subscribe('online-status')
+    onlineStatusChannel.bind('status-updated', (data: any) => {
+      setOnlineStatuses(prev => ({
+        ...prev,
+        [`${data.user_type}-${data.user_id}`]: data
+      }))
+    })
+
     // Set up interval to update online status every minute
-    const intervalId = setInterval(() => {
+    const statusUpdateInterval = setInterval(() => {
       updateOnlineStatus(true)
     }, 60000)
 
@@ -247,10 +170,13 @@ export function MessagingProvider({
     window.addEventListener('beforeunload', handleBeforeUnload)
 
     return () => {
-      // Clean up subscriptions
+      messagesChannel.unbind_all()
       messagesChannel.unsubscribe()
+      generalMessagesChannel.unbind_all()
+      generalMessagesChannel.unsubscribe()
+      onlineStatusChannel.unbind_all()
       onlineStatusChannel.unsubscribe()
-      clearInterval(intervalId)
+      clearInterval(statusUpdateInterval)
       window.removeEventListener('beforeunload', handleBeforeUnload)
       updateOnlineStatus(false)
     }
@@ -259,26 +185,27 @@ export function MessagingProvider({
   // Function to send a message
   const sendMessage = async (recipientId: string, recipientType: 'admin' | 'club', content: string, replyToId?: string) => {
     try {
-      console.log('Sending message to:', recipientId, recipientType, content, replyToId ? `replying to: ${replyToId}` : '')
-      const { data, error } = await supabase
-        .from('messages')
-        .insert({
-          sender_id: userId,
-          sender_type: userType,
+      const response = await fetch('/api/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-id': userId,
+          'x-user-type': userType,
+        },
+        body: JSON.stringify({
           recipient_id: recipientId,
           recipient_type: recipientType,
           content,
-          reply_to_id: replyToId
-        })
-        .select()
-        .single()
+          reply_to_id: replyToId,
+        }),
+      })
 
-      if (error) {
-        console.error('Error sending message:', error)
-        throw error
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to send message')
       }
 
-      console.log('Message sent successfully:', data)
+      const data = await response.json()
       // Optimistically update the messages state
       setMessages(prev => [data, ...prev])
       return data
@@ -298,23 +225,22 @@ export function MessagingProvider({
         return;
       }
 
-      console.log('Marking message as read:', messageId);
-      
-      // Use the new database function to update read status
-      const { error } = await supabase
-        .rpc('update_message_read_status', {
-          p_message_id: messageId,
-          p_is_read: true
-        });
+      const response = await fetch(`/api/messages/${messageId}?action=read`, {
+        method: 'PATCH',
+        headers: {
+          'x-user-id': userId,
+          'x-user-type': userType,
+        },
+      });
 
-      if (error) {
-        console.error('Error marking message as read:', error);
-        throw error;
+      if (!response.ok) {
+        throw new Error('Failed to mark message as read');
       }
 
       // Update the messages state
+      const updatedMessage = await response.json();
       setMessages(prev => 
-        prev.map(msg => msg.id === messageId ? { ...msg, is_read: true } : msg)
+        prev.map(msg => msg.id === messageId ? updatedMessage : msg)
       );
     } catch (error) {
       console.error('Error in markAsRead:', error);
@@ -325,20 +251,21 @@ export function MessagingProvider({
   // Function to mark all messages in a conversation as read
   const markAllAsRead = async (conversationPartnerId: string, conversationPartnerType: 'admin' | 'club') => {
     try {
-      console.log('Marking all messages as read for conversation with:', conversationPartnerId, conversationPartnerType);
-      
-      // Use the new database function to mark all messages as read
-      const { error } = await supabase
-        .rpc('mark_conversation_messages_read', {
-          p_sender_id: conversationPartnerId,
-          p_sender_type: conversationPartnerType,
-          p_recipient_id: userId,
-          p_recipient_type: userType
-        });
+      const response = await fetch('/api/messages?action=readAll', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-id': userId,
+          'x-user-type': userType,
+        },
+        body: JSON.stringify({
+          partnerId: conversationPartnerId,
+          partnerType: conversationPartnerType,
+        }),
+      });
 
-      if (error) {
-        console.error('Error marking all messages as read:', error);
-        throw error;
+      if (!response.ok) {
+        throw new Error('Failed to mark all messages as read');
       }
 
       // Update the messages state
@@ -430,28 +357,16 @@ export function MessagingProvider({
   // Helper function to fetch fresh messages from the database
   const fetchFreshMessages = async (partnerId: string, partnerType: 'admin' | 'club') => {
     try {
-      // Try the most direct approach with explicit string values
-      const sentMessages = await supabase
-        .from('messages')
-        .select('*')
-        .eq('sender_id', userId)
-        .eq('sender_type', userType)
-        .eq('recipient_id', partnerId)
-        .eq('recipient_type', partnerType)
-        .order('created_at', { ascending: true });
-      
-      const receivedMessages = await supabase
-        .from('messages')
-        .select('*')
-        .eq('sender_id', partnerId)
-        .eq('sender_type', partnerType)
-        .eq('recipient_id', userId)
-        .eq('recipient_type', userType)
-        .order('created_at', { ascending: true });
-      
-      // Combine and sort all messages
-      const allMessages = [...(sentMessages.data || []), ...(receivedMessages.data || [])]
-        .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+      const response = await fetch(`/api/messages?partnerId=${partnerId}&partnerType=${partnerType}`, {
+        headers: {
+          'x-user-id': userId,
+          'x-user-type': userType,
+        },
+      });
+      if (!response.ok) {
+        throw new Error('Failed to fetch conversation messages');
+      }
+      const allMessages = await response.json();
       
       // Update the global messages state with these messages
       if (allMessages.length > 0) {
@@ -460,7 +375,7 @@ export function MessagingProvider({
           const existingMsgs = new Map(prev.map(msg => [msg.id, msg]));
           
           // Add new messages to the map
-          allMessages.forEach(msg => {
+          allMessages.forEach((msg: Message) => {
             existingMsgs.set(msg.id, msg);
           });
           
@@ -479,24 +394,21 @@ export function MessagingProvider({
   // Function to update user's online status
   const updateOnlineStatus = async (isOnline: boolean) => {
     try {
-      const { data, error } = await supabase
-        .from('online_status')
-        .upsert({
-          user_id: userId,
-          user_type: userType,
-          is_online: isOnline,
-          last_active: new Date().toISOString()
-        }, {
-          onConflict: 'user_id, user_type'
-        })
-        .select()
-        .single()
+      const response = await fetch('/api/messages/online-status', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-id': userId,
+          'x-user-type': userType,
+        },
+        body: JSON.stringify({ is_online: isOnline }),
+      });
 
-      if (error) {
-        console.error('Error updating online status:', error)
-        return
+      if (!response.ok) {
+        throw new Error('Failed to update online status');
       }
 
+      const data = await response.json();
       setOnlineStatuses(prev => ({
         ...prev,
         [`${userType}-${userId}`]: data
@@ -528,30 +440,24 @@ export function MessagingProvider({
         throw new Error('Cannot delete messages older than 15 minutes')
       }
       
-      const { error } = await supabase
-        .from('messages')
-        .update({ 
-          is_deleted: true,
-          content: "This message was deleted",
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', messageId)
+      const response = await fetch(`/api/messages/${messageId}?action=delete`, {
+        method: 'PATCH',
+        headers: {
+          'x-user-id': userId,
+          'x-user-type': userType,
+        },
+      });
 
-      if (error) {
-        console.error('Error deleting message:', error)
-        throw error
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to delete message');
       }
       
-      // Optimistically update the messages state
+      const updatedMessage = await response.json();
+      
+      // Update the messages state
       setMessages(prev => prev.map(msg => 
-        msg.id === messageId 
-          ? { 
-              ...msg, 
-              is_deleted: true, 
-              content: "This message was deleted", 
-              updated_at: new Date().toISOString() 
-            } 
-          : msg
+        msg.id === messageId ? updatedMessage : msg
       ))
     } catch (error) {
       console.error('Error in deleteMessage:', error)
@@ -568,46 +474,26 @@ export function MessagingProvider({
         throw new Error('Message not found')
       }
       
-      // Create a unique key for the user's reaction
-      const reactionKey = `${userType}-${userId}`
-      
-      // Get current reactions or initialize empty object
-      const currentReactions = message.reactions || {}
-      
-      // If user already reacted with this emoji, remove it (toggle)
-      const newReactions = { ...currentReactions }
-      if (newReactions[reactionKey] === emoji) {
-        delete newReactions[reactionKey]
-      } else {
-        // Otherwise add/update the reaction
-        newReactions[reactionKey] = emoji
+      const response = await fetch(`/api/messages/${messageId}?action=react`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-id': userId,
+          'x-user-type': userType,
+        },
+        body: JSON.stringify({ emoji }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to react to message');
       }
 
-      console.log('Updating reactions in database:', {
-        messageId,
-        newReactions,
-        currentReactions
-      })
-      
-      // Update in the database using raw SQL to ensure proper JSONB handling
-      const { data, error } = await supabase.rpc('update_message_reactions', {
-        p_message_id: messageId,
-        p_reactions: newReactions,
-        p_updated_at: new Date().toISOString()
-      })
-
-      if (error) {
-        console.error('Error reacting to message:', error)
-        throw error
-      }
-
-      console.log('Database update successful:', data)
+      const updatedMessage = await response.json();
 
       // Update local state
       setMessages(prev => prev.map(msg => 
-        msg.id === messageId 
-          ? { ...msg, reactions: newReactions, updated_at: new Date().toISOString() } 
-          : msg
+        msg.id === messageId ? updatedMessage : msg
       ))
     } catch (error) {
       console.error('Error in reactToMessage:', error)

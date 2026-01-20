@@ -18,7 +18,6 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { getClubId } from "@/lib/storage"
-import { supabase } from "@/lib/supabase"
 import { toast } from "sonner"
 import { useSearchParams } from "next/navigation"
 
@@ -69,46 +68,26 @@ function ReservationsContent() {
         throw new Error('No club ID found. Please make sure you are logged in.')
       }
 
-      // Test connection first
-      const { error: testError } = await supabase.from('reservations').select('count').single()
-      if (testError) {
-        console.error('Connection test error:', testError)
-        if (testError.message.includes('FetchError') || testError.message.includes('network')) {
-          throw new Error('Unable to connect to the server. Please check your internet connection.')
-        }
-        throw new Error('Database connection error: ' + testError.message)
-      }
-
       console.log('Fetching reservations for club:', clubId)
       
-      // First, get all reservations
-      const { data: reservationsData, error: reservationsError } = await supabase
-        .from('reservations')
-        .select('*')
-        .eq('club_id', clubId)
-        .order('start_time', { ascending: true })
+      // Fetch reservations and spaces from API
+      const [reservationsRes, spacesRes] = await Promise.all([
+        fetch('/api/reservations'),
+        fetch('/api/spaces'),
+      ])
       
-      if (reservationsError) {
-        console.error('Supabase error:', reservationsError)
-        if (reservationsError.code === 'PGRST116') {
-          throw new Error('Invalid club ID format')
-        } else if (reservationsError.code === '42501') {
-          throw new Error('You do not have permission to view these reservations')
-        } else {
-          throw reservationsError
-        }
+      if (!reservationsRes.ok) {
+        throw new Error('Failed to fetch reservations')
       }
-
-      if (!reservationsData) {
-        console.log('No reservations data returned from query')
-        setReservations([])
-        return
+      if (!spacesRes.ok) {
+        throw new Error('Failed to fetch spaces')
       }
-
-      // Then, get all spaces
-      const { data: spacesData } = await supabase
-        .from('spaces')
-        .select('id, name')
+      
+      const allReservations = await reservationsRes.json()
+      const spacesData = await spacesRes.json()
+      
+      // Filter reservations for this club
+      const reservationsData = allReservations.filter((r: any) => r.club_id === clubId)
 
       // Create a map of space IDs to names
       const spaceMap = new Map(
@@ -159,12 +138,14 @@ function ReservationsContent() {
     if (!reservationToDelete) return
 
     try {
-      const { error } = await supabase
-        .from('reservations')
-        .delete()
-        .eq('id', reservationToDelete)
+      const response = await fetch(`/api/reservations/${reservationToDelete}`, {
+        method: 'DELETE',
+      })
 
-      if (error) throw error
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to delete reservation')
+      }
 
       setReservations(prev => prev.filter(res => res.id !== reservationToDelete))
       toast.success("Reservation deleted successfully")

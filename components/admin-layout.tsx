@@ -10,7 +10,6 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { Filter, ShieldCheck, LogOut, Bell } from "lucide-react"
 import { useRouter, usePathname } from "next/navigation"
-import { supabase } from "@/lib/supabase"
 import { useToast } from "@/components/ui/use-toast"
 import { AdminSidebar } from "@/components/admin-sidebar"
 import { ThemeToggle } from "@/components/ui/theme-toggle"
@@ -61,18 +60,14 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         }
         setAdminId(id)
 
-        const { data, error } = await supabase
-          .from('users')
-          .select('id, name, email, avatar_url')
-          .eq('id', id)
-          .eq('role', 'admin')
-          .single()
-
-        if (error) {
-          console.error("Error fetching admin user:", error)
+        const response = await fetch(`/api/users?id=${id}`)
+        
+        if (!response.ok) {
+          console.error("Error fetching admin user:", response.statusText)
           return
         }
 
+        const data = await response.json()
         setAdminUser(data)
       } catch (error) {
         console.error("Error in fetchAdminUser:", error)

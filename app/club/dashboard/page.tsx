@@ -33,7 +33,6 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { getClubId } from "@/lib/storage"
 import { successNotification, errorNotification, infoNotification } from "@/lib/notifications"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { supabase } from "@/lib/supabase"
 import { toast } from "sonner"
 import { format } from "date-fns"
 
@@ -316,15 +315,19 @@ export default function ClubDashboard() {
     
     setIsSubmitting(true);
     try {
-      const { error } = await supabase
-        .from('reservations')
-        .update({
+      const response = await fetch(`/api/reservations/${selectedReservation.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
           title: editedTitle,
-          description: editedDescription
-        })
-        .eq('id', selectedReservation.id);
+          description: editedDescription,
+        }),
+      });
 
-      if (error) throw error;
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to update reservation');
+      }
 
       // Update the local state
       setReservations(prev => 
@@ -351,12 +354,14 @@ export default function ClubDashboard() {
     
     setIsSubmitting(true);
     try {
-      const { error } = await supabase
-        .from('reservations')
-        .delete()
-        .eq('id', reservationToDelete);
+      const response = await fetch(`/api/reservations/${reservationToDelete}`, {
+        method: 'DELETE',
+      });
 
-      if (error) throw error;
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to delete reservation');
+      }
 
       // Update the local state
       setReservations(prev => prev.filter(res => res.id !== reservationToDelete));

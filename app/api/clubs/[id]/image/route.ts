@@ -1,19 +1,18 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { connectMongo } from "@/lib/mongodb";
+import { Club } from "@/models/Club";
 
 export async function GET(
   request: Request,
   { params }: { params: { id: string } }
 ) {
   try {
-    // First get the club to find the logo path
-    const { data: club, error: clubError } = await supabase
-      .from('clubs')
-      .select('logo')
-      .eq('id', params.id)
-      .single();
+    await connectMongo();
     
-    if (clubError || !club?.logo) {
+    // Get the club to find the logo path
+    const club = await Club.findOne({ id: params.id }).select('logo').lean();
+    
+    if (!club || !club.logo) {
       // If no club found or no logo, return default image
       return new Response(null, {
         status: 307, // Temporary redirect
@@ -23,8 +22,8 @@ export async function GET(
       });
     }
 
-    // If the logo is already a full URL (e.g., from previous implementation), return it
-    if (club.logo.startsWith('http')) {
+    // If the logo is already a full URL, redirect to it
+    if (club.logo.startsWith('http://') || club.logo.startsWith('https://')) {
       return new Response(null, {
         status: 307,
         headers: {
@@ -33,25 +32,12 @@ export async function GET(
       });
     }
 
-    // Get the public URL for the logo from Supabase storage
-    const { data } = supabase.storage
-      .from('clubs')
-      .getPublicUrl(club.logo);
-
-    if (!data.publicUrl) {
-      return new Response(null, {
-        status: 307,
-        headers: {
-          'Location': '/default-club-image.png'
-        },
-      });
-    }
-
-    // Redirect to the public URL
+    // If it's a relative path, redirect to it
+    // Note: For production, you may want to use a CDN or file storage service
     return new Response(null, {
       status: 307,
       headers: {
-        'Location': data.publicUrl
+        'Location': club.logo.startsWith('/') ? club.logo : `/${club.logo}`
       },
     });
   } catch (error) {

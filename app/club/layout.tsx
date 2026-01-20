@@ -8,7 +8,6 @@ import { Calendar, Home, Settings, Menu, X, LogOut, Bell, MessageSquare, Users }
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { toast } from "sonner"
 import { clearStorage, getClubId } from "@/lib/storage"
-import { supabase } from "@/lib/supabase"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { NotificationBell } from "@/components/notification-bell"
 import { NotificationsProvider } from "@/lib/notifications-context"
@@ -87,13 +86,9 @@ export default function ClubLayout({
       setClubId(id)
 
       try {
-        const { data, error } = await supabase
-          .from("clubs")
-          .select("id, name, logo")
-          .eq("id", id)
-          .single()
-
-        if (error) throw error
+        const response = await fetch(`/api/clubs?id=${id}`)
+        if (!response.ok) throw new Error('Failed to fetch club data')
+        const data = await response.json()
         setClub(data)
       } catch (error) {
         console.error("Error fetching club data:", error)

@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { connectMongo } from "@/lib/mongodb";
+import { Reservation } from "@/models/Reservation";
+import { User } from "@/models/User";
 import { sendNotification } from "@/lib/send-notification";
 
 // Define mock reservations for fallback
@@ -43,48 +45,47 @@ export async function PATCH(
       );
     }
     
+    await connectMongo();
+    
     // Get the reservation before updating
-    console.log('Fetching reservation from Supabase...');
-    const { data: reservationData, error: reservationError } = await supabase
-      .from('reservations')
-      .select('*')
-      .eq('id', id)
-      .single();
+    console.log('Fetching reservation from MongoDB...');
+    const reservationData = await Reservation.findOne({ id }).lean();
     
     console.log('Fetched reservation:', reservationData);
-    console.log('Fetch error:', reservationError);
     
-    if (reservationError || !reservationData) {
-      console.error("Error fetching reservation:", reservationError);
+    if (!reservationData) {
+      console.error("Reservation not found");
       return NextResponse.json(
-        { error: reservationError?.message || "Reservation not found" },
+        { error: "Reservation not found" },
         { status: 404 }
       );
     }
     
-    // Prepare update data - ONLY update the status field
-    const updateData = {
+    // Prepare update data - update status and admin_message if provided
+    const updateData: any = {
       status,
-      // Removed updated_at field in case it doesn't exist
+      updated_at: new Date(),
     };
+    
+    if (message) {
+      updateData.admin_message = message;
+    }
     
     console.log('Updating reservation with data:', updateData);
     
-    // Update in Supabase
-    const { data, error } = await supabase
-      .from('reservations')
-      .update(updateData)
-      .eq('id', id)
-      .select()
-      .single();
+    // Update in MongoDB
+    const updatedReservation = await Reservation.findOneAndUpdate(
+      { id },
+      updateData,
+      { new: true, runValidators: true }
+    ).lean();
     
-    console.log('Update result:', data);
-    console.log('Update error:', error);
+    console.log('Update result:', updatedReservation);
     
-    if (error) {
-      console.error("Error updating reservation status:", error);
+    if (!updatedReservation) {
+      console.error("Failed to update reservation");
       return NextResponse.json(
-        { error: error.message || "Failed to update reservation" },
+        { error: "Failed to update reservation" },
         { status: 500 }
       );
     }
@@ -133,11 +134,9 @@ export async function PATCH(
     // Send notification to admin as well
     try {
       // Get all admin IDs
-      const { data: admins, error: adminsError } = await supabase
-        .from('admins')
-        .select('id');
+      const admins = await User.find({ role: 'admin' }).select('id').lean();
       
-      if (!adminsError && admins && admins.length > 0) {
+      if (admins && admins.length > 0) {
         const notificationTitle = `Reservation ${status.charAt(0).toUpperCase() + status.slice(1)}`;
         const notificationMessage = `Reservation "${reservationData.title}" has been ${status}.`;
         
@@ -159,7 +158,23 @@ export async function PATCH(
       // Don't fail the request if notification fails
     }
     
-    return NextResponse.json(data);
+    // Transform to match expected format
+    const transformedReservation = {
+      id: updatedReservation.id,
+      space_id: updatedReservation.space_id,
+      club_id: updatedReservation.club_id,
+      title: updatedReservation.title,
+      description: updatedReservation.description || '',
+      start_time: updatedReservation.start_time ? new Date(updatedReservation.start_time).toISOString() : '',
+      end_time: updatedReservation.end_time ? new Date(updatedReservation.end_time).toISOString() : '',
+      status: updatedReservation.status,
+      is_full_day: updatedReservation.is_full_day || false,
+      admin_message: updatedReservation.admin_message || '',
+      created_at: updatedReservation.created_at ? new Date(updatedReservation.created_at).toISOString() : new Date().toISOString(),
+      updated_at: updatedReservation.updated_at ? new Date(updatedReservation.updated_at).toISOString() : new Date().toISOString(),
+    };
+    
+    return NextResponse.json(transformedReservation);
     
   } catch (error) {
     console.error("Error in reservation status API:", error);

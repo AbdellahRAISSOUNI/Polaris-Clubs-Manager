@@ -1,39 +1,30 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { connectMongo } from "@/lib/mongodb";
+import { Space } from "@/models/Space";
 
 export async function GET(
   request: Request,
   { params }: { params: { id: string } }
 ) {
   try {
+    await connectMongo();
+    
     // Get space details
-    const { data: space, error: spaceError } = await supabase
-      .from('spaces')
-      .select('image')
-      .eq('id', params.id)
-      .single();
+    const space = await Space.findOne({ id: params.id }).select('image').lean();
 
-    if (spaceError || !space) {
+    if (!space || !space.image) {
       return NextResponse.redirect(new URL('/spaces/default.jpg', request.url));
     }
 
     // If the space has a full URL for the image, redirect to it
-    if (space.image && (space.image.startsWith('http://') || space.image.startsWith('https://'))) {
+    if (space.image.startsWith('http://') || space.image.startsWith('https://')) {
       return NextResponse.redirect(space.image);
     }
 
-    // Get the public URL for the image from storage
-    const { data } = supabase.storage
-      .from('spaces')
-      .getPublicUrl(`space-images/${params.id}`);
-
-    // If we have a public URL, redirect to it
-    if (data.publicUrl) {
-      return NextResponse.redirect(data.publicUrl);
-    }
-
-    // If no image is found, redirect to default
-    return NextResponse.redirect(new URL('/spaces/default.jpg', request.url));
+    // If it's a relative path, redirect to it
+    // Note: For production, you may want to use a CDN or file storage service
+    const imagePath = space.image.startsWith('/') ? space.image : `/${space.image}`;
+    return NextResponse.redirect(new URL(imagePath, request.url));
   } catch (error) {
     console.error('Error fetching space image:', error);
     return NextResponse.redirect(new URL('/spaces/default.jpg', request.url));
@@ -45,6 +36,7 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
+    await connectMongo();
     const formData = await request.formData();
     const file = formData.get('file') as File;
 
@@ -55,42 +47,35 @@ export async function POST(
       );
     }
 
-    // Upload the file to Supabase storage
-    const { error: uploadError } = await supabase.storage
-      .from('spaces')
-      .upload(`space-images/${params.id}`, file, {
-        cacheControl: '3600',
-        upsert: true
-      });
-
-    if (uploadError) {
-      console.error('Error uploading space image:', uploadError);
-      return NextResponse.json(
-        { error: "Failed to upload image" },
-        { status: 500 }
-      );
-    }
-
-    // Get the public URL
-    const { data: urlData } = supabase.storage
-      .from('spaces')
-      .getPublicUrl(`space-images/${params.id}`);
+    // TODO: Implement file storage solution (Cloudinary, AWS S3, or local storage)
+    // For now, we'll store a placeholder URL
+    // In production, you should:
+    // 1. Upload file to cloud storage (Cloudinary, AWS S3, etc.)
+    // 2. Get the public URL
+    // 3. Store the URL in MongoDB
+    
+    // Placeholder: Store a relative path
+    // In a real implementation, upload to cloud storage first
+    const imageUrl = `/spaces/${params.id}.jpg`; // Placeholder path
 
     // Update the space record with the new image URL
-    const { error: updateError } = await supabase
-      .from('spaces')
-      .update({ image: urlData.publicUrl })
-      .eq('id', params.id);
+    const updatedSpace = await Space.findOneAndUpdate(
+      { id: params.id },
+      { image: imageUrl },
+      { new: true }
+    );
 
-    if (updateError) {
-      console.error('Error updating space with image URL:', updateError);
+    if (!updatedSpace) {
       return NextResponse.json(
-        { error: "Failed to update space with image URL" },
-        { status: 500 }
+        { error: "Space not found" },
+        { status: 404 }
       );
     }
 
-    return NextResponse.json({ url: urlData.publicUrl });
+    return NextResponse.json({ 
+      url: imageUrl,
+      message: "Image URL updated. Note: File storage needs to be configured for actual file uploads."
+    });
   } catch (error) {
     console.error('Error in space image upload:', error);
     return NextResponse.json(

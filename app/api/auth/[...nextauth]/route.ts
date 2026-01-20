@@ -2,7 +2,9 @@ import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { NextAuthOptions } from "next-auth";
 import type { User } from "next-auth";
-import { supabase } from "@/lib/supabase";
+import { connectMongo } from "@/lib/mongodb";
+import { User as UserModel } from "@/models/User";
+import { Club } from "@/models/Club";
 
 // Define the user type with role
 interface CustomUser extends User {
@@ -23,55 +25,70 @@ export const authOptions: NextAuthOptions = {
         }
 
         try {
-          // First, check if the user exists in Supabase
-          const { data, error } = await supabase
-            .from('users')
-            .select('*')
-            .eq('email', credentials.email)
-            .single();
+          await connectMongo();
+          
+          // First, check if the user exists in MongoDB (users table)
+          const user = await UserModel.findOne({ email: credentials.email }).lean();
 
-          if (error || !data) {
-            // For demo purposes, use hardcoded users if not found in Supabase
-            // In production, you would just return null here
-            const demoUsers = [
-              {
-                id: "1",
-                name: "Club User",
-                email: "club@example.com",
-                password: "password123",
-                role: "club",
-              },
-              {
-                id: "2",
-                name: "Admin User",
-                email: "admin@example.com",
-                password: "password123",
-                role: "admin",
-              },
-            ];
-
-            const user = demoUsers.find((user) => user.email === credentials.email);
-            
-            if (user && user.password === credentials.password) {
+          if (user) {
+            // In a real app, you would verify the password hash here (e.g., using bcrypt)
+            // For demo purposes, we're checking if password matches
+            // Note: This is insecure - implement proper password hashing in production
+            if (user.password && user.password === credentials.password) {
               return {
                 id: user.id,
-                name: user.name,
+                name: user.name || user.email.split('@')[0],
                 email: user.email,
-                role: user.role,
+                role: user.role || 'club',
               };
             }
-            
-            return null;
           }
 
-          // In a real app, you would verify the password hash here
-          // For demo purposes, we're assuming the password is correct if the user exists
-          return {
-            id: data.id,
-            name: data.name || data.email.split('@')[0],
-            email: data.email,
-            role: data.role,
-          };
+          // If not found in users table, check clubs table (club login)
+          const club = await Club.findOne({ email: credentials.email }).lean();
+          
+          if (club) {
+            // Check club password
+            if (club.password && club.password === credentials.password) {
+              return {
+                id: club.id,
+                name: club.name,
+                email: club.email,
+                role: 'club',
+              };
+            }
+          }
+
+          // For demo purposes, use hardcoded users if not found
+          const demoUsers = [
+            {
+              id: "1",
+              name: "Club User",
+              email: "club@example.com",
+              password: "password123",
+              role: "club",
+            },
+            {
+              id: "2",
+              name: "Admin User",
+              email: "admin@example.com",
+              password: "password123",
+              role: "admin",
+            },
+          ];
+
+          const demoUser = demoUsers.find((u) => u.email === credentials.email);
+          
+          if (demoUser && demoUser.password === credentials.password) {
+            return {
+              id: demoUser.id,
+              name: demoUser.name,
+              email: demoUser.email,
+              role: demoUser.role,
+            };
+          }
+          
+          return null;
         } catch (error) {
           console.error("Auth error:", error);
           return null;
@@ -82,15 +99,15 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.role = (user as CustomUser).role;
+        token.role = (user as CustomUser).role || 'club';
         token.id = user.id;
       }
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
-        session.user.role = token.role as string;
-        session.user.id = token.id as string;
+        session.user.role = (token.role as string) || 'club';
+        session.user.id = (token.id as string) || '';
       }
       return session;
     },

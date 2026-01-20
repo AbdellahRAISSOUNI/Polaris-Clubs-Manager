@@ -3,13 +3,21 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
-if (!supabaseUrl || !supabaseKey) {
-  console.error('Supabase credentials not found. Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY environment variables.');
+// During MongoDB migration, Supabase may not be configured
+// Create a dummy client if env vars are missing to prevent crashes
+const isSupabaseConfigured = supabaseUrl && supabaseKey;
+
+if (!isSupabaseConfigured) {
+  console.warn('⚠️  Supabase credentials not found. This is expected during MongoDB migration.');
 } else {
   console.log('Supabase client initialized with URL:', supabaseUrl);
 }
 
-export const supabase = createClient(supabaseUrl, supabaseKey, {
+// Use dummy values if not configured to prevent createClient from throwing
+export const supabase = createClient(
+  supabaseUrl || 'https://placeholder.supabase.co',
+  supabaseKey || 'placeholder-key',
+  {
   auth: {
     persistSession: false
   },
@@ -27,8 +35,13 @@ export const supabase = createClient(supabaseUrl, supabaseKey, {
   }
 });
 
-// Initialize global real-time subscriptions
+// Initialize global real-time subscriptions only if Supabase is configured
 const initializeRealtime = () => {
+  if (!isSupabaseConfigured) {
+    console.warn('⚠️  Skipping Supabase realtime initialization (migration in progress)');
+    return null;
+  }
+  
   try {
     // Create a global channel for database changes
     const channel = supabase.channel('global-db-changes', {
@@ -73,20 +86,22 @@ const initializeRealtime = () => {
 // Initialize real-time subscriptions
 const globalChannel = initializeRealtime();
 
-// Test the connection with a simpler query
-(async () => {
-  try {
-    const { data, error } = await supabase
-      .from('messages')
-      .select('id')
-      .limit(1);
-      
-    if (error) {
-      console.error('Error connecting to Supabase:', error);
-    } else {
-      console.log('Successfully connected to Supabase messages table');
+// Test the connection only if Supabase is configured
+if (isSupabaseConfigured) {
+  (async () => {
+    try {
+      const { data, error } = await supabase
+        .from('messages')
+        .select('id')
+        .limit(1);
+        
+      if (error) {
+        console.error('Error connecting to Supabase:', error);
+      } else {
+        console.log('Successfully connected to Supabase messages table');
+      }
+    } catch (err) {
+      console.error('Unexpected error testing Supabase connection:', err);
     }
-  } catch (err) {
-    console.error('Unexpected error testing Supabase connection:', err);
-  }
-})(); 
+  })();
+} 

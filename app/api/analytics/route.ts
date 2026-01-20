@@ -1,15 +1,15 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { connectMongo } from "@/lib/mongodb";
+import { Reservation } from "@/models/Reservation";
+import { Club } from "@/models/Club";
+import { Space } from "@/models/Space";
 
 // Function to get total reservations count
 async function getTotalReservations() {
   try {
-    const { count, error } = await supabase
-      .from('reservations')
-      .select('*', { count: 'exact', head: true });
-    
-    if (error) throw error;
-    return count || 0;
+    await connectMongo();
+    const count = await Reservation.countDocuments();
+    return count;
   } catch (error) {
     console.error("Error fetching total reservations:", error);
     return 0;
@@ -19,29 +19,31 @@ async function getTotalReservations() {
 // Function to get reservations by status
 async function getReservationsByStatus() {
   try {
-    const { data, error } = await supabase
-      .from('reservations')
-      .select('status');
+    await connectMongo();
     
-    if (error) throw error;
+    // Use MongoDB aggregation to count by status
+    const statusCounts = await Reservation.aggregate([
+      {
+        $group: {
+          _id: "$status",
+          count: { $sum: 1 }
+        }
+      }
+    ]);
     
-    // Count occurrences of each status
-    const statusCounts = {
+    const result = {
       approved: 0,
       pending: 0,
       rejected: 0
     };
     
-    if (data) {
-      data.forEach((reservation: any) => {
-        const status = reservation.status as keyof typeof statusCounts;
-        if (status in statusCounts) {
-          statusCounts[status]++;
-        }
-      });
-    }
+    statusCounts.forEach((item: any) => {
+      if (item._id in result) {
+        result[item._id as keyof typeof result] = item.count;
+      }
+    });
     
-    return statusCounts;
+    return result;
   } catch (error) {
     console.error("Error fetching reservations by status:", error);
     return { approved: 0, pending: 0, rejected: 0 };
@@ -51,36 +53,37 @@ async function getReservationsByStatus() {
 // Function to get space utilization
 async function getSpaceUtilization() {
   try {
-    // First get all spaces
-    const { data: spaces, error: spacesError } = await supabase
-      .from('spaces')
-      .select('id, name, capacity');
+    await connectMongo();
     
-    if (spacesError) throw spacesError;
+    // Get all spaces
+    const spaces = await Space.find({}).select('id name capacity').lean();
     
-    // For each space, count reservations
-    const spaceUtilization = [];
-    
-    if (spaces) {
-      for (const space of spaces) {
-        const { count, error } = await supabase
-          .from('reservations')
-          .select('*', { count: 'exact', head: true })
-          .eq('space_id', space.id);
-        
-        if (error) throw error;
-        
-        // Calculate utilization percentage (mock calculation)
-        // In a real scenario, you might calculate based on hours booked vs. available hours
-        const utilization = count ? Math.min(Math.round((count / 50) * 100), 100) : 0;
-        
-        spaceUtilization.push({
-          name: space.name,
-          utilization,
-          reservations: count || 0
-        });
+    // Use aggregation to count reservations per space
+    const reservationCounts = await Reservation.aggregate([
+      {
+        $group: {
+          _id: "$space_id",
+          count: { $sum: 1 }
+        }
       }
-    }
+    ]);
+    
+    // Create a map for quick lookup
+    const countMap = new Map(reservationCounts.map((item: any) => [item._id, item.count]));
+    
+    // Build space utilization array
+    const spaceUtilization = spaces.map((space: any) => {
+      const count = countMap.get(space.id) || 0;
+      // Calculate utilization percentage (mock calculation)
+      // In a real scenario, you might calculate based on hours booked vs. available hours
+      const utilization = count ? Math.min(Math.round((count / 50) * 100), 100) : 0;
+      
+      return {
+        name: space.name,
+        utilization,
+        reservations: count
+      };
+    });
     
     // Sort by utilization (highest first)
     return spaceUtilization.sort((a, b) => b.utilization - a.utilization);
@@ -93,35 +96,33 @@ async function getSpaceUtilization() {
 // Function to get club activity
 async function getClubActivity() {
   try {
-    // First get all clubs
-    const { data: clubs, error: clubsError } = await supabase
-      .from('clubs')
-      .select('id, name, members');
+    await connectMongo();
     
-    if (clubsError) throw clubsError;
+    // Get all clubs
+    const clubs = await Club.find({}).select('id name members').lean();
     
-    // For each club, count reservations
-    const clubActivity = [];
+    // Use aggregation to count reservations per club
+    const reservationCounts = await Reservation.aggregate([
+      {
+        $group: {
+          _id: "$club_id",
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+    
+    // Create a map for quick lookup
+    const countMap = new Map(reservationCounts.map((item: any) => [item._id, item.count]));
+    
     const colors = ["bg-blue-500", "bg-green-500", "bg-yellow-500", "bg-purple-500", "bg-pink-500"];
     
-    if (clubs) {
-      for (let i = 0; i < clubs.length; i++) {
-        const club = clubs[i];
-        const { count, error } = await supabase
-          .from('reservations')
-          .select('*', { count: 'exact', head: true })
-          .eq('club_id', club.id);
-        
-        if (error) throw error;
-        
-        clubActivity.push({
-          name: club.name,
-          reservations: count || 0,
-          members: club.members || 0,
-          color: colors[i % colors.length]
-        });
-      }
-    }
+    // Build club activity array
+    const clubActivity = clubs.map((club: any, index: number) => ({
+      name: club.name,
+      reservations: countMap.get(club.id) || 0,
+      members: club.members || 0,
+      color: colors[index % colors.length]
+    }));
     
     // Sort by number of reservations (highest first)
     return clubActivity.sort((a, b) => b.reservations - a.reservations);
@@ -134,11 +135,9 @@ async function getClubActivity() {
 // Function to get monthly statistics
 async function getMonthlyStats() {
   try {
-    const { data, error } = await supabase
-      .from('reservations')
-      .select('start_time, status');
+    await connectMongo();
     
-    if (error) throw error;
+    const reservations = await Reservation.find({}).select('start_time status').lean();
     
     const monthlyStats = [
       { month: "Jan", reservations: 0, approved: 0, rejected: 0 },
@@ -155,20 +154,18 @@ async function getMonthlyStats() {
       { month: "Dec", reservations: 0, approved: 0, rejected: 0 },
     ];
     
-    if (data) {
-      data.forEach((reservation: any) => {
-        const date = new Date(reservation.start_time);
-        const month = date.getMonth(); // 0-11
-        
-        monthlyStats[month].reservations++;
-        
-        if (reservation.status === 'approved') {
-          monthlyStats[month].approved++;
-        } else if (reservation.status === 'rejected') {
-          monthlyStats[month].rejected++;
-        }
-      });
-    }
+    reservations.forEach((reservation: any) => {
+      const date = new Date(reservation.start_time);
+      const month = date.getMonth(); // 0-11
+      
+      monthlyStats[month].reservations++;
+      
+      if (reservation.status === 'approved') {
+        monthlyStats[month].approved++;
+      } else if (reservation.status === 'rejected') {
+        monthlyStats[month].rejected++;
+      }
+    });
     
     // Return only the last 6 months for display
     const currentMonth = new Date().getMonth();
@@ -189,11 +186,9 @@ async function getMonthlyStats() {
 // Function to get time slot popularity
 async function getTimeSlotPopularity() {
   try {
-    const { data, error } = await supabase
-      .from('reservations')
-      .select('start_time');
+    await connectMongo();
     
-    if (error) throw error;
+    const reservations = await Reservation.find({}).select('start_time').lean();
     
     const timeSlots = [
       { time: "8:00-10:00", count: 0, percentage: 0 },
@@ -204,25 +199,23 @@ async function getTimeSlotPopularity() {
       { time: "18:00-20:00", count: 0, percentage: 0 },
     ];
     
-    if (data) {
-      data.forEach((reservation: any) => {
-        const date = new Date(reservation.start_time);
-        const hour = date.getHours();
-        
-        if (hour >= 8 && hour < 10) timeSlots[0].count++;
-        else if (hour >= 10 && hour < 12) timeSlots[1].count++;
-        else if (hour >= 12 && hour < 14) timeSlots[2].count++;
-        else if (hour >= 14 && hour < 16) timeSlots[3].count++;
-        else if (hour >= 16 && hour < 18) timeSlots[4].count++;
-        else if (hour >= 18 && hour < 20) timeSlots[5].count++;
-      });
+    reservations.forEach((reservation: any) => {
+      const date = new Date(reservation.start_time);
+      const hour = date.getHours();
       
-      // Calculate percentages
-      const totalCount = data.length;
-      timeSlots.forEach(slot => {
-        slot.percentage = totalCount > 0 ? Math.round((slot.count / totalCount) * 100) : 0;
-      });
-    }
+      if (hour >= 8 && hour < 10) timeSlots[0].count++;
+      else if (hour >= 10 && hour < 12) timeSlots[1].count++;
+      else if (hour >= 12 && hour < 14) timeSlots[2].count++;
+      else if (hour >= 14 && hour < 16) timeSlots[3].count++;
+      else if (hour >= 16 && hour < 18) timeSlots[4].count++;
+      else if (hour >= 18 && hour < 20) timeSlots[5].count++;
+    });
+    
+    // Calculate percentages
+    const totalCount = reservations.length;
+    timeSlots.forEach(slot => {
+      slot.percentage = totalCount > 0 ? Math.round((slot.count / totalCount) * 100) : 0;
+    });
     
     return timeSlots;
   } catch (error) {
@@ -234,11 +227,9 @@ async function getTimeSlotPopularity() {
 // Function to get day of week analysis
 async function getDayOfWeekAnalysis() {
   try {
-    const { data, error } = await supabase
-      .from('reservations')
-      .select('start_time');
+    await connectMongo();
     
-    if (error) throw error;
+    const reservations = await Reservation.find({}).select('start_time').lean();
     
     const daysOfWeek = [
       { day: "Mon", count: 0, height: 0 },
@@ -250,21 +241,19 @@ async function getDayOfWeekAnalysis() {
       { day: "Sun", count: 0, height: 0 },
     ];
     
-    if (data) {
-      data.forEach((reservation: any) => {
-        const date = new Date(reservation.start_time);
-        const day = date.getDay(); // 0-6, where 0 is Sunday
-        const dayIndex = day === 0 ? 6 : day - 1; // Convert to Mon-Sun format
-        
-        daysOfWeek[dayIndex].count++;
-      });
+    reservations.forEach((reservation: any) => {
+      const date = new Date(reservation.start_time);
+      const day = date.getDay(); // 0-6, where 0 is Sunday
+      const dayIndex = day === 0 ? 6 : day - 1; // Convert to Mon-Sun format
       
-      // Calculate heights for visualization (max 90)
-      const maxCount = Math.max(...daysOfWeek.map(day => day.count));
-      daysOfWeek.forEach(day => {
-        day.height = maxCount > 0 ? Math.round((day.count / maxCount) * 90) : 0;
-      });
-    }
+      daysOfWeek[dayIndex].count++;
+    });
+    
+    // Calculate heights for visualization (max 90)
+    const maxCount = Math.max(...daysOfWeek.map(day => day.count));
+    daysOfWeek.forEach(day => {
+      day.height = maxCount > 0 ? Math.round((day.count / maxCount) * 90) : 0;
+    });
     
     return daysOfWeek;
   } catch (error) {
@@ -276,12 +265,9 @@ async function getDayOfWeekAnalysis() {
 // Function to get active clubs count
 async function getActiveClubsCount() {
   try {
-    const { count, error } = await supabase
-      .from('clubs')
-      .select('*', { count: 'exact', head: true });
-    
-    if (error) throw error;
-    return count || 0;
+    await connectMongo();
+    const count = await Club.countDocuments({ status: 'active' });
+    return count;
   } catch (error) {
     console.error("Error fetching active clubs count:", error);
     return 0;
@@ -327,6 +313,8 @@ export const dynamic = 'force-static';
 
 export async function GET() {
   try {
+    await connectMongo();
+    
     // Use a default time range
     const timeRange = "last30days";
     

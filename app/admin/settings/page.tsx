@@ -8,7 +8,6 @@ import { AlertCircle, Linkedin, Eye, EyeOff, Upload } from "lucide-react"
 import Link from "next/link"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { supabase } from "@/lib/supabase"
 import { getAdminId, storeAdminId, storeIsAdmin } from "@/lib/storage"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { toast } from "@/components/ui/use-toast"
@@ -38,18 +37,14 @@ export default function SettingsPage() {
         }
         
         console.log("Fetching admin data with ID:", adminId)
-        const { data, error } = await supabase
-          .from('users')
-          .select('*')
-          .eq('id', adminId)
-          .eq('role', 'admin')
-          .single()
-          
-        if (error) {
-          console.error("Error fetching admin info:", error)
+        const response = await fetch(`/api/users?id=${adminId}`)
+        
+        if (!response.ok) {
+          console.error("Error fetching admin info:", response.statusText)
           return
         }
         
+        const data = await response.json()
         console.log("Admin data retrieved:", data)
         setAdminInfo(data)
       } catch (error) {
@@ -78,38 +73,32 @@ export default function SettingsPage() {
         return
       }
 
-      // Upload file to Supabase storage
+      // TODO: File storage needs to be implemented separately (e.g., AWS S3, Cloudinary, etc.)
+      // MongoDB doesn't handle file storage directly
+      // For now, we'll create a placeholder URL
       const fileExt = file.name.split('.').pop()
       const fileName = `${adminId}.${fileExt}`
-      const filePath = `admin-profiles/${fileName}`
-
-      const { error: uploadError } = await supabase.storage
-        .from('admin-profiles')
-        .upload(filePath, file, { upsert: true })
-
-      if (uploadError) {
-        throw uploadError
-      }
-
-      // Get the public URL
-      const { data: urlData } = supabase.storage
-        .from('admin-profiles')
-        .getPublicUrl(filePath)
+      
+      // In a real implementation, upload to a storage service and get the URL
+      // For now, using a placeholder
+      const placeholderUrl = `/admin-profiles/${fileName}`
 
       // Update the user record with the new avatar URL
-      const { error: updateError } = await supabase
-        .from('users')
-        .update({ avatar_url: urlData.publicUrl })
-        .eq('id', adminId)
+      const response = await fetch(`/api/users?id=${adminId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ avatar_url: placeholderUrl }),
+      })
 
-      if (updateError) {
-        throw updateError
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to update avatar URL')
       }
 
       // Update local state
       setAdminInfo(prev => ({
         ...prev,
-        avatar_url: urlData.publicUrl
+        avatar_url: placeholderUrl
       }))
 
       toast({
@@ -150,17 +139,14 @@ export default function SettingsPage() {
                   size="sm"
                   onClick={async () => {
                     try {
-                      const { data, error } = await supabase
-                        .from('users')
-                        .select('*')
-                        .eq('role', 'admin')
-                        .limit(1);
-                        
-                      if (error) {
-                        console.error("Error fetching admin:", error);
+                      const response = await fetch('/api/users?role=admin');
+                      
+                      if (!response.ok) {
+                        console.error("Error fetching admin:", response.statusText);
                         return;
                       }
                       
+                      const data = await response.json();
                       if (data && data.length > 0) {
                         console.log("Setting admin ID to:", data[0].id);
                         storeAdminId(data[0].id);

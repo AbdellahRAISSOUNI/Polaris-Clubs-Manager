@@ -1,10 +1,13 @@
-import { supabase } from '@/lib/supabase'
+import { connectMongo } from '@/lib/mongodb'
+import { Notification } from '@/models/Notification'
 import { 
   successNotification, 
   errorNotification, 
   warningNotification, 
   infoNotification 
 } from '@/lib/notifications'
+import { triggerPusherEvent } from '@/lib/pusher-server'
+import { randomUUID } from 'crypto'
 
 interface SendNotificationParams {
   recipientId: string
@@ -29,21 +32,45 @@ export async function sendNotification({
   sender_id,
 }: SendNotificationParams) {
   try {
-    const { data, error } = await supabase
-      .from('notifications')
-      .insert({
-        recipient_id: recipientId,
-        recipient_type: recipientType,
-        title,
-        message,
-        type,
-        link,
-        sender_id,
-      })
-      .select()
-      .single()
+    await connectMongo();
+    
+    const newNotification = new Notification({
+      id: randomUUID(),
+      recipient_id: recipientId,
+      recipient_type: recipientType,
+      title,
+      message,
+      type,
+      link: link || '',
+      sender_id: sender_id || '',
+      is_read: false,
+      created_at: new Date(),
+      updated_at: new Date(),
+    });
 
-    if (error) throw error
+    const savedNotification = await newNotification.save();
+    
+    // Transform to match expected format
+    const data = {
+      id: savedNotification.id,
+      recipient_id: savedNotification.recipient_id,
+      recipient_type: savedNotification.recipient_type,
+      title: savedNotification.title,
+      message: savedNotification.message,
+      type: savedNotification.type,
+      link: savedNotification.link,
+      sender_id: savedNotification.sender_id,
+      is_read: savedNotification.is_read,
+      created_at: savedNotification.created_at ? new Date(savedNotification.created_at).toISOString() : new Date().toISOString(),
+      updated_at: savedNotification.updated_at ? new Date(savedNotification.updated_at).toISOString() : new Date().toISOString(),
+    };
+
+    // Trigger Pusher event for realtime notification
+    const channel = `notifications-${recipientType}-${recipientId}`
+    await triggerPusherEvent(channel, 'new-notification', data)
+
+    // Also trigger on a general notifications channel for the user type
+    await triggerPusherEvent(`notifications-${recipientType}`, 'new-notification', data)
 
     // Only attempt to show toast notifications in browser environment
     if (isBrowser()) {

@@ -1,16 +1,17 @@
 import { NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { connectMongo } from '@/lib/mongodb'
+import { Reservation } from '@/models/Reservation'
 
 export async function DELETE() {
   try {
-    const { error } = await supabase
-      .from('reservations')
-      .delete()
-      .eq('status', 'rejected')
+    await connectMongo();
+    
+    const result = await Reservation.deleteMany({ status: 'rejected' })
 
-    if (error) throw error
-
-    return NextResponse.json({ message: 'Rejected reservations deleted successfully' })
+    return NextResponse.json({ 
+      message: 'Rejected reservations deleted successfully',
+      deletedCount: result.deletedCount 
+    })
   } catch (error) {
     console.error('Error deleting rejected reservations:', error)
     return NextResponse.json(

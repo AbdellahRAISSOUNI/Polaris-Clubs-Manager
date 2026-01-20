@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Eye, EyeOff, ExternalLink } from "lucide-react"
 import { getClubId } from "@/lib/storage"
-import { supabase } from "@/lib/supabase"
 
 export default function SettingsPage() {
   const [clubInfo, setClubInfo] = useState<any>(null)
@@ -25,17 +24,14 @@ export default function SettingsPage() {
           return
         }
         
-        const { data, error } = await supabase
-          .from('clubs')
-          .select('*')
-          .eq('id', clubId)
-          .single()
-          
-        if (error) {
-          console.error("Error fetching club info:", error)
+        const response = await fetch(`/api/clubs?id=${clubId}`)
+        
+        if (!response.ok) {
+          console.error("Error fetching club info:", response.statusText)
           return
         }
         
+        const data = await response.json()
         setClubInfo(data)
       } catch (error) {
         console.error("Error in fetchClubInfo:", error)

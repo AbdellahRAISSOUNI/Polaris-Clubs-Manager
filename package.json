@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "vercel-build": "npm run build"
+    "vercel-build": "npm run build",
+    "migrate": "tsx scripts/migrate-supabase-to-mongo.ts",
+    "migrate:dry-run": "tsx scripts/migrate-supabase-to-mongo.ts --dry-run"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",
@@ -49,9 +51,12 @@
     "framer-motion": "^12.5.0",
     "input-otp": "1.4.1",
     "lucide-react": "^0.454.0",
+    "mongoose": "^8.8.0",
     "next": "^14.2.24",
     "next-auth": "^4.24.7",
     "next-themes": "^0.4.4",
+    "pusher": "^5.3.2",
+    "pusher-js": "^8.4.0",
     "react": "^18",
     "react-day-picker": "8.10.1",
     "react-dom": "^18",
@@ -65,13 +70,16 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@types/mongoose": "^5.11.97",
     "@types/node": "^22",
     "@types/react": "^18",
     "@types/react-dom": "^18",
+    "dotenv": "^17.2.3",
     "eslint": "8.57.1",
     "eslint-config-next": "15.2.0",
     "postcss": "^8",
     "tailwindcss": "^3.4.17",
+    "tsx": "^4.19.2",
     "typescript": "^5"
   }
 }

@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react'
 import { useMessaging } from '@/lib/messaging-context'
-import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
@@ -34,14 +33,11 @@ export function NewConversation({ userId, userType, onConversationCreated, onClo
     try {
       if (userType === 'admin') {
         // Admin can message clubs
-        const { data: clubs } = await supabase
-          .from('clubs')
-          .select('id, name, logo')
-          .order('name')
-
-        if (clubs) {
+        const response = await fetch('/api/clubs')
+        if (response.ok) {
+          const clubs = await response.json()
           setRecipients(
-            clubs.map(club => ({
+            clubs.map((club: any) => ({
               id: club.id,
               name: club.name,
               avatar: club.logo,
@@ -51,15 +47,11 @@ export function NewConversation({ userId, userType, onConversationCreated, onClo
         }
       } else if (userType === 'club') {
         // Clubs can message admins
-        const { data: admins } = await supabase
-          .from('users')
-          .select('id, name, avatar_url')
-          .eq('role', 'admin')
-          .order('name')
-
-        if (admins) {
+        const response = await fetch('/api/users?role=admin')
+        if (response.ok) {
+          const admins = await response.json()
           setRecipients(
-            admins.map(admin => ({
+            admins.map((admin: any) => ({
               id: admin.id,
               name: admin.name || 'Admin',
               avatar: admin.avatar_url,

@@ -21,7 +21,6 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Search, MoreHorizontal, Mail, Key, UserPlus, Edit, Trash2, CheckCircle, XCircle, Plus, X, Users, CalendarPlus, Clock } from "lucide-react"
 import { AdminLayout } from "@/components/admin-layout"
-import { supabase } from "@/lib/supabase"
 import { toast } from "@/components/ui/use-toast"
 import { successNotification, errorNotification, warningNotification } from "@/lib/notifications"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
@@ -56,13 +55,10 @@ export default function ClubsPage() {
     const fetchClubs = async () => {
       setIsLoading(true)
       try {
-        const { data, error } = await supabase
-          .from('clubs')
-          .select('*')
-          .order('name')
+        const response = await fetch('/api/clubs')
+        if (!response.ok) throw new Error('Failed to fetch clubs')
         
-        if (error) throw error
-        
+        const data = await response.json()
         setClubs(data || [])
       } catch (error: any) {
         console.error('Error fetching clubs:', error.message)
@@ -96,37 +92,23 @@ export default function ClubsPage() {
   }, [showAddClub])
 
   // Handle file upload
+  // TODO: File storage needs to be implemented separately (e.g., AWS S3, Cloudinary, etc.)
   const uploadLogo = async (file: File, clubId: string) => {
     try {
       const fileExt = file.name.split('.').pop()
       const fileName = `${clubId}.${fileExt}`
-      const filePath = `club-logos/${fileName}`
+      const filePath = `/club-logos/${fileName}`
       
-      // Create a public URL even if upload fails
-      const { data: urlData } = supabase.storage.from('clubs').getPublicUrl(filePath)
+      // In a real implementation, upload to a storage service and get the URL
+      // For now, using a placeholder path
+      warningNotification({
+        title: "Logo Upload",
+        description: "File storage not yet implemented. Using placeholder path."
+      })
       
-      try {
-        const { error: uploadError } = await supabase.storage
-          .from('clubs')
-          .upload(filePath, file, { upsert: true })
-        
-        if (uploadError) {
-          console.error('Logo upload error:', uploadError)
-          // Return the URL anyway - we'll update the database but the image might not be available
-          warningNotification({
-            title: "Logo Upload Failed",
-            description: "Club created but logo upload failed. You can try again later."
-          })
-        }
-      } catch (uploadErr) {
-        console.error('Logo upload exception:', uploadErr)
-        // Continue with club creation even if logo upload fails
-      }
-      
-      return urlData.publicUrl
+      return filePath
     } catch (error: any) {
       console.error('Error in uploadLogo:', error.message)
-      // Return null instead of throwing, so club creation can continue
       return null
     }
   }
@@ -164,19 +146,18 @@ export default function ClubsPage() {
           }
         }
         
-        const { error } = await supabase
-          .from('clubs')
-          .update({
+        const response = await fetch(`/api/clubs?id=${selectedClub.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
             ...clubData,
             logo: logoUrl,
-          })
-          .eq('id', selectedClub.id)
+          }),
+        })
         
-        if (error) {
-          if (error.code === '23505') {
-            throw new Error('A club with this email already exists')
-          }
-          throw error
+        if (!response.ok) {
+          const error = await response.json()
+          throw new Error(error.error || 'Failed to update club')
         }
         
         successNotification({
@@ -185,8 +166,9 @@ export default function ClubsPage() {
         })
         
         // Refresh clubs list
-        const { data } = await supabase.from('clubs').select('*').order('name')
-        setClubs(data || [])
+        const refreshResponse = await fetch('/api/clubs')
+        const refreshedData = await refreshResponse.json()
+        setClubs(refreshedData || [])
         
         // Reset form and close dialog
         setSelectedClub(null)
@@ -210,11 +192,9 @@ export default function ClubsPage() {
         }
         
         // Check if email already exists
-        const { data: existingClub, error: checkError } = await supabase
-          .from('clubs')
-          .select('id')
-          .eq('email', clubData.email)
-          .single()
+        const checkResponse = await fetch('/api/clubs')
+        const allClubs = await checkResponse.json()
+        const existingClub = allClubs.find((c: any) => c.email === clubData.email)
         
         if (existingClub) {
           errorNotification({
@@ -224,21 +204,22 @@ export default function ClubsPage() {
           return
         }
         
-        // Insert new club
-        const { data, error } = await supabase
-          .from('clubs')
-          .insert({
+        // Create new club
+        const response = await fetch('/api/clubs', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
             ...clubData,
             password: clubPassword, // In a real app, you'd hash this password
-          })
-          .select()
+          }),
+        })
         
-        if (error) {
-          if (error.code === '23505') {
-            throw new Error('A club with this email already exists')
-          }
-          throw error
+        if (!response.ok) {
+          const error = await response.json()
+          throw new Error(error.error || 'Failed to create club')
         }
+        
+        const data = await response.json()
         
         successNotification({
           title: "Club Created",
@@ -246,21 +227,17 @@ export default function ClubsPage() {
         })
         
         // Upload logo if provided
-        if (clubLogo && data && data[0]) {
+        if (clubLogo && data && data.id) {
           try {
-            const logoUrl = await uploadLogo(clubLogo, data[0].id)
+            const logoUrl = await uploadLogo(clubLogo, data.id)
             
             if (logoUrl) {
               // Update club with logo URL
-              const { error: updateError } = await supabase
-                .from('clubs')
-                .update({ logo: logoUrl })
-                .eq('id', data[0].id)
-              
-              if (updateError) {
-                console.error('Error updating club with logo URL:', updateError)
-                // Continue anyway, the club is created
-              }
+              await fetch(`/api/clubs?id=${data.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ logo: logoUrl }),
+              })
             }
           } catch (logoError) {
             console.error('Logo upload/update error:', logoError)
@@ -269,7 +246,8 @@ export default function ClubsPage() {
         }
         
         // Refresh clubs list
-        const { data: refreshedData } = await supabase.from('clubs').select('*').order('name')
+        const refreshResponse = await fetch('/api/clubs')
+        const refreshedData = await refreshResponse.json()
         setClubs(refreshedData || [])
         
         // Reset form and close dialog
@@ -303,14 +281,18 @@ export default function ClubsPage() {
     }
     
     try {
-      const { error } = await supabase
-        .from('clubs')
-        .update({
+      const response = await fetch(`/api/clubs?id=${selectedClub.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
           password: clubPassword, // In a real app, you'd hash this password
-        })
-        .eq('id', selectedClub.id)
+        }),
+      })
       
-      if (error) throw error
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to reset password')
+      }
       
       successNotification({
         title: "Password Reset",
@@ -335,12 +317,14 @@ export default function ClubsPage() {
     if (!selectedClub) return
     
     try {
-      const { error } = await supabase
-        .from('clubs')
-        .delete()
-        .eq('id', selectedClub.id)
+      const response = await fetch(`/api/clubs/${selectedClub.id}`, {
+        method: 'DELETE',
+      })
       
-      if (error) throw error
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to delete club')
+      }
       
       // Remove from local state
       setClubs(clubs.filter(club => club.id !== selectedClub.id))

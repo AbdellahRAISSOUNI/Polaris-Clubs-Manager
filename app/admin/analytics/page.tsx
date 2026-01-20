@@ -10,7 +10,6 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Calendar, Clock, Download, Filter, BarChart3, PieChart, TrendingUp, Users, RefreshCw, LineChart, Activity, Building2, CalendarRange, CheckCircle2, XCircle, Clock3, ArrowUpRight, ArrowDownRight, CalendarDays, Users2 } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { supabase } from "@/lib/supabase"
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, ResponsiveContainer, BarChart, Bar, PieChart as RechartsePieChart, Pie, Cell, Legend, LineChart as RechartsLineChart, Line } from 'recharts'
 
 interface AnalyticsData {

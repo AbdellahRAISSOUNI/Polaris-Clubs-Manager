@@ -8,7 +8,6 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { storeClubId, storeIsAdmin, storeAdminId } from "@/lib/storage"
-import { supabase } from "@/lib/supabase"
 import { toast } from "@/components/ui/use-toast"
 import { AlertCircle, CheckCircle, Loader2, LogIn, Mail, Lock, Building2, Shield, Linkedin } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -36,40 +35,20 @@ export default function LoginPage() {
     async function createMockAdminIfNeeded() {
       try {
         // Check if any admin exists
-        const { data, error } = await supabase
-          .from('users')
-          .select('*')
-          .eq('role', 'admin')
-          .limit(1);
-          
-        if (error) {
-          console.error("Error checking for admin:", error);
+        const response = await fetch('/api/users?role=admin');
+        
+        if (!response.ok) {
+          console.error("Error checking for admin:", response.statusText);
           return;
         }
         
-        // If no admin exists, create one
+        const data = await response.json();
+        
+        // If no admin exists, demo admin is available via login API fallback
         if (!data || data.length === 0) {
-          console.log("No admin found, creating mock admin");
-          
-          const mockAdmin = {
-            email: "admin@example.com",
-            name: "Admin User",
-            password: "admin123",
-            role: "admin"
-          };
-          
-          const { data: newAdmin, error: createError } = await supabase
-            .from('users')
-            .insert(mockAdmin)
-            .select();
-            
-          if (createError) {
-            console.error("Error creating mock admin:", createError);
-          } else {
-            console.log("Mock admin created:", newAdmin);
-          }
+          console.log("No admin found in database. Demo admin available: admin@example.com / admin123");
         } else {
-          console.log("Admin already exists:", data[0]);
+          console.log("Admin(s) found in database:", data.length);
         }
       } catch (err) {
         console.error("Error in createMockAdminIfNeeded:", err);
@@ -94,36 +73,23 @@ export default function LoginPage() {
         throw new Error('Please enter your password')
       }
       
-      // Find club by primary email only
-      const { data: clubs, error: clubError } = await supabase
-        .from('clubs')
-        .select('*')
-        .eq('email', clubEmail)
-        .eq('status', 'active')
-        .single()
-      
-      if (clubError) {
-        if (clubError.code === 'PGRST116') {
-          throw new Error('Club not found. Please check your email and try again.')
-        } else {
-          throw new Error(`Database error: ${clubError.message}`)
-        }
+      // Use the login API endpoint for club authentication
+      const loginResponse = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: clubEmail,
+          password: clubPassword,
+          userType: 'club',
+        }),
+      })
+
+      if (!loginResponse.ok) {
+        const error = await loginResponse.json()
+        throw new Error(error.error || 'Failed to authenticate club')
       }
-      
-      if (!clubs) {
-        throw new Error('Club not found or inactive. Please contact an administrator.')
-      }
-      
-      // Verify password (in a real app, you'd use proper password hashing)
-      if (clubs.password !== clubPassword) {
-        throw new Error('Invalid password. Please try again.')
-      }
-      
-      // Update last login time
-      await supabase
-        .from('clubs')
-        .update({ last_login: new Date().toISOString() })
-        .eq('id', clubs.id)
+
+      const clubs = await loginResponse.json()
       
       // Store club info and redirect
       storeClubId(clubs.id)
@@ -169,34 +135,26 @@ export default function LoginPage() {
         throw new Error('Please enter your password')
       }
       
-      // In a real app, you'd implement proper admin authentication
-      // For now, we'll just check if the user exists in the users table with role 'admin'
-      const { data: admin, error: adminError } = await supabase
-        .from('users')
-        .select('*')
-        .eq('email', adminEmail)
-        .eq('role', 'admin')
-        .single()
-      
-      if (adminError) {
-        if (adminError.code === 'PGRST116') {
-          throw new Error('Admin account not found. Please check your email and try again.')
-        } else {
-          throw new Error(`Database error: ${adminError.message}`)
-        }
+      // Use the login API endpoint for admin authentication
+      const loginResponse = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: adminEmail,
+          password: adminPassword,
+          userType: 'admin',
+        }),
+      })
+
+      if (!loginResponse.ok) {
+        const error = await loginResponse.json()
+        throw new Error(error.error || 'Failed to authenticate admin')
       }
-      
-      if (!admin) {
-        throw new Error('Admin not found. Please check your credentials.')
-      }
+
+      const admin = await loginResponse.json()
       
       // Log the full admin object to see its structure
       console.log("Admin object:", admin)
-      
-      // In a real app, you'd verify the password properly
-      if (admin.password !== adminPassword) {
-        throw new Error('Invalid password. Please try again.')
-      }
       
       // Store admin ID and admin status
       console.log("Storing admin ID:", admin.id)
