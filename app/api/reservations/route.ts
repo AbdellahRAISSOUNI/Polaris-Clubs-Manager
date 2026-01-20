@@ -7,7 +7,10 @@ import { User } from "@/models/User";
 import { sendNotification } from "@/lib/send-notification";
 import { randomUUID } from "crypto";
 
-// Mock data for initial setup - will be used if Supabase connection fails
+// Force dynamic rendering since we use request.url
+export const dynamic = 'force-dynamic'
+
+// Mock data for initial setup - will be used if MongoDB connection fails
 const mockReservations = [
   {
     id: "1",
@@ -114,6 +117,17 @@ export async function POST(request: Request) {
       );
     }
     
+    // Validate that end_time is after start_time
+    const startTime = new Date(body.startTime);
+    const endTime = new Date(body.endTime);
+    
+    if (endTime <= startTime) {
+      return NextResponse.json(
+        { error: "End time must be after start time" },
+        { status: 400 }
+      );
+    }
+    
     await connectMongo();
     
     // Prepare the data for insertion
@@ -123,8 +137,8 @@ export async function POST(request: Request) {
       club_id: body.clubId,
       title: body.title,
       description: body.description || "",
-      start_time: new Date(body.startTime),
-      end_time: new Date(body.endTime),
+      start_time: startTime,
+      end_time: endTime,
       status: "pending" as const, // All new reservations start as pending
       is_full_day: body.isFullDay || false,
       created_at: new Date(),

@@ -1,5 +1,4 @@
 import { toast as sonnerToast } from "sonner";
-import { toast as shadcnToast } from "@/hooks/use-toast";
 
 type NotificationType = "success" | "error" | "warning" | "info";
 
@@ -18,7 +17,7 @@ interface NotificationOptions {
 export function showNotification(type: NotificationType, options: NotificationOptions) {
   const { title, description, duration = 5000, action } = options;
   
-  // Show notification using Sonner toast
+  // Show notification using Sonner toast only (removed Shadcn toast to prevent duplicates)
   switch (type) {
     case "success":
       sonnerToast.success(title || "Success", {
@@ -49,15 +48,6 @@ export function showNotification(type: NotificationType, options: NotificationOp
       });
       break;
   }
-  
-  // Also show notification using Shadcn toast for redundancy
-  shadcnToast({
-    variant: type === "error" ? "destructive" : "default",
-    title: title || capitalizeFirstLetter(type),
-    description,
-    duration,
-    action,
-  });
 }
 
 // Helper function to capitalize the first letter

@@ -1,11 +1,5 @@
 import { connectMongo } from '@/lib/mongodb'
 import { Notification } from '@/models/Notification'
-import { 
-  successNotification, 
-  errorNotification, 
-  warningNotification, 
-  infoNotification 
-} from '@/lib/notifications'
 import { triggerPusherEvent } from '@/lib/pusher-server'
 import { randomUUID } from 'crypto'
 
@@ -72,30 +66,8 @@ export async function sendNotification({
     // Also trigger on a general notifications channel for the user type
     await triggerPusherEvent(`notifications-${recipientType}`, 'new-notification', data)
 
-    // Only attempt to show toast notifications in browser environment
-    if (isBrowser()) {
-      // Show a toast notification if the recipient is the current user
-      const currentAdminId = localStorage.getItem('adminId')
-      const currentClubId = localStorage.getItem('clubId')
-      const isCurrentUser = recipientId === (recipientType === 'admin' ? currentAdminId : currentClubId)
-
-      if (isCurrentUser) {
-        switch (type) {
-          case 'success':
-            successNotification({ title, description: message })
-            break
-          case 'error':
-            errorNotification({ title, description: message })
-            break
-          case 'warning':
-            warningNotification({ title, description: message })
-            break
-          case 'info':
-            infoNotification({ title, description: message })
-            break
-        }
-      }
-    }
+    // Note: Toast notifications are handled client-side via Pusher events
+    // This prevents duplicate toasts since this function runs server-side
 
     return data
   } catch (error) {

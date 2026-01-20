@@ -4,7 +4,6 @@ import React, { useEffect, useState } from 'react'
 import { MessagingProvider } from '@/lib/messaging-context'
 import { MessagingUI } from '@/components/messaging/MessagingUI'
 import { NewConversation } from '@/components/messaging/NewConversation'
-import { supabase } from '@/lib/supabase'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 export default function ClubMessagesPage() {

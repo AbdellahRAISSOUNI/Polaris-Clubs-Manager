@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { connectToMongo } from '@/lib/mongodb'
 import { User } from '@/models/User'
 
+// Force dynamic rendering since we use request.url
+export const dynamic = 'force-dynamic'
+
 // GET /api/users?id=xxx - Get user by ID
 export async function GET(request: NextRequest) {
   try {

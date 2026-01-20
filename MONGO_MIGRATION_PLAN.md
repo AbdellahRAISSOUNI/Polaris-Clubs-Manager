@@ -50,9 +50,13 @@ This document tracks the migration from **Supabase/Postgres** to **MongoDB + Mon
 - [ ] **Phase 6 – Auth/Permissions Hardening (Optional)**
   - [ ] (If chosen) Wire NextAuth to Mongo.
   - [ ] Replace localStorage-based admin/club identity with session-based checks.
-- [ ] **Phase 7 – Supabase Removal & Cleanup**
-  - [ ] Remove `lib/supabase.ts` and Supabase dependencies.
-  - [ ] Remove/mark legacy Supabase SQL files.
+- [x] **Phase 7 – Supabase Removal & Cleanup**
+  - [x] Remove `lib/supabase.ts` and Supabase dependencies.
+  - [x] Remove unused Supabase imports from code files.
+  - [x] Clean up Supabase comments in code.
+  - [x] Remove `@supabase/supabase-js` from package.json.
+  - [x] Delete test files that depend on Supabase.
+  - [ ] Remove/mark legacy Supabase SQL files (kept for reference in `supabase/` folder).
 
 ### Pusher Setup Notes
 

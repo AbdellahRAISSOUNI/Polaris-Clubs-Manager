@@ -50,7 +50,7 @@ export default function ClubsPage() {
   const [clubPassword, setClubPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
 
-  // Fetch clubs from Supabase
+  // Fetch clubs from MongoDB
   useEffect(() => {
     const fetchClubs = async () => {
       setIsLoading(true)

@@ -93,27 +93,21 @@ export default function AnalyticsPage() {
 
   const fetchAnalytics = useCallback(async () => {
     try {
-      // Fetch total reservations
-      const { data: reservations, error: reservationsError } = await supabase
-        .from('reservations')
-        .select('*')
-      
-      if (reservationsError) throw reservationsError
+      // Fetch reservations from MongoDB API
+      const reservationsResponse = await fetch('/api/reservations')
+      if (!reservationsResponse.ok) throw new Error('Failed to fetch reservations')
+      const reservations = await reservationsResponse.json()
 
-      // Fetch active clubs
-      const { data: clubs, error: clubsError } = await supabase
-        .from('clubs')
-        .select('*')
-        .eq('status', 'active')
-      
-      if (clubsError) throw clubsError
+      // Fetch active clubs from MongoDB API
+      const clubsResponse = await fetch('/api/clubs')
+      if (!clubsResponse.ok) throw new Error('Failed to fetch clubs')
+      const allClubs = await clubsResponse.json()
+      const clubs = allClubs.filter((c: any) => c.status === 'active')
 
-      // Fetch spaces
-      const { data: spaces, error: spacesError } = await supabase
-        .from('spaces')
-        .select('*')
-      
-      if (spacesError) throw spacesError
+      // Fetch spaces from MongoDB API
+      const spacesResponse = await fetch('/api/spaces')
+      if (!spacesResponse.ok) throw new Error('Failed to fetch spaces')
+      const spaces = await spacesResponse.json()
 
       // Calculate analytics
       const totalReservations = reservations?.length || 0

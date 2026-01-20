@@ -3,6 +3,9 @@ import { connectToMongo } from '@/lib/mongodb'
 import { Notification } from '@/models/Notification'
 import { triggerPusherEvent } from '@/lib/pusher-server'
 
+// Force dynamic rendering since we use request.url
+export const dynamic = 'force-dynamic'
+
 // Helper to get user info from headers
 function getUserInfo(request: NextRequest): { userId: string | null; userType: 'admin' | 'club' | null } {
   const userId = request.headers.get('x-user-id')

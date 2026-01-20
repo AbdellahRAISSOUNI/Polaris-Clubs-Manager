@@ -4,7 +4,10 @@ import { Space } from "@/models/Space";
 import { Reservation } from "@/models/Reservation";
 import { randomUUID } from "crypto";
 
-// Mock data for initial setup - will be used if Supabase connection fails
+// Force dynamic rendering since we use request.url
+export const dynamic = 'force-dynamic'
+
+// Mock data for initial setup - will be used if MongoDB connection fails
 const mockSpaces = [
   {
     id: "1",

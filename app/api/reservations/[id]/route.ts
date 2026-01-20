@@ -18,11 +18,36 @@ export async function PUT(
       )
     }
 
+    // Validate that end_time is after start_time if both are being updated
+    if (body.start_time !== undefined && body.end_time !== undefined) {
+      const startTime = new Date(body.start_time)
+      const endTime = new Date(body.end_time)
+      if (endTime <= startTime) {
+        return NextResponse.json(
+          { error: 'End time must be after start time' },
+          { status: 400 }
+        )
+      }
+    } else if (body.start_time !== undefined || body.end_time !== undefined) {
+      // If only one is being updated, fetch the current reservation to validate
+      const currentReservation = await Reservation.findOne({ id }).lean()
+      if (currentReservation) {
+        const startTime = body.start_time ? new Date(body.start_time) : new Date(currentReservation.start_time)
+        const endTime = body.end_time ? new Date(body.end_time) : new Date(currentReservation.end_time)
+        if (endTime <= startTime) {
+          return NextResponse.json(
+            { error: 'End time must be after start time' },
+            { status: 400 }
+          )
+        }
+      }
+    }
+
     const updateData: any = {}
     if (body.title !== undefined) updateData.title = body.title
     if (body.description !== undefined) updateData.description = body.description
-    if (body.start_time !== undefined) updateData.start_time = body.start_time
-    if (body.end_time !== undefined) updateData.end_time = body.end_time
+    if (body.start_time !== undefined) updateData.start_time = new Date(body.start_time)
+    if (body.end_time !== undefined) updateData.end_time = new Date(body.end_time)
     if (body.space_id !== undefined) updateData.space_id = body.space_id
 
     const result = await Reservation.findOneAndUpdate(

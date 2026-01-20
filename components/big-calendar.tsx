@@ -92,7 +92,7 @@ export function BigCalendar({
     rejected: { bg: "bg-red-100 dark:bg-red-900/30", text: "text-red-800 dark:text-red-300", border: "border-red-300 dark:border-red-700" }
   }
 
-  // Fetch data from Supabase
+  // Fetch data from MongoDB
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true)

@@ -3,7 +3,10 @@ import { connectMongo } from "@/lib/mongodb";
 import { Club } from "@/models/Club";
 import { randomUUID } from "crypto";
 
-// Mock data for initial setup - will be used if Supabase connection fails
+// Mock data for initial setup - will be used if MongoDB connection fails
+// Force dynamic rendering since we use request.url
+export const dynamic = 'force-dynamic'
+
 const mockClubs = [
   {
     id: "1",

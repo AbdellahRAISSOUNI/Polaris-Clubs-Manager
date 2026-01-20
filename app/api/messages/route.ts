@@ -4,6 +4,9 @@ import { Message } from '@/models/Message'
 import { triggerPusherEvent } from '@/lib/pusher-server'
 import crypto from 'crypto'
 
+// Force dynamic rendering since we use request.url
+export const dynamic = 'force-dynamic'
+
 // Helper to get user info from headers
 function getUserInfo(request: NextRequest): { userId: string | null; userType: 'admin' | 'club' | null } {
   const userId = request.headers.get('x-user-id')
