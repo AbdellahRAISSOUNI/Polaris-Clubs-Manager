@@ -13,6 +13,7 @@ import { AlertCircle, CheckCircle, Loader2, LogIn, Mail, Lock, Building2, Shield
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
+import { Checkbox } from "@/components/ui/checkbox"
 
 export default function LoginPage() {
   const router = useRouter()
@@ -25,6 +26,7 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [isVisible, setIsVisible] = useState(false)
+  const [rememberMe, setRememberMe] = useState(false)
 
   useEffect(() => {
     setIsVisible(true)
@@ -302,6 +304,19 @@ export default function LoginPage() {
                       />
                     </div>
                   </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="club-remember"
+                      checked={rememberMe}
+                      onCheckedChange={(checked) => setRememberMe(checked === true)}
+                    />
+                    <Label
+                      htmlFor="club-remember"
+                      className="text-sm font-normal cursor-pointer"
+                    >
+                      Remember me
+                    </Label>
+                  </div>
                 </CardContent>
                 <CardFooter>
                   <Button 
@@ -358,6 +373,19 @@ export default function LoginPage() {
                         className="pl-10"
                       />
                     </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="admin-remember"
+                      checked={rememberMe}
+                      onCheckedChange={(checked) => setRememberMe(checked === true)}
+                    />
+                    <Label
+                      htmlFor="admin-remember"
+                      className="text-sm font-normal cursor-pointer"
+                    >
+                      Remember me
+                    </Label>
                   </div>
                 </CardContent>
                 <CardFooter>

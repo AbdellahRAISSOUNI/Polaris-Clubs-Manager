@@ -33,6 +33,17 @@ import { ReservationDetails } from "@/components/reservation-details"
 import { Progress } from "@/components/ui/progress"
 import { cn } from "@/lib/utils"
 import { AdminSidebar } from "@/components/admin-sidebar"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { successNotification, errorNotification } from "@/lib/notifications"
 import { AdminLayout } from "@/components/admin-layout"
 import { useAdminUser } from "@/hooks/useAdminUser"
 import { getCurrentPeriod, getPreviousPeriod, type TimePeriod } from "@/lib/time-periods-client"
@@ -183,6 +194,8 @@ export default function AdminDashboard() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showFilters, setShowFilters] = useState(false)
+  const [showDeleteRejectedConfirm, setShowDeleteRejectedConfirm] = useState(false)
+  const [isDeletingRejected, setIsDeletingRejected] = useState(false)
   const { adminUser } = useAdminUser()
 
   const activePeriods = periodScope === "mandate" ? mandates : academicYears
@@ -598,21 +611,8 @@ export default function AdminDashboard() {
             </Button>
             <Button 
               variant="destructive" 
-              onClick={async () => {
-                if (window.confirm('Are you sure you want to delete all rejected reservations? This action cannot be undone.')) {
-                  try {
-                    const response = await fetch('/api/reservations/delete-rejected', {
-                      method: 'DELETE',
-                    });
-                    if (!response.ok) throw new Error('Failed to delete rejected reservations');
-                    await handleReservationStatusChange();
-                    alert('Rejected reservations have been deleted successfully');
-                  } catch (error) {
-                    console.error('Error deleting rejected reservations:', error);
-                    alert('Failed to delete rejected reservations');
-                  }
-                }
-              }}
+              onClick={() => setShowDeleteRejectedConfirm(true)}
+              disabled={isDeletingRejected}
               className="flex items-center gap-2 text-xs sm:text-sm flex-1 sm:flex-auto justify-center"
               size="sm"
             >
@@ -807,6 +807,58 @@ export default function AdminDashboard() {
           onStatusChange={handleReservationStatusChange}
         />
       )}
+
+      {/* Delete All Rejected Reservations Confirmation Dialog */}
+      <AlertDialog open={showDeleteRejectedConfirm} onOpenChange={setShowDeleteRejectedConfirm}>
+        <AlertDialogContent className="max-w-[90vw] sm:max-w-[425px]">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete All Rejected Reservations?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete all rejected reservations? This action cannot be undone.
+              All rejected reservations will be permanently removed from the system.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeletingRejected}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                setIsDeletingRejected(true)
+                try {
+                  const response = await fetch('/api/reservations/delete-rejected', {
+                    method: 'DELETE',
+                  });
+                  if (!response.ok) throw new Error('Failed to delete rejected reservations');
+                  await handleReservationStatusChange();
+                  setShowDeleteRejectedConfirm(false)
+                  successNotification({
+                    title: "Success",
+                    description: "Rejected reservations have been deleted successfully"
+                  })
+                } catch (error) {
+                  console.error('Error deleting rejected reservations:', error);
+                  errorNotification({
+                    title: "Error",
+                    description: "Failed to delete rejected reservations"
+                  })
+                } finally {
+                  setIsDeletingRejected(false)
+                }
+              }}
+              disabled={isDeletingRejected}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {isDeletingRejected ? (
+                <>
+                  <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                  Deleting...
+                </>
+              ) : (
+                'Delete All'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AdminLayout>
   )
 }
