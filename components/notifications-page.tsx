@@ -2,7 +2,7 @@
 
 import { useNotifications } from '@/lib/notifications-context'
 import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { formatDistanceToNow, format } from 'date-fns'
 import { Bell, CheckCircle, AlertCircle, Info, AlertTriangle, MailOpen, Trash2, Filter } from 'lucide-react'
 import Link from 'next/link'
@@ -10,6 +10,9 @@ import { useState, useEffect } from 'react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
+import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { getCurrentPeriod, getPreviousPeriod, type TimePeriod } from '@/lib/time-periods-client'
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -84,11 +87,61 @@ export function NotificationsPage() {
   const [activeTab, setActiveTab] = useState<'all' | 'unread' | 'read'>('all')
   const [isDeleteAllDialogOpen, setIsDeleteAllDialogOpen] = useState(false)
   const [notificationToDelete, setNotificationToDelete] = useState<string | null>(null)
+  const [showFilters, setShowFilters] = useState(false)
+  const [periodScope, setPeriodScope] = useState<"all" | "mandate" | "academicYear">("mandate")
+  const [periodMode, setPeriodMode] = useState<"current" | "previous" | "specific">("current")
+  const [specificPeriodId, setSpecificPeriodId] = useState<string>("")
+  const [mandates, setMandates] = useState<TimePeriod[]>([])
+  const [academicYears, setAcademicYears] = useState<TimePeriod[]>([])
+  
+  // Fetch time periods on mount
+  useEffect(() => {
+    const fetchPeriods = async () => {
+      try {
+        const [mandatesRes, yearsRes] = await Promise.all([
+          fetch("/api/time-periods?type=mandate"),
+          fetch("/api/time-periods?type=academicYear")
+        ])
+        const mandatesData = mandatesRes.ok ? await mandatesRes.json() : []
+        const yearsData = yearsRes.ok ? await yearsRes.json() : []
+        setMandates(mandatesData || [])
+        setAcademicYears(yearsData || [])
+        
+        // Set default to current mandate
+        const currentMandate = getCurrentPeriod(mandatesData || [])
+        if (currentMandate) {
+          setPeriodScope("mandate")
+          setPeriodMode("current")
+          setSpecificPeriodId(currentMandate.id || "")
+        }
+      } catch (error) {
+        console.error("Error fetching time periods:", error)
+      }
+    }
+    fetchPeriods()
+  }, [])
   
   // Keep filter and tab selection in sync
   useEffect(() => {
     setFilter(activeTab)
   }, [activeTab])
+  
+  // Calculate active period date range
+  const activePeriods = periodScope === "mandate" ? mandates : academicYears
+  const currentPeriod = periodScope === "all" ? null : getCurrentPeriod(activePeriods)
+  const previousPeriod = periodScope === "all" ? null : getPreviousPeriod(activePeriods, currentPeriod)
+  const activePeriodId =
+    periodScope === "all"
+      ? null
+      : periodMode === "current"
+        ? currentPeriod?.id || null
+        : periodMode === "previous"
+          ? previousPeriod?.id || null
+          : specificPeriodId || null
+  
+  const activePeriod = activePeriods.find(p => p.id === activePeriodId)
+  const periodStartDate = activePeriod ? new Date(activePeriod.start_date) : null
+  const periodEndDate = activePeriod ? new Date(activePeriod.end_date) : null
   
   const handleMarkAsRead = async (notificationId: string) => {
     await markAsRead(notificationId)
@@ -105,8 +158,18 @@ export function NotificationsPage() {
   }
 
   const filteredNotifications = notifications.filter(notification => {
-    if (filter === 'unread') return !notification.is_read
-    if (filter === 'read') return notification.is_read
+    // Filter by read/unread status
+    if (filter === 'unread' && notification.is_read) return false
+    if (filter === 'read' && !notification.is_read) return false
+    
+    // Filter by period date range
+    if (periodScope !== "all" && periodStartDate && periodEndDate) {
+      const notificationDate = new Date(notification.created_at)
+      if (notificationDate < periodStartDate || notificationDate > periodEndDate) {
+        return false
+      }
+    }
+    
     return true
   })
 
@@ -248,7 +311,7 @@ export function NotificationsPage() {
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm" className="flex items-center gap-1.5 text-sm h-9">
                 <Filter className="h-4 w-4" />
-                Filter
+                Status
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="text-sm">
@@ -263,6 +326,17 @@ export function NotificationsPage() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          
+          <Button
+            variant={showFilters ? "default" : "outline"}
+            size="sm"
+            onClick={() => setShowFilters(!showFilters)}
+            className="flex items-center gap-1.5 text-sm h-9"
+            title="Toggle period filters"
+          >
+            <Filter className="h-4 w-4" />
+            <span className="hidden sm:inline">Period</span>
+          </Button>
           
           <Button 
             onClick={refreshNotifications} 
@@ -313,6 +387,91 @@ export function NotificationsPage() {
           )}
         </div>
       </div>
+
+      {/* Period filter - Collapsible */}
+      {showFilters && (
+        <Card className="mb-4 sm:mb-6 animate-in slide-in-from-top-2 duration-200">
+          <CardContent className="p-3 sm:p-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
+              <div>
+                <Label className="text-xs">Scope</Label>
+                <Select
+                  value={periodScope}
+                  onValueChange={(value) => {
+                    const nextScope = value as "all" | "mandate" | "academicYear"
+                    setPeriodScope(nextScope)
+                    setPeriodMode(nextScope === "all" ? "current" : "current")
+                    if (nextScope === "mandate") {
+                      setSpecificPeriodId(getCurrentPeriod(mandates)?.id || mandates?.[0]?.id || "")
+                    } else if (nextScope === "academicYear") {
+                      setSpecificPeriodId(getCurrentPeriod(academicYears)?.id || academicYears?.[0]?.id || "")
+                    } else {
+                      setSpecificPeriodId("")
+                    }
+                  }}
+                >
+                  <SelectTrigger className="mt-1 h-8 text-xs">
+                    <SelectValue placeholder="Select scope" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="mandate">Mandat ADE</SelectItem>
+                    <SelectItem value="academicYear">Année scolaire</SelectItem>
+                    <SelectItem value="all">All</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {periodScope !== "all" ? (
+                <>
+                  <div>
+                    <Label className="text-xs">Period</Label>
+                    <Select value={periodMode} onValueChange={(v) => setPeriodMode(v as any)}>
+                      <SelectTrigger className="mt-1 h-8 text-xs">
+                        <SelectValue placeholder="Select period" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="current">Current</SelectItem>
+                        <SelectItem value="previous">Previous</SelectItem>
+                        <SelectItem value="specific">Specific</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-xs">{periodScope === "mandate" ? "Mandat" : "Année scolaire"}</Label>
+                    <Select
+                      value={periodMode === "specific" ? specificPeriodId : activePeriodId || ""}
+                      onValueChange={(v) => {
+                        setPeriodMode("specific")
+                        setSpecificPeriodId(v)
+                      }}
+                    >
+                      <SelectTrigger className="mt-1 h-8 text-xs">
+                        <SelectValue placeholder="Select..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(periodScope === "mandate" ? mandates : academicYears).map((p) => {
+                          const start = new Date(p.start_date)
+                          const end = new Date(p.end_date)
+                          const label = `${p.name} (${start.toLocaleDateString()} → ${end.toLocaleDateString()})`
+                          return (
+                            <SelectItem key={p.id} value={p.id}>
+                              {label}
+                            </SelectItem>
+                          )
+                        })}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </>
+              ) : (
+                <div className="sm:col-span-2 flex items-end">
+                  <p className="text-xs text-muted-foreground">Showing all notifications</p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="mb-4 h-10 grid grid-cols-3 sticky top-0 bg-background z-10">

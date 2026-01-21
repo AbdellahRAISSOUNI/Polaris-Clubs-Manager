@@ -5,7 +5,6 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
@@ -14,9 +13,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
-import { toast } from "@/components/ui/use-toast"
 import { successNotification, errorNotification } from "@/lib/notifications"
-import { Trash2 } from "lucide-react"
+import { Trash2, X } from "lucide-react"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -50,11 +48,21 @@ export function ReservationDetails({ reservation, onClose, onStatusChange }: Res
   const [isEditing, setIsEditing] = useState(false)
   const [title, setTitle] = useState(reservation.title)
   const [time, setTime] = useState(reservation.time)
-  const [reason, setReason] = useState("")
-  const [approvalMessage, setApprovalMessage] = useState("")
+  const [message, setMessage] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+
+  const status = (reservation.status || "").toLowerCase()
+  const statusLabel = status ? status.charAt(0).toUpperCase() + status.slice(1) : "Unknown"
+  const statusPillClass =
+    status === "approved"
+      ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 border-green-300 dark:border-green-700"
+      : status === "pending"
+        ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300 border-yellow-300 dark:border-yellow-700"
+        : status === "rejected"
+          ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300 border-red-300 dark:border-red-700"
+          : "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300 border-gray-300 dark:border-gray-700"
 
   const handleApprove = async () => {
     setIsSubmitting(true)
@@ -70,7 +78,7 @@ export function ReservationDetails({ reservation, onClose, onStatusChange }: Res
         },
         body: JSON.stringify({
           status: 'approved',
-          message: approvalMessage || undefined
+          message: message.trim() || undefined
         }),
       })
       
@@ -109,11 +117,6 @@ export function ReservationDetails({ reservation, onClose, onStatusChange }: Res
   }
 
   const handleReject = async () => {
-    if (!reason.trim()) {
-      setError("Please provide a reason for rejection")
-      return
-    }
-    
     setIsSubmitting(true)
     setError(null)
     
@@ -127,7 +130,7 @@ export function ReservationDetails({ reservation, onClose, onStatusChange }: Res
         },
         body: JSON.stringify({
           status: 'rejected',
-          message: reason // Send the reason as the message for notification purposes
+          message: message.trim() || undefined
         }),
       })
       
@@ -229,27 +232,48 @@ export function ReservationDetails({ reservation, onClose, onStatusChange }: Res
   return (
     <>
       <Dialog open={true} onOpenChange={onClose}>
-        <DialogContent className="sm:max-w-[500px] p-0 overflow-hidden max-w-[95vw] rounded-lg">
-          <DialogHeader className="p-4 sm:p-6 pb-2 sm:pb-3 border-b">
-            <div className="flex items-center justify-between">
-              <DialogTitle className="text-base sm:text-xl">Reservation Details</DialogTitle>
-              <Badge
-                variant={
-                  reservation.status === "approved"
-                    ? "default"
-                    : reservation.status === "rejected"
-                      ? "destructive"
-                      : "outline"
-                }
-                className="ml-2 text-xs font-medium px-2 py-0.5 sm:px-2.5 sm:py-0.5"
-              >
-                {reservation.status}
-              </Badge>
-            </div>
-            <DialogDescription className="text-xs sm:text-sm text-muted-foreground mt-1">
-              Review and manage this reservation request
-            </DialogDescription>
-          </DialogHeader>
+        <DialogContent className="p-0 overflow-hidden w-[100dvw] h-[100dvh] max-w-none rounded-none sm:rounded-lg sm:h-[90vh] sm:max-h-[90vh] sm:max-w-[540px] [&>button.absolute.right-4.top-4]:hidden" style={{ maxHeight: '100dvh' }}>
+          <div className="flex h-full flex-col min-h-0" style={{ height: '100%', maxHeight: '100%' }}>
+            <DialogHeader className="shrink-0 p-4 sm:p-6 border-b bg-background">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-start gap-3 min-w-0">
+                  {reservation.clubLogo ? (
+                    <img
+                      src={reservation.clubLogo}
+                      alt={reservation.clubName}
+                      className="h-12 w-12 sm:h-11 sm:w-11 rounded-full object-cover ring-1 ring-gray-200 dark:ring-gray-800 flex-shrink-0"
+                    />
+                  ) : (
+                    <div className="h-12 w-12 sm:h-11 sm:w-11 rounded-full bg-muted ring-1 ring-gray-200 dark:ring-gray-800 flex-shrink-0" />
+                  )}
+
+                  <div className="min-w-0">
+                    <DialogTitle className="text-lg sm:text-xl leading-tight line-clamp-2">
+                      {reservation.title}
+                    </DialogTitle>
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <Badge variant="outline" className={`rounded-full px-3 py-1 text-xs sm:text-sm ${statusPillClass}`}>
+                        {statusLabel}
+                      </Badge>
+                      <DialogDescription className="text-xs sm:text-sm text-muted-foreground truncate">
+                        {reservation.clubName}
+                      </DialogDescription>
+                    </div>
+                  </div>
+                </div>
+
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-10 w-10 sm:h-9 sm:w-9"
+                  onClick={onClose}
+                  aria-label="Close"
+                >
+                  <X className="h-5 w-5" />
+                </Button>
+              </div>
+            </DialogHeader>
 
           {error && (
             <div className="mx-4 sm:mx-6 mt-3 sm:mt-4 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 p-2 sm:p-3 rounded-md text-xs sm:text-sm">
@@ -257,7 +281,7 @@ export function ReservationDetails({ reservation, onClose, onStatusChange }: Res
             </div>
           )}
 
-          <div className="p-4 sm:p-6 pt-3 sm:pt-4 overflow-y-auto max-h-[calc(80vh-250px)]">
+            <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain touch-pan-y p-4 sm:p-6 pb-6" style={{ WebkitOverflowScrolling: 'touch', height: '100%', maxHeight: '100%', overflowY: 'auto' }}>
             {isEditing ? (
               <div className="space-y-3 sm:space-y-4">
                 <div className="grid gap-1.5 sm:gap-2">
@@ -276,146 +300,111 @@ export function ReservationDetails({ reservation, onClose, onStatusChange }: Res
                 </div>
               </div>
             ) : (
-              <div className="space-y-4 sm:space-y-6">
-                <div className="flex items-start gap-2 sm:gap-3">
-                  {reservation.clubLogo && (
-                    <img 
-                      src={reservation.clubLogo} 
-                      alt={reservation.clubName}
-                      className="h-8 w-8 sm:h-10 sm:w-10 rounded-full object-cover ring-1 ring-gray-200 dark:ring-gray-800 flex-shrink-0"
-                    />
-                  )}
-                  <div>
-                    <h3 className="text-sm sm:text-base font-semibold">{reservation.title}</h3>
-                    <p className="text-xs sm:text-sm text-muted-foreground">{reservation.clubName}</p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3 sm:gap-4 rounded-lg border p-3 sm:p-4 bg-muted/30">
-                  <div>
-                    <div className="text-[10px] sm:text-xs uppercase tracking-wider text-muted-foreground font-medium">Date</div>
-                    <div className="text-sm sm:font-medium mt-0.5 sm:mt-1">{reservation.date.toLocaleDateString()}</div>
-                  </div>
-                  <div>
-                    <div className="text-[10px] sm:text-xs uppercase tracking-wider text-muted-foreground font-medium">Time</div>
-                    <div className="text-sm sm:font-medium mt-0.5 sm:mt-1">
-                      {reservation.isFullDay ? (
-                        <Badge variant="outline" className="text-xs font-normal">Full Day</Badge>
-                      ) : (
-                        reservation.time
-                      )}
-                    </div>
-                  </div>
-                  {reservation.location && (
-                    <div className="col-span-2">
-                      <div className="text-[10px] sm:text-xs uppercase tracking-wider text-muted-foreground font-medium">Location</div>
-                      <div className="text-sm sm:font-medium mt-0.5 sm:mt-1 flex items-center gap-1.5">
-                        <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
-                        {reservation.location}
+              <div className="space-y-4">
+                {/* When / Where */}
+                <div className="rounded-2xl border bg-muted/20 p-4">
+                  <div className="grid grid-cols-1 gap-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Date</div>
+                        <div className="mt-1 text-sm font-medium">{reservation.date.toLocaleDateString()}</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Time</div>
+                        <div className="mt-1 text-sm font-medium">
+                          {reservation.isFullDay ? (
+                            <Badge variant="outline" className="rounded-full px-3 py-1 text-xs">
+                              Full Day
+                            </Badge>
+                          ) : (
+                            reservation.time
+                          )}
+                        </div>
                       </div>
                     </div>
-                  )}
+
+                    {reservation.location && (
+                      <div className="pt-3 border-t">
+                        <div className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Location</div>
+                        <div className="mt-1 text-sm font-medium flex items-center gap-2">
+                          <MapPin className="h-4 w-4 text-muted-foreground" />
+                          <span className="break-words">{reservation.location}</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
+                {/* Admin / Status message */}
                 {reservation.message && (
-                  <div className="rounded-lg border p-3 sm:p-4">
-                    <div className="text-[10px] sm:text-xs uppercase tracking-wider text-muted-foreground font-medium mb-1 sm:mb-2">
-                      {reservation.status === 'rejected' ? 'Rejection Reason' : 'Admin Message'}
+                  <div className="rounded-2xl border p-4">
+                    <div className="text-xs uppercase tracking-wider text-muted-foreground font-medium">
+                      {status === "rejected" ? "Rejection Reason" : "Admin Message"}
                     </div>
-                    <div className="text-xs sm:text-sm">{reservation.message}</div>
+                    <div className="mt-2 text-sm leading-relaxed">{reservation.message}</div>
                   </div>
                 )}
-              </div>
-            )}
-          </div>
 
-          <div className="border-t p-4 sm:p-6 pt-3 sm:pt-4">
-            {isEditing ? (
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setIsEditing(false)} disabled={isSubmitting} size="sm" className="text-xs sm:text-sm h-8 sm:h-10">
-                  Cancel
-                </Button>
-                <Button onClick={handleSaveChanges} disabled={isSubmitting} size="sm" className="text-xs sm:text-sm h-8 sm:h-10">
-                  {isSubmitting ? "Saving..." : "Save Changes"}
-                </Button>
-              </div>
-            ) : (
-              <>
-                <div className="flex flex-wrap gap-2 mb-3 sm:mb-4">
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => setShowDeleteConfirm(true)}
-                    disabled={isSubmitting}
-                    className="text-red-500 border-red-200 hover:bg-red-50 hover:text-red-600 dark:border-red-800 dark:hover:bg-red-950/50 text-xs h-7 sm:h-8"
-                  >
-                    <Trash2 className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                    Delete
-                  </Button>
+                {/* Decision (admin) */}
+                {status === "pending" && (
+                  <div className="space-y-4">
+                    <div className="text-xs uppercase tracking-wider text-muted-foreground font-medium px-1">
+                      Decision
+                    </div>
 
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={onClose} 
-                    disabled={isSubmitting} 
-                    className="ml-auto text-xs h-7 sm:h-8"
-                  >
-                    Close
-                  </Button>
-                </div>
+                    {/* Shared message input */}
+                    <div className="rounded-2xl border p-4">
+                      <Label htmlFor="decision-message" className="text-xs font-medium text-muted-foreground">
+                        Message to the club (optional)
+                      </Label>
+                      <Textarea
+                        id="decision-message"
+                        placeholder="Add a note for the club (optional)"
+                        value={message}
+                        onChange={(e) => setMessage(e.target.value)}
+                        className="mt-2 min-h-[100px] text-sm resize-none"
+                      />
+                    </div>
 
-                {reservation.status === "pending" && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                    <div className="space-y-2 sm:space-y-3">
-                      <div>
-                        <Label htmlFor="approval-message" className="text-xs sm:text-sm font-medium">
-                          Approval Message <span className="text-muted-foreground">(Optional)</span>
-                        </Label>
-                        <Textarea
-                          id="approval-message"
-                          placeholder="Add any additional information for the club"
-                          value={approvalMessage}
-                          onChange={(e) => setApprovalMessage(e.target.value)}
-                          className="mt-1 sm:mt-1.5 min-h-[80px] sm:min-h-[100px] text-xs sm:text-sm resize-none"
-                        />
-                      </div>
+                    {/* Action buttons */}
+                    <div className="flex flex-col gap-3">
                       <Button
                         type="button"
                         onClick={handleApprove}
                         disabled={isSubmitting}
-                        className="w-full h-8 sm:h-10 text-xs sm:text-sm"
+                        className="w-full h-12 text-base font-semibold bg-green-600 hover:bg-green-700 text-white"
                       >
-                        {isSubmitting ? "Approving..." : "Approve"}
+                        {isSubmitting ? "Approving..." : "Approve Reservation"}
                       </Button>
-                    </div>
-
-                    <div className="space-y-2 sm:space-y-3">
-                      <div>
-                        <Label htmlFor="rejection-reason" className="text-xs sm:text-sm font-medium text-red-500">
-                          Rejection Reason <span className="text-red-400">(Required)</span>
-                        </Label>
-                        <Textarea
-                          id="rejection-reason"
-                          placeholder="Provide a reason for rejection"
-                          value={reason}
-                          onChange={(e) => setReason(e.target.value)}
-                          className="mt-1 sm:mt-1.5 min-h-[80px] sm:min-h-[100px] text-xs sm:text-sm resize-none"
-                        />
-                      </div>
                       <Button
                         type="button"
                         variant="destructive"
                         onClick={handleReject}
                         disabled={isSubmitting}
-                        className="w-full h-8 sm:h-10 text-xs sm:text-sm"
+                        className="w-full h-12 text-base font-semibold"
                       >
-                        {isSubmitting ? "Rejecting..." : "Reject"}
+                        {isSubmitting ? "Rejecting..." : "Reject Reservation"}
                       </Button>
                     </div>
                   </div>
                 )}
-              </>
+
+                {/* Danger zone */}
+                <div className="pt-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setShowDeleteConfirm(true)}
+                    disabled={isSubmitting}
+                    className="w-full h-11 text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 dark:border-red-800 dark:hover:bg-red-950/50"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete reservation
+                  </Button>
+                </div>
+              </div>
             )}
+            </div>
           </div>
         </DialogContent>
       </Dialog>

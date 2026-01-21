@@ -271,6 +271,7 @@ function AllReservationsContent() {
   const [clubFilter, setClubFilter] = useState<string[]>([])
   const [uniqueClubs, setUniqueClubs] = useState<{id: string, name: string}[]>([])
   const [highlightedReservationId, setHighlightedReservationId] = useState<string | null>(null)
+  const [showFilters, setShowFilters] = useState(false)
   
   // Get URL parameters
   const searchParams = useSearchParams()
@@ -463,6 +464,22 @@ function AllReservationsContent() {
     }
   }
 
+  const updateReservationStatus = async (reservationId: string, newStatus: "approved" | "rejected") => {
+    try {
+      const response = await fetch(`/api/reservations/${reservationId}/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus }),
+      })
+      if (!response.ok) throw new Error("Failed to update status")
+
+      setReservations((prev) => prev.map((r) => (r.id === reservationId ? { ...r, status: newStatus } : r)))
+      setSelectedReservation((prev) => (prev && prev.id === reservationId ? { ...prev, status: newStatus } : prev))
+    } catch (error) {
+      console.error("Error updating reservation:", error)
+    }
+  }
+
   // Handle sorting
   const handleSort = (field: SortField) => {
     if (field === sortField) {
@@ -620,14 +637,25 @@ function AllReservationsContent() {
             >
               <FileDown className="h-3 w-3 sm:h-4 sm:w-4" />
             </Button>
+            <Button
+              variant={showFilters ? "default" : "outline"}
+              size="sm"
+              onClick={() => setShowFilters(!showFilters)}
+              className="h-8 sm:h-9 flex items-center gap-1 sm:gap-2 text-xs"
+              title="Toggle filters"
+            >
+              <Filter className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">Filters</span>
+            </Button>
           </div>
         </div>
 
-        {/* Time period filter */}
-        <div className="rounded-lg border bg-white dark:bg-gray-950 p-3 sm:p-4">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        {/* Time period filter - Collapsible */}
+        {showFilters && (
+          <div className="rounded-lg border bg-white dark:bg-gray-950 p-2 sm:p-3 animate-in slide-in-from-top-2 duration-200">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
             <div>
-              <Label className="text-xs sm:text-sm">Scope</Label>
+              <Label className="text-xs">Scope</Label>
               <Select
                 value={periodScope}
                 onValueChange={(value) => {
@@ -643,7 +671,7 @@ function AllReservationsContent() {
                   }
                 }}
               >
-                <SelectTrigger className="mt-1 h-9">
+                <SelectTrigger className="mt-1 h-8 text-xs">
                   <SelectValue placeholder="Select scope" />
                 </SelectTrigger>
                 <SelectContent>
@@ -657,9 +685,9 @@ function AllReservationsContent() {
             {periodScope !== "all" ? (
               <>
                 <div>
-                  <Label className="text-xs sm:text-sm">Period</Label>
+                  <Label className="text-xs">Period</Label>
                   <Select value={periodMode} onValueChange={(v) => setPeriodMode(v as any)}>
-                    <SelectTrigger className="mt-1 h-9">
+                    <SelectTrigger className="mt-1 h-8 text-xs">
                       <SelectValue placeholder="Select period" />
                     </SelectTrigger>
                     <SelectContent>
@@ -670,7 +698,7 @@ function AllReservationsContent() {
                   </Select>
                 </div>
                 <div>
-                  <Label className="text-xs sm:text-sm">{periodScope === "mandate" ? "Mandat" : "Année scolaire"}</Label>
+                  <Label className="text-xs">{periodScope === "mandate" ? "Mandat" : "Année scolaire"}</Label>
                   <Select
                     value={periodMode === "specific" ? specificPeriodId : activePeriodId || ""}
                     onValueChange={(v) => {
@@ -678,7 +706,7 @@ function AllReservationsContent() {
                       setSpecificPeriodId(v)
                     }}
                   >
-                    <SelectTrigger className="mt-1 h-9">
+                    <SelectTrigger className="mt-1 h-8 text-xs">
                       <SelectValue placeholder="Select..." />
                     </SelectTrigger>
                     <SelectContent>
@@ -703,10 +731,11 @@ function AllReservationsContent() {
             )}
           </div>
         </div>
+        )}
 
         {viewMode === "calendar" ? (
           <div className="space-y-3 sm:space-y-4">
-            <div className="rounded-md border overflow-x-auto">
+            <div className="rounded-md border overflow-hidden">
               <BigCalendar 
                 onReservationSelect={handleReservationSelect} 
                 highlightedReservationId={highlightedReservationId}
@@ -830,7 +859,7 @@ function AllReservationsContent() {
                 </Popover>
               </div>
             </div>
-            <div className="rounded-md border overflow-x-auto md:overflow-x-auto lg:overflow-visible">
+            <div className="rounded-md border overflow-hidden">
               {isLoading ? (
                 <div className="p-6 sm:p-8 text-center text-sm sm:text-base text-muted-foreground">
                   Loading reservations...
@@ -844,222 +873,313 @@ function AllReservationsContent() {
                   No reservations found
                 </div>
               ) : (
-                <div className="min-w-[600px] md:min-w-0">
-                  <Table className="table-fixed w-full">
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead 
-                          className="cursor-pointer text-xs sm:text-sm py-2 sm:py-3 w-[10%]"
-                          onClick={() => handleSort('date')}
+                <>
+                  {/* Mobile: card list (no horizontal scrolling) */}
+                  <div className="md:hidden divide-y">
+                    {filteredAndSortedReservations.map((reservation: Reservation) => {
+                      const startTime = new Date(reservation.start_time)
+                      const endTime = new Date(reservation.end_time)
+                      return (
+                        <button
+                          type="button"
+                          key={reservation.id}
+                          className="w-full text-left p-4 hover:bg-gray-50 dark:hover:bg-gray-900/40 transition-colors"
+                          onClick={() => handleReservationSelect(reservation)}
                         >
-                          <div className="flex items-center">
-                            Date
-                            {getSortIcon('date')}
-                          </div>
-                        </TableHead>
-                        <TableHead 
-                          className="cursor-pointer text-xs sm:text-sm py-2 sm:py-3 w-[15%]"
-                          onClick={() => handleSort('club')}
-                        >
-                          <div className="flex items-center">
-                            Club
-                            {getSortIcon('club')}
-                          </div>
-                        </TableHead>
-                        <TableHead 
-                          className="cursor-pointer text-xs sm:text-sm py-2 sm:py-3 w-[15%]"
-                          onClick={() => handleSort('title')}
-                        >
-                          <div className="flex items-center">
-                            Title
-                            {getSortIcon('title')}
-                          </div>
-                        </TableHead>
-                        <TableHead 
-                          className="cursor-pointer text-xs sm:text-sm py-2 sm:py-3 w-[15%]"
-                          onClick={() => handleSort('location')}
-                        >
-                          <div className="flex items-center">
-                            Location
-                            {getSortIcon('location')}
-                          </div>
-                        </TableHead>
-                        <TableHead 
-                          className="cursor-pointer text-xs sm:text-sm py-2 sm:py-3 w-[12%]"
-                          onClick={() => handleSort('time')}
-                        >
-                          <div className="flex items-center">
-                            Time
-                            {getSortIcon('time')}
-                          </div>
-                        </TableHead>
-                        <TableHead 
-                          className="cursor-pointer text-xs sm:text-sm py-2 sm:py-3 w-[10%]"
-                          onClick={() => handleSort('created_at')}
-                        >
-                          <div className="flex items-center">
-                            Created
-                            {getSortIcon('created_at')}
-                          </div>
-                        </TableHead>
-                        <TableHead 
-                          className="cursor-pointer text-xs sm:text-sm py-2 sm:py-3 w-[10%]"
-                          onClick={() => handleSort('status')}
-                        >
-                          <div className="flex items-center">
-                            Status
-                            {getSortIcon('status')}
-                          </div>
-                        </TableHead>
-                        <TableHead className="text-xs sm:text-sm py-2 sm:py-3 w-[13%]">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredAndSortedReservations.map((reservation: Reservation) => {
-                        const startTime = new Date(reservation.start_time)
-                        const endTime = new Date(reservation.end_time)
-                        const createdAt = new Date(reservation.created_at)
-                        return (
-                          <TableRow
-                            key={reservation.id}
-                            className="hover:bg-gray-50 dark:hover:bg-gray-800 text-xs sm:text-sm"
-                          >
-                            <TableCell className="py-2 sm:py-3">
-                              {format(startTime, "MMM d, yyyy")}
-                            </TableCell>
-                            <TableCell className="py-2 sm:py-3">
-                              <div className="flex items-center gap-1.5 sm:gap-2">
-                                <img
-                                  src={`/api/clubs/${reservation.club_id}/image`}
-                                  alt={reservation.club_name || 'Club logo'}
-                                  className="h-5 w-5 sm:h-6 sm:w-6 rounded-full object-cover flex-shrink-0"
-                                  onError={(e) => {
-                                    // If image fails to load, replace with default
-                                    e.currentTarget.src = '/default-club-image.png'
-                                  }}
-                                />
-                                <span className="truncate max-w-[80px] sm:max-w-[120px] inline-block">
-                                  {reservation.club_name || 'Unknown Club'}
-                                </span>
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex items-start gap-3 min-w-0">
+                              <img
+                                src={`/api/clubs/${reservation.club_id}/image`}
+                                alt={reservation.club_name || "Club logo"}
+                                className="h-10 w-10 rounded-full object-cover flex-shrink-0"
+                                onError={(e) => {
+                                  e.currentTarget.src = "/default-club-image.png"
+                                }}
+                              />
+                              <div className="min-w-0">
+                                <div className="font-medium truncate">{reservation.title}</div>
+                                <div className="text-xs text-muted-foreground truncate mt-1">
+                                  {reservation.club_name || "Unknown Club"}
+                                </div>
+                                <div className="text-xs text-muted-foreground mt-2 space-y-1">
+                                  <div className="flex items-center gap-2">
+                                    <MapPin className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                                    <span className="truncate">{reservation.space_name || "Unknown Space"}</span>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <CalendarIcon className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                                    <span>{format(startTime, "MMM d, yyyy")}</span>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <Clock className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                                    <span className="whitespace-nowrap">
+                                      {reservation.is_full_day
+                                        ? "Full Day"
+                                        : `${format(startTime, "h:mm a")} - ${format(endTime, "h:mm a")}`}
+                                    </span>
+                                  </div>
+                                </div>
                               </div>
-                            </TableCell>
-                            <TableCell 
-                              className="cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 py-2 sm:py-3 truncate max-w-[80px] sm:max-w-[150px]"
-                              onClick={() => handleReservationSelect(reservation)}
-                            >
-                              <div className="truncate max-w-[100%]">
-                                {reservation.title}
-                              </div>
-                            </TableCell>
-                            <TableCell className="py-2 sm:py-3">
-                              <div className="flex items-center gap-1.5 sm:gap-2">
-                                <MapPin className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-                                <span className="truncate max-w-[80px] sm:max-w-[120px] inline-block">
-                                  {reservation.space_name || 'Unknown Space'}
-                                </span>
-                              </div>
-                            </TableCell>
-                            <TableCell className="py-2 sm:py-3">
-                              {reservation.is_full_day ? (
-                                <Badge variant="outline" className="text-[10px] sm:text-xs">Full Day</Badge>
-                              ) : (
-                                <span className="text-xs sm:text-sm whitespace-nowrap">
-                                  {format(startTime, "h:mm a")} - {format(endTime, "h:mm a")}
-                                </span>
-                              )}
-                            </TableCell>
-                            <TableCell className="py-2 sm:py-3 whitespace-nowrap">
-                              {format(createdAt, "MMM d, yyyy")}
-                            </TableCell>
-                            <TableCell className="py-2 sm:py-3">
+                            </div>
+
+                            <div className="flex flex-col items-end gap-2 flex-shrink-0">
                               <Badge
                                 variant="outline"
-                                className={`text-[10px] sm:text-xs ${
+                                className={`text-[10px] ${
                                   reservation.status === "approved"
                                     ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
                                     : reservation.status === "pending"
-                                    ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400"
-                                    : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
+                                      ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400"
+                                      : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
                                 }`}
                               >
                                 {reservation.status.charAt(0).toUpperCase() + reservation.status.slice(1)}
                               </Badge>
-                            </TableCell>
-                            <TableCell className="py-2 sm:py-3">
-                              <div className="flex flex-nowrap items-center gap-1 sm:gap-2">
+
+                              <div className="flex items-center gap-1">
                                 <Button
-                                  variant="ghost"
+                                  type="button"
+                                  variant="outline"
                                   size="sm"
-                                  className="h-6 w-6 sm:h-8 sm:w-8 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-100"
+                                  className="h-9 px-3 text-xs"
                                   onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleReservationSelect(reservation);
+                                    e.stopPropagation()
+                                    handleReservationSelect(reservation)
                                   }}
                                 >
-                                  <Eye className="h-3 w-3 sm:h-4 sm:w-4" />
+                                  <Eye className="h-4 w-4 mr-2" />
+                                  View
                                 </Button>
-                                {reservation.status !== 'approved' && (
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-6 w-6 sm:h-8 sm:w-8 p-0 text-green-600 hover:text-green-700 hover:bg-green-100"
-                                    onClick={async (e) => {
-                                      e.stopPropagation();
-                                      try {
-                                        const response = await fetch(`/api/reservations/${reservation.id}/status`, {
-                                          method: 'PATCH',
-                                          headers: { 'Content-Type': 'application/json' },
-                                          body: JSON.stringify({ status: 'approved' })
-                                        });
-                                        if (!response.ok) throw new Error('Failed to update status');
-                                        // Refresh reservations
-                                        const updatedReservations = reservations.map(r => 
-                                          r.id === reservation.id ? { ...r, status: 'approved' } : r
-                                        );
-                                        setReservations(updatedReservations);
-                                      } catch (error) {
-                                        console.error('Error updating reservation:', error);
-                                      }
-                                    }}
-                                  >
-                                    <CheckCircle2 className="h-3 w-3 sm:h-4 sm:w-4" />
-                                  </Button>
-                                )}
-                                {reservation.status !== 'rejected' && (
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-6 w-6 sm:h-8 sm:w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-100"
-                                    onClick={async (e) => {
-                                      e.stopPropagation();
-                                      try {
-                                        const response = await fetch(`/api/reservations/${reservation.id}/status`, {
-                                          method: 'PATCH',
-                                          headers: { 'Content-Type': 'application/json' },
-                                          body: JSON.stringify({ status: 'rejected' })
-                                        });
-                                        if (!response.ok) throw new Error('Failed to update status');
-                                        // Refresh reservations
-                                        const updatedReservations = reservations.map(r => 
-                                          r.id === reservation.id ? { ...r, status: 'rejected' } : r
-                                        );
-                                        setReservations(updatedReservations);
-                                      } catch (error) {
-                                        console.error('Error updating reservation:', error);
-                                      }
-                                    }}
-                                  >
-                                    <X className="h-3 w-3 sm:h-4 sm:w-4" />
-                                  </Button>
-                                )}
                               </div>
-                            </TableCell>
-                          </TableRow>
-                        )
-                      })}
-                    </TableBody>
-                  </Table>
-                </div>
+                            </div>
+                          </div>
+
+                          {/* Quick actions (larger touch targets) */}
+                          <div className="mt-3 flex items-center gap-2">
+                            {reservation.status !== "approved" && (
+                              <Button
+                                type="button"
+                                variant="outline"
+                                className="h-10 flex-1"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  updateReservationStatus(reservation.id, "approved")
+                                }}
+                              >
+                                <CheckCircle2 className="h-4 w-4 mr-2 text-green-600" />
+                                Approve
+                              </Button>
+                            )}
+                            {reservation.status !== "rejected" && (
+                              <Button
+                                type="button"
+                                variant="outline"
+                                className="h-10 flex-1"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  updateReservationStatus(reservation.id, "rejected")
+                                }}
+                              >
+                                <X className="h-4 w-4 mr-2 text-red-600" />
+                                Reject
+                              </Button>
+                            )}
+                          </div>
+                        </button>
+                      )
+                    })}
+                  </div>
+
+                  {/* Desktop/tablet: table */}
+                  <div className="hidden md:block">
+                    <Table className="table-fixed w-full">
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead
+                            className="cursor-pointer text-xs sm:text-sm py-2 sm:py-3 w-[10%]"
+                            onClick={() => handleSort('date')}
+                          >
+                            <div className="flex items-center">
+                              Date
+                              {getSortIcon('date')}
+                            </div>
+                          </TableHead>
+                          <TableHead
+                            className="cursor-pointer text-xs sm:text-sm py-2 sm:py-3 w-[15%]"
+                            onClick={() => handleSort('club')}
+                          >
+                            <div className="flex items-center">
+                              Club
+                              {getSortIcon('club')}
+                            </div>
+                          </TableHead>
+                          <TableHead
+                            className="cursor-pointer text-xs sm:text-sm py-2 sm:py-3 w-[15%]"
+                            onClick={() => handleSort('title')}
+                          >
+                            <div className="flex items-center">
+                              Title
+                              {getSortIcon('title')}
+                            </div>
+                          </TableHead>
+                          <TableHead
+                            className="cursor-pointer text-xs sm:text-sm py-2 sm:py-3 w-[15%]"
+                            onClick={() => handleSort('location')}
+                          >
+                            <div className="flex items-center">
+                              Location
+                              {getSortIcon('location')}
+                            </div>
+                          </TableHead>
+                          <TableHead
+                            className="cursor-pointer text-xs sm:text-sm py-2 sm:py-3 w-[12%]"
+                            onClick={() => handleSort('time')}
+                          >
+                            <div className="flex items-center">
+                              Time
+                              {getSortIcon('time')}
+                            </div>
+                          </TableHead>
+                          <TableHead
+                            className="cursor-pointer text-xs sm:text-sm py-2 sm:py-3 w-[10%]"
+                            onClick={() => handleSort('created_at')}
+                          >
+                            <div className="flex items-center">
+                              Created
+                              {getSortIcon('created_at')}
+                            </div>
+                          </TableHead>
+                          <TableHead
+                            className="cursor-pointer text-xs sm:text-sm py-2 sm:py-3 w-[10%]"
+                            onClick={() => handleSort('status')}
+                          >
+                            <div className="flex items-center">
+                              Status
+                              {getSortIcon('status')}
+                            </div>
+                          </TableHead>
+                          <TableHead className="text-xs sm:text-sm py-2 sm:py-3 w-[13%]">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredAndSortedReservations.map((reservation: Reservation) => {
+                          const startTime = new Date(reservation.start_time)
+                          const endTime = new Date(reservation.end_time)
+                          const createdAt = new Date(reservation.created_at)
+                          return (
+                            <TableRow
+                              key={reservation.id}
+                              className="hover:bg-gray-50 dark:hover:bg-gray-800 text-xs sm:text-sm"
+                            >
+                              <TableCell className="py-2 sm:py-3">
+                                {format(startTime, "MMM d, yyyy")}
+                              </TableCell>
+                              <TableCell className="py-2 sm:py-3">
+                                <div className="flex items-center gap-1.5 sm:gap-2">
+                                  <img
+                                    src={`/api/clubs/${reservation.club_id}/image`}
+                                    alt={reservation.club_name || 'Club logo'}
+                                    className="h-5 w-5 sm:h-6 sm:w-6 rounded-full object-cover flex-shrink-0"
+                                    onError={(e) => {
+                                      // If image fails to load, replace with default
+                                      e.currentTarget.src = '/default-club-image.png'
+                                    }}
+                                  />
+                                  <span className="truncate max-w-[80px] sm:max-w-[120px] inline-block">
+                                    {reservation.club_name || 'Unknown Club'}
+                                  </span>
+                                </div>
+                              </TableCell>
+                              <TableCell
+                                className="cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 py-2 sm:py-3 truncate max-w-[80px] sm:max-w-[150px]"
+                                onClick={() => handleReservationSelect(reservation)}
+                              >
+                                <div className="truncate max-w-[100%]">
+                                  {reservation.title}
+                                </div>
+                              </TableCell>
+                              <TableCell className="py-2 sm:py-3">
+                                <div className="flex items-center gap-1.5 sm:gap-2">
+                                  <MapPin className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                                  <span className="truncate max-w-[80px] sm:max-w-[120px] inline-block">
+                                    {reservation.space_name || 'Unknown Space'}
+                                  </span>
+                                </div>
+                              </TableCell>
+                              <TableCell className="py-2 sm:py-3">
+                                {reservation.is_full_day ? (
+                                  <Badge variant="outline" className="text-[10px] sm:text-xs">Full Day</Badge>
+                                ) : (
+                                  <span className="text-xs sm:text-sm whitespace-nowrap">
+                                    {format(startTime, "h:mm a")} - {format(endTime, "h:mm a")}
+                                  </span>
+                                )}
+                              </TableCell>
+                              <TableCell className="py-2 sm:py-3 whitespace-nowrap">
+                                {format(createdAt, "MMM d, yyyy")}
+                              </TableCell>
+                              <TableCell className="py-2 sm:py-3">
+                                <Badge
+                                  variant="outline"
+                                  className={`text-[10px] sm:text-xs ${
+                                    reservation.status === "approved"
+                                      ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
+                                      : reservation.status === "pending"
+                                        ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400"
+                                        : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
+                                  }`}
+                                >
+                                  {reservation.status.charAt(0).toUpperCase() + reservation.status.slice(1)}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="py-2 sm:py-3">
+                                <div className="flex flex-nowrap items-center gap-1 sm:gap-2">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 w-6 sm:h-8 sm:w-8 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-100"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleReservationSelect(reservation);
+                                    }}
+                                  >
+                                    <Eye className="h-3 w-3 sm:h-4 sm:w-4" />
+                                  </Button>
+                                  {reservation.status !== 'approved' && (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-6 w-6 sm:h-8 sm:w-8 p-0 text-green-600 hover:text-green-700 hover:bg-green-100"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        updateReservationStatus(reservation.id, "approved")
+                                      }}
+                                    >
+                                      <CheckCircle2 className="h-3 w-3 sm:h-4 sm:w-4" />
+                                    </Button>
+                                  )}
+                                  {reservation.status !== 'rejected' && (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-6 w-6 sm:h-8 sm:w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-100"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        updateReservationStatus(reservation.id, "rejected")
+                                      }}
+                                    >
+                                      <X className="h-3 w-3 sm:h-4 sm:w-4" />
+                                    </Button>
+                                  )}
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          )
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </>
               )}
             </div>
           </div>

@@ -182,6 +182,7 @@ export default function AdminDashboard() {
   const [clubs, setClubs] = useState<Club[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [showFilters, setShowFilters] = useState(false)
   const { adminUser } = useAdminUser()
 
   const activePeriods = periodScope === "mandate" ? mandates : academicYears
@@ -465,99 +466,101 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* Time period filter */}
-        <Card className="mb-4 sm:mb-6">
-          <CardContent className="p-4 sm:p-6">
-            <div className="flex flex-col sm:flex-row gap-3 sm:items-end">
-              <div className="flex-1">
-                <Label>Scope</Label>
-                <Select
-                  value={periodScope}
-                  onValueChange={(value) => {
-                    const nextScope = value as "all" | "mandate" | "academicYear"
-                    setPeriodScope(nextScope)
-                    setPeriodMode(nextScope === "all" ? "current" : "current")
-                    if (nextScope === "mandate") {
-                      setSpecificPeriodId(getCurrentPeriod(mandates)?.id || mandates?.[0]?.id || "")
-                    } else if (nextScope === "academicYear") {
-                      setSpecificPeriodId(getCurrentPeriod(academicYears)?.id || academicYears?.[0]?.id || "")
-                    } else {
-                      setSpecificPeriodId("")
-                    }
-                  }}
-                >
-                  <SelectTrigger className="mt-1">
-                    <SelectValue placeholder="Select scope" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="mandate">Mandat ADE</SelectItem>
-                    <SelectItem value="academicYear">Année scolaire</SelectItem>
-                    <SelectItem value="all">All</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+        {/* Time period filter - Collapsible */}
+        {showFilters && (
+          <Card className="mb-4 sm:mb-6 animate-in slide-in-from-top-2 duration-200">
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 sm:items-end">
+                <div className="flex-1">
+                  <Label className="text-xs">Scope</Label>
+                  <Select
+                    value={periodScope}
+                    onValueChange={(value) => {
+                      const nextScope = value as "all" | "mandate" | "academicYear"
+                      setPeriodScope(nextScope)
+                      setPeriodMode(nextScope === "all" ? "current" : "current")
+                      if (nextScope === "mandate") {
+                        setSpecificPeriodId(getCurrentPeriod(mandates)?.id || mandates?.[0]?.id || "")
+                      } else if (nextScope === "academicYear") {
+                        setSpecificPeriodId(getCurrentPeriod(academicYears)?.id || academicYears?.[0]?.id || "")
+                      } else {
+                        setSpecificPeriodId("")
+                      }
+                    }}
+                  >
+                    <SelectTrigger className="mt-1 h-8 text-xs">
+                      <SelectValue placeholder="Select scope" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="mandate">Mandat ADE</SelectItem>
+                      <SelectItem value="academicYear">Année scolaire</SelectItem>
+                      <SelectItem value="all">All</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
 
-              {periodScope !== "all" && (
-                <>
-                  <div className="flex-1">
-                    <Label>Period</Label>
-                    <Select
-                      value={periodMode}
-                      onValueChange={(value) => {
-                        const nextMode = value as "current" | "previous" | "specific"
-                        setPeriodMode(nextMode)
-                        if (nextMode === "specific" && !specificPeriodId) {
-                          setSpecificPeriodId(activePeriods?.[0]?.id || "")
-                        }
-                      }}
-                    >
-                      <SelectTrigger className="mt-1">
-                        <SelectValue placeholder="Select period" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="current">Current</SelectItem>
-                        <SelectItem value="previous">Previous</SelectItem>
-                        <SelectItem value="specific">Specific</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {periodMode === "specific" && (
+                {periodScope !== "all" && (
+                  <>
                     <div className="flex-1">
-                      <Label>{periodScope === "mandate" ? "Mandat" : "Année scolaire"}</Label>
+                      <Label className="text-xs">Period</Label>
                       <Select
-                        value={specificPeriodId}
-                        onValueChange={(value) => setSpecificPeriodId(value)}
+                        value={periodMode}
+                        onValueChange={(value) => {
+                          const nextMode = value as "current" | "previous" | "specific"
+                          setPeriodMode(nextMode)
+                          if (nextMode === "specific" && !specificPeriodId) {
+                            setSpecificPeriodId(activePeriods?.[0]?.id || "")
+                          }
+                        }}
                       >
-                        <SelectTrigger className="mt-1">
-                          <SelectValue placeholder="Select..." />
+                        <SelectTrigger className="mt-1 h-8 text-xs">
+                          <SelectValue placeholder="Select period" />
                         </SelectTrigger>
                         <SelectContent>
-                          {activePeriods.map((p) => {
-                            const start = new Date(p.start_date)
-                            const end = new Date(p.end_date)
-                            const label = `${p.name} (${start.toLocaleDateString()} → ${end.toLocaleDateString()})`
-                            return (
-                              <SelectItem key={p.id} value={p.id}>
-                                {label}
-                              </SelectItem>
-                            )
-                          })}
+                          <SelectItem value="current">Current</SelectItem>
+                          <SelectItem value="previous">Previous</SelectItem>
+                          <SelectItem value="specific">Specific</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
-                  )}
-                </>
-              )}
-            </div>
 
-            {periodScope !== "all" && !activePeriodId && (
-              <p className="text-xs text-muted-foreground mt-3">
-                No matching period found for "{periodMode}". Create periods in Admin Settings.
-              </p>
-            )}
-          </CardContent>
-        </Card>
+                    {periodMode === "specific" && (
+                      <div className="flex-1">
+                        <Label className="text-xs">{periodScope === "mandate" ? "Mandat" : "Année scolaire"}</Label>
+                        <Select
+                          value={specificPeriodId}
+                          onValueChange={(value) => setSpecificPeriodId(value)}
+                        >
+                          <SelectTrigger className="mt-1 h-8 text-xs">
+                            <SelectValue placeholder="Select..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {activePeriods.map((p) => {
+                              const start = new Date(p.start_date)
+                              const end = new Date(p.end_date)
+                              const label = `${p.name} (${start.toLocaleDateString()} → ${end.toLocaleDateString()})`
+                              return (
+                                <SelectItem key={p.id} value={p.id}>
+                                  {label}
+                                </SelectItem>
+                              )
+                            })}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+
+              {periodScope !== "all" && !activePeriodId && (
+                <p className="text-xs text-muted-foreground mt-3">
+                  No matching period found for "{periodMode}". Create periods in Admin Settings.
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 sm:mb-6">
           <h2 className="text-lg sm:text-2xl font-bold tracking-tight">Admin Dashboard</h2>
@@ -582,6 +585,16 @@ export default function AdminDashboard() {
                 <path d="M21 3v5h-5" />
               </svg>
               Refresh
+            </Button>
+            <Button
+              variant={showFilters ? "default" : "outline"}
+              size="sm"
+              onClick={() => setShowFilters(!showFilters)}
+              className="flex items-center gap-1 sm:gap-2 text-xs h-8 sm:h-9"
+              title="Toggle filters"
+            >
+              <Filter className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">Filters</span>
             </Button>
             <Button 
               variant="destructive" 

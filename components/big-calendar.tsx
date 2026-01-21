@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -59,6 +59,8 @@ export function BigCalendar({
 }: BigCalendarProps) {
   const [currentDate, setCurrentDate] = useState(selectedDate || new Date())
   const [viewMode, setViewMode] = useState<'month' | 'week'>('month')
+  const hasAutoSelectedMobileView = useRef(false)
+  const [isMobile, setIsMobile] = useState(false)
   const [reservations, setReservations] = useState<Reservation[]>([])
   const [clubs, setClubs] = useState<Club[]>([])
   const [spaces, setSpaces] = useState<Space[]>([])
@@ -148,6 +150,34 @@ export function BigCalendar({
     
     fetchData()
   }, [periodType, periodId])
+
+  // Mobile UX: default to week view on small screens (more readable than month grid).
+  useEffect(() => {
+    const setDefaultViewForScreen = () => {
+      if (hasAutoSelectedMobileView.current) return
+      if (typeof window === "undefined") return
+
+      const isMobile = window.innerWidth < 640
+      if (isMobile && viewMode === "month") {
+        setViewMode("week")
+        hasAutoSelectedMobileView.current = true
+      }
+    }
+
+    setDefaultViewForScreen()
+    window.addEventListener("resize", setDefaultViewForScreen)
+    return () => window.removeEventListener("resize", setDefaultViewForScreen)
+  }, [viewMode])
+
+  useEffect(() => {
+    const update = () => {
+      if (typeof window === "undefined") return
+      setIsMobile(window.innerWidth < 640)
+    }
+    update()
+    window.addEventListener("resize", update)
+    return () => window.removeEventListener("resize", update)
+  }, [])
 
   // Calendar navigation functions
   const nextMonth = () => setCurrentDate(addMonths(currentDate, 1))
@@ -286,7 +316,23 @@ export function BigCalendar({
               : '',
             'hover:bg-gray-50 dark:hover:bg-gray-900/50'
           )}
-          onClick={() => onDateSelect && onDateSelect(day)}
+          onClick={() => {
+            // iOS-like behavior: on mobile month grid, tap a day to view its events.
+            if (isMobile) {
+              if (dayReservations.length === 1) {
+                // Single reservation: open directly
+                onReservationSelect?.(dayReservations[0])
+                return
+              } else if (dayReservations.length > 1) {
+                // Multiple reservations: show list
+                openDayReservationsDialog(day, dayReservations)
+                return
+              }
+              onDateSelect?.(day)
+              return
+            }
+            onDateSelect?.(day)
+          }}
         >
           <div className={cn(
             "text-right mb-0.5 sm:mb-1",
@@ -313,7 +359,30 @@ export function BigCalendar({
               </div>
             ) : (
               <>
-                {dayReservations.slice(0, getMaxReservations()).map(reservation => {
+                {/* On mobile month grid, don't squeeze titles into tiny cells; show a clean indicator instead. */}
+                {isMobile ? (
+                  <div className="flex items-center justify-end gap-1 pt-1">
+                    {dayReservations.slice(0, 3).map((reservation) => (
+                      <span
+                        key={reservation.id}
+                        className={cn(
+                          "h-1.5 w-1.5 rounded-full",
+                          reservation.status === "approved"
+                            ? "bg-green-500"
+                            : reservation.status === "pending"
+                              ? "bg-yellow-500"
+                              : "bg-red-500"
+                        )}
+                        aria-hidden="true"
+                      />
+                    ))}
+                    {dayReservations.length > 3 && (
+                      <span className="text-[10px] text-muted-foreground ml-0.5">
+                        +{dayReservations.length - 3}
+                      </span>
+                    )}
+                  </div>
+                ) : dayReservations.slice(0, getMaxReservations()).map(reservation => {
                   const clubColor = getClubColor(reservation.club_id)
                   const statusColor = getStatusColor(reservation.status)
                   const isHighlighted = highlightedReservationId === reservation.id
@@ -334,7 +403,7 @@ export function BigCalendar({
                             )}
                             onClick={(e) => {
                               e.stopPropagation()
-                              onReservationSelect && onReservationSelect(reservation)
+                              onReservationSelect?.(reservation)
                             }}
                           >
                             <div className="flex items-center justify-between gap-0.5 sm:gap-1">
@@ -396,7 +465,7 @@ export function BigCalendar({
                   )
                 })}
                 
-                {dayReservations.length > getMaxReservations() && (
+                {!isMobile && dayReservations.length > getMaxReservations() && (
                   <div className="text-[10px] sm:text-xs text-center py-0.5 sm:py-1 bg-gray-100 dark:bg-gray-800 rounded-md cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
                     onClick={(e) => {
                       e.stopPropagation()
@@ -504,7 +573,7 @@ export function BigCalendar({
                             ${clubColor.bg} ${clubColor.text} ${clubColor.border} ${clubColor.hover} 
                             transition-colors cursor-pointer text-sm
                           `}
-                          onClick={() => onReservationSelect && onReservationSelect(reservation)}
+                          onClick={() => onReservationSelect?.(reservation)}
                         >
                           <div className="flex items-start justify-between gap-2">
                             <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -753,71 +822,85 @@ export function BigCalendar({
 
       {/* Day Reservations Dialog */}
       <Dialog open={dayReservationsDialog.isOpen} onOpenChange={(open) => !open && closeDayReservationsDialog()}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center justify-between">
-              <span>
-                {dayReservationsDialog.date && format(dayReservationsDialog.date, 'MMMM d, yyyy')} Reservations
-              </span>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="h-6 w-6 rounded-full" 
-                onClick={closeDayReservationsDialog}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </DialogTitle>
-            <DialogDescription>
-              {dayReservationsDialog.reservations.length} reservations for this day
-            </DialogDescription>
-          </DialogHeader>
-          <div className="max-h-[60vh] overflow-y-auto">
-            {dayReservationsDialog.reservations.map(reservation => {
-              const clubColor = getClubColor(reservation.club_id)
-              const isHighlighted = highlightedReservationId === reservation.id
-              return (
-                <div 
-                  key={reservation.id}
-                  className={`p-3 border-b last:border-b-0 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors ${isHighlighted ? 'bg-blue-50 dark:bg-blue-900/20' : ''}`}
-                  onClick={() => {
-                    onReservationSelect && onReservationSelect(reservation)
-                    closeDayReservationsDialog()
-                  }}
+        <DialogContent className="p-0 overflow-hidden w-[100dvw] h-[100dvh] max-w-none rounded-none sm:rounded-lg sm:h-auto sm:max-h-[80vh] sm:max-w-md [&>button.absolute.right-4.top-4]:hidden">
+          <div className="flex h-full flex-col">
+            <DialogHeader className="shrink-0 p-4 border-b bg-background">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <DialogTitle className="text-base sm:text-lg">
+                    {dayReservationsDialog.date && format(dayReservationsDialog.date, 'MMMM d, yyyy')} Reservations
+                  </DialogTitle>
+                  <DialogDescription className="text-xs sm:text-sm">
+                    {dayReservationsDialog.reservations.length} reservations for this day
+                  </DialogDescription>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-9 w-9 sm:h-8 sm:w-8"
+                  onClick={closeDayReservationsDialog}
+                  aria-label="Close day reservations"
                 >
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2 flex-1 min-w-0">
-                      {isHighlighted && (
-                        <Bell className="h-4 w-4 text-blue-500 dark:text-blue-400 animate-pulse flex-shrink-0" />
-                      )}
-                      <img
-                        src={`/api/clubs/${reservation.club_id}/image`}
-                        alt={reservation.club_name || 'Club logo'}
-                        className="h-6 w-6 flex-shrink-0 rounded-full object-cover"
-                        onError={(e) => {
-                          e.currentTarget.src = '/default-club-image.png'
-                        }}
-                      />
-                      <div>
-                        <div className="font-medium truncate">{reservation.title}</div>
-                        <div className="text-xs text-gray-500 flex items-center gap-2">
-                          <span>{reservation.club_name}</span>
-                          <span>•</span>
-                          <span>{reservation.is_full_day ? "Full Day" : formatTime(reservation.start_time, reservation)}</span>
-                          <span>•</span>
-                          <span>{reservation.space_name || 'No location'}</span>
+                  <X className="h-5 w-5 sm:h-4 sm:w-4" />
+                </Button>
+              </div>
+            </DialogHeader>
+
+            <div className="flex-1 overflow-y-auto overscroll-contain touch-pan-y" style={{ WebkitOverflowScrolling: 'touch' }}>
+              {dayReservationsDialog.reservations.map(reservation => {
+                const isHighlighted = highlightedReservationId === reservation.id
+                return (
+                  <button
+                    type="button"
+                    key={reservation.id}
+                    className={cn(
+                      "w-full text-left p-4 border-b last:border-b-0",
+                      "hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors",
+                      isHighlighted ? "bg-blue-50 dark:bg-blue-900/20" : ""
+                    )}
+                    onClick={() => {
+                      onReservationSelect?.(reservation)
+                      closeDayReservationsDialog()
+                    }}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-start gap-3 flex-1 min-w-0">
+                        {isHighlighted && (
+                          <Bell className="h-4 w-4 text-blue-500 dark:text-blue-400 animate-pulse flex-shrink-0 mt-0.5" />
+                        )}
+                        <img
+                          src={`/api/clubs/${reservation.club_id}/image`}
+                          alt={reservation.club_name || 'Club logo'}
+                          className="h-9 w-9 flex-shrink-0 rounded-full object-cover"
+                          onError={(e) => {
+                            e.currentTarget.src = '/default-club-image.png'
+                          }}
+                        />
+                        <div className="min-w-0">
+                          <div className="font-medium truncate">{reservation.title}</div>
+                          <div className="text-xs text-muted-foreground mt-1 truncate">
+                            {reservation.club_name || 'Unknown Club'} • {reservation.space_name || 'No location'}
+                          </div>
+                          <div className="text-xs text-muted-foreground mt-1">
+                            {reservation.is_full_day ? "Full Day" : `${formatTime(reservation.start_time, reservation)} - ${formatTime(reservation.end_time, reservation)}`}
+                          </div>
                         </div>
                       </div>
+
+                      <div
+                        className={cn(
+                          "h-3.5 w-3.5 flex-shrink-0 rounded-full mt-1",
+                          reservation.status === 'approved' ? 'bg-green-500' :
+                          reservation.status === 'pending' ? 'bg-yellow-500' :
+                          'bg-red-500'
+                        )}
+                        aria-hidden="true"
+                      />
                     </div>
-                    <div className={`h-3 w-3 flex-shrink-0 rounded-full ${
-                      reservation.status === 'approved' ? 'bg-green-500' :
-                      reservation.status === 'pending' ? 'bg-yellow-500' :
-                      'bg-red-500'
-                    }`}></div>
-                  </div>
-                </div>
-              )
-            })}
+                  </button>
+                )
+              })}
+            </div>
           </div>
         </DialogContent>
       </Dialog>

@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, Suspense } from "react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
-import { Calendar, Clock, MapPin, Users, Building, CheckCircle2, Clock3, AlertCircle, X, TableIcon, CalendarIcon, Home, Settings } from "lucide-react"
+import { Calendar, Clock, MapPin, Users, Building, CheckCircle2, Clock3, AlertCircle, X, TableIcon, CalendarIcon, Home, Settings, Filter } from "lucide-react"
 import { BigCalendar } from "@/components/big-calendar"
 import { Badge } from "@/components/ui/badge"
 import { format, formatDistance } from "date-fns"
@@ -60,6 +60,7 @@ function AllReservationsContent() {
   const [specificPeriodId, setSpecificPeriodId] = useState<string>("")
   const [mandates, setMandates] = useState<TimePeriod[]>([])
   const [academicYears, setAcademicYears] = useState<TimePeriod[]>([])
+  const [showFilters, setShowFilters] = useState(false)
   
   const searchParams = useSearchParams()
   const reservationIdFromUrl = searchParams.get('id')
@@ -244,14 +245,25 @@ function AllReservationsContent() {
               <TableIcon className="h-4 w-4" />
               Table
             </Button>
+            <Button
+              variant={showFilters ? "default" : "outline"}
+              size="sm"
+              onClick={() => setShowFilters(!showFilters)}
+              className="flex items-center gap-2"
+              title="Toggle filters"
+            >
+              <Filter className="h-4 w-4" />
+              <span className="hidden sm:inline">Filters</span>
+            </Button>
           </div>
       </div>
 
-      {/* Time period filter */}
-      <div className="rounded-lg border bg-white dark:bg-gray-950 p-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+      {/* Time period filter - Collapsible */}
+      {showFilters && (
+        <div className="rounded-lg border bg-white dark:bg-gray-950 p-2 sm:p-3 animate-in slide-in-from-top-2 duration-200">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-2 sm:gap-3">
           <div>
-            <Label className="text-sm">Scope</Label>
+            <Label className="text-xs">Scope</Label>
             <Select
               value={periodScope}
               onValueChange={(value) => {
@@ -267,7 +279,7 @@ function AllReservationsContent() {
                 }
               }}
             >
-              <SelectTrigger className="mt-1">
+              <SelectTrigger className="mt-1 h-8 text-xs">
                 <SelectValue placeholder="Select scope" />
               </SelectTrigger>
               <SelectContent>
@@ -281,9 +293,9 @@ function AllReservationsContent() {
           {periodScope !== "all" ? (
             <>
               <div>
-                <Label className="text-sm">Period</Label>
+                <Label className="text-xs">Period</Label>
                 <Select value={periodMode} onValueChange={(v) => setPeriodMode(v as any)}>
-                  <SelectTrigger className="mt-1">
+                  <SelectTrigger className="mt-1 h-8 text-xs">
                     <SelectValue placeholder="Select period" />
                   </SelectTrigger>
                   <SelectContent>
@@ -294,7 +306,7 @@ function AllReservationsContent() {
                 </Select>
               </div>
               <div>
-                <Label className="text-sm">{periodScope === "mandate" ? "Mandat" : "Année scolaire"}</Label>
+                <Label className="text-xs">{periodScope === "mandate" ? "Mandat" : "Année scolaire"}</Label>
                 <Select
                   value={periodMode === "specific" ? specificPeriodId : activePeriodId || ""}
                   onValueChange={(v) => {
@@ -302,7 +314,7 @@ function AllReservationsContent() {
                     setSpecificPeriodId(v)
                   }}
                 >
-                  <SelectTrigger className="mt-1">
+                  <SelectTrigger className="mt-1 h-8 text-xs">
                     <SelectValue placeholder="Select..." />
                   </SelectTrigger>
                   <SelectContent>
@@ -327,6 +339,7 @@ function AllReservationsContent() {
           )}
         </div>
       </div>
+      )}
 
         {viewMode === "calendar" ? (
           <div className="space-y-4">
@@ -474,80 +487,92 @@ function AllReservationsContent() {
 
       {selectedReservation && (
         <Dialog open={!!selectedReservation} onOpenChange={() => setSelectedReservation(null)}>
-          <DialogContent className="sm:max-w-[500px]">
-            <DialogHeader>
-              <div className="flex items-center gap-3 mb-2">
-                <Avatar className="h-10 w-10">
-                  <AvatarImage 
-                    src={`/api/clubs/${selectedReservation.club_id}/image`}
-                    alt={selectedReservation.club_name || 'Club logo'}
-                  />
-                  <AvatarFallback>
-                    {selectedReservation.club_name?.split(' ').map(word => word[0]).join('').toUpperCase() || 'C'}
-                  </AvatarFallback>
-                </Avatar>
-                <div>
-                  <DialogTitle className="text-xl break-all">{selectedReservation.title}</DialogTitle>
-                  <DialogDescription>
-                    Reservation details
-                  </DialogDescription>
-                </div>
-              </div>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="flex items-center gap-2">
-                {getStatusInfo(selectedReservation.status).icon}
-                <Badge variant="outline" className={`${getStatusInfo(selectedReservation.status).color} whitespace-nowrap`}>
-                  {getStatusInfo(selectedReservation.status).label}
-                </Badge>
-              </div>
-              
-              <div className="grid grid-cols-[20px_1fr] gap-x-2 items-start">
-                <Users className="h-5 w-5 text-gray-500" />
-                <span className="font-medium break-all">{selectedReservation.club_name}</span>
-              </div>
-              
-              <div className="grid grid-cols-[20px_1fr] gap-x-2 items-start">
-                <MapPin className="h-5 w-5 text-gray-500" />
-                <span className="break-all">{selectedReservation.space_name}</span>
-              </div>
-              
-              <div className="grid grid-cols-[20px_1fr] gap-x-2 items-start">
-                <Calendar className="h-5 w-5 text-gray-500" />
-                <span>{format(new Date(selectedReservation.start_time), 'MMMM d, yyyy')}</span>
-              </div>
-              
-              <div className="grid grid-cols-[20px_1fr] gap-x-2 items-start">
-                <Clock className="h-5 w-5 text-gray-500" />
-                <span>
-                  {format(new Date(selectedReservation.start_time), 'h:mm a')} -{' '}
-                  {format(new Date(selectedReservation.end_time), 'h:mm a')}
-                </span>
-              </div>
-              
-              {selectedReservation.description && (
-                <div className="mt-2 text-sm text-gray-700 dark:text-gray-300">
-                  {selectedReservation.description}
-                </div>
-              )}
-              
-              {/* Add admin message display */}
-              {selectedReservation.admin_message && (
-                <div className="mt-2">
-                  <h4 className="text-sm font-medium mb-1">
-                    {selectedReservation.status === 'rejected' ? 'Rejection Reason' : 'Admin Message'}
-                  </h4>
-                  <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-md text-sm">
-                    {selectedReservation.admin_message}
+          <DialogContent className="p-0 overflow-hidden w-[100dvw] h-[100dvh] max-w-none rounded-none sm:rounded-lg sm:h-[90vh] sm:max-h-[90vh] sm:max-w-[520px] [&>button.absolute.right-4.top-4]:hidden" style={{ maxHeight: '100dvh' }}>
+            <div className="flex h-full flex-col min-h-0" style={{ height: '100%', maxHeight: '100%' }}>
+              <DialogHeader className="shrink-0 p-4 sm:p-6 border-b bg-background">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3 min-w-0">
+                    <Avatar className="h-12 w-12">
+                      <AvatarImage 
+                        src={`/api/clubs/${selectedReservation.club_id}/image`}
+                        alt={selectedReservation.club_name || 'Club logo'}
+                      />
+                      <AvatarFallback>
+                        {selectedReservation.club_name?.split(' ').map(word => word[0]).join('').toUpperCase() || 'C'}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0">
+                      <DialogTitle className="text-lg sm:text-xl leading-tight line-clamp-2">{selectedReservation.title}</DialogTitle>
+                      <DialogDescription className="text-xs sm:text-sm">
+                        Reservation details
+                      </DialogDescription>
+                    </div>
                   </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-9 w-9 sm:h-8 sm:w-8"
+                    onClick={() => setSelectedReservation(null)}
+                    aria-label="Close reservation details"
+                  >
+                    <X className="h-5 w-5 sm:h-4 sm:w-4" />
+                  </Button>
                 </div>
-              )}
+              </DialogHeader>
+
+              <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain touch-pan-y p-4 sm:p-6 pb-6" style={{ WebkitOverflowScrolling: 'touch', height: '100%', maxHeight: '100%', overflowY: 'auto' }}>
+                <div className="grid gap-4">
+                  <div className="flex items-center gap-2">
+                    {getStatusInfo(selectedReservation.status).icon}
+                    <Badge variant="outline" className={`${getStatusInfo(selectedReservation.status).color} whitespace-nowrap rounded-full px-3 py-1 text-xs sm:text-sm`}>
+                      {getStatusInfo(selectedReservation.status).label}
+                    </Badge>
+                  </div>
+                  
+                  <div className="grid grid-cols-[20px_1fr] gap-x-2 items-start">
+                    <Users className="h-5 w-5 text-gray-500" />
+                    <span className="font-medium break-all">{selectedReservation.club_name}</span>
+                  </div>
+                  
+                  <div className="grid grid-cols-[20px_1fr] gap-x-2 items-start">
+                    <MapPin className="h-5 w-5 text-gray-500" />
+                    <span className="break-all">{selectedReservation.space_name}</span>
+                  </div>
+                  
+                  <div className="grid grid-cols-[20px_1fr] gap-x-2 items-start">
+                    <Calendar className="h-5 w-5 text-gray-500" />
+                    <span>{format(new Date(selectedReservation.start_time), 'MMMM d, yyyy')}</span>
+                  </div>
+                  
+                  <div className="grid grid-cols-[20px_1fr] gap-x-2 items-start">
+                    <Clock className="h-5 w-5 text-gray-500" />
+                    <span>
+                      {format(new Date(selectedReservation.start_time), 'h:mm a')} -{' '}
+                      {format(new Date(selectedReservation.end_time), 'h:mm a')}
+                    </span>
+                  </div>
+                  
+                  {selectedReservation.description && (
+                    <div className="mt-1 text-sm text-gray-700 dark:text-gray-300">
+                      {selectedReservation.description}
+                    </div>
+                  )}
+                  
+                  {selectedReservation.admin_message && (
+                    <div className="mt-1">
+                      <h4 className="text-sm font-medium mb-2">
+                        {selectedReservation.status === 'rejected' ? 'Rejection Reason' : 'Admin Message'}
+                      </h4>
+                      <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-md text-sm">
+                        {selectedReservation.admin_message}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
             </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setSelectedReservation(null)}>
-                Close
-              </Button>
-            </DialogFooter>
           </DialogContent>
         </Dialog>
       )}
