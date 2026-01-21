@@ -147,8 +147,9 @@ function ReservationsContent() {
         throw new Error(error.error || 'Failed to delete reservation')
       }
 
-      setReservations(prev => prev.filter(res => res.id !== reservationToDelete))
       toast.success("Reservation deleted successfully")
+      // Auto-refresh reservations
+      await fetchReservations()
     } catch (err) {
       console.error('Error deleting reservation:', err)
       toast.error("Failed to delete reservation")

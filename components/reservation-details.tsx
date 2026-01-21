@@ -374,7 +374,14 @@ export function ReservationDetails({ reservation, onClose, onStatusChange }: Res
                         disabled={isSubmitting}
                         className="w-full h-12 text-base font-semibold bg-green-600 hover:bg-green-700 text-white"
                       >
-                        {isSubmitting ? "Approving..." : "Approve Reservation"}
+                        {isSubmitting ? (
+                          <>
+                            <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                            Approving...
+                          </>
+                        ) : (
+                          "Approve Reservation"
+                        )}
                       </Button>
                       <Button
                         type="button"
@@ -383,7 +390,14 @@ export function ReservationDetails({ reservation, onClose, onStatusChange }: Res
                         disabled={isSubmitting}
                         className="w-full h-12 text-base font-semibold"
                       >
-                        {isSubmitting ? "Rejecting..." : "Reject Reservation"}
+                        {isSubmitting ? (
+                          <>
+                            <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                            Rejecting...
+                          </>
+                        ) : (
+                          "Reject Reservation"
+                        )}
                       </Button>
                     </div>
                   </div>
@@ -398,8 +412,17 @@ export function ReservationDetails({ reservation, onClose, onStatusChange }: Res
                     disabled={isSubmitting}
                     className="w-full h-11 text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 dark:border-red-800 dark:hover:bg-red-950/50"
                   >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Delete reservation
+                    {isSubmitting ? (
+                      <>
+                        <div className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />
+                        Deleting...
+                      </>
+                    ) : (
+                      <>
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete reservation
+                      </>
+                    )}
                   </Button>
                 </div>
               </div>

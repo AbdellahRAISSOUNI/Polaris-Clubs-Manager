@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, Suspense } from "react"
+import { useState, useEffect, useCallback, Suspense } from "react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Calendar, Clock, MapPin, Users, Building, CheckCircle2, Clock3, AlertCircle, X, TableIcon, CalendarIcon, Search, ArrowUpDown, Filter, Eye, FileDown } from "lucide-react"
@@ -314,54 +314,72 @@ function AllReservationsContent() {
     fetchPeriods()
   }, [])
 
+  // Fetch reservations function (extracted to be reusable)
+  const fetchReservations = useCallback(async (skipUrlCheck = false) => {
+    setIsLoading(true)
+    try {
+      const params = new URLSearchParams()
+      if (activePeriodType && activePeriodId) {
+        params.set("periodType", activePeriodType)
+        params.set("periodId", activePeriodId)
+      }
+      const url = params.toString() ? `/api/reservations?${params.toString()}` : "/api/reservations"
+
+      const response = await fetch(url)
+      if (!response.ok) {
+        throw new Error('Failed to fetch reservations')
+      }
+      const data = await response.json()
+      setReservations(data)
+      setError(null)
+      
+      // Extract unique clubs for filtering
+      const clubs = Array.from(new Set(data.map((r: Reservation) => r.club_id)))
+        .map(clubId => {
+          const reservation = data.find((r: Reservation) => r.club_id === clubId);
+          return {
+            id: clubId as string,
+            name: reservation?.club_name || 'Unknown Club'
+          };
+        });
+      setUniqueClubs(clubs);
+      
+      // If there's a reservation ID in the URL, highlight it and open its details
+      if (!skipUrlCheck && reservationIdFromUrl) {
+        setHighlightedReservationId(reservationIdFromUrl)
+        const reservation = data.find((r: Reservation) => r.id === reservationIdFromUrl)
+        if (reservation) {
+          // Format and set selected reservation
+          const formattedReservation = {
+            id: reservation.id,
+            title: reservation.title,
+            status: reservation.status,
+            date: new Date(reservation.start_time),
+            time: reservation.is_full_day 
+              ? "Full Day" 
+              : `${format(new Date(reservation.start_time), "h:mm a")} - ${format(new Date(reservation.end_time), "h:mm a")}`,
+            clubName: reservation.club_name || "Unknown Club",
+            clubLogo: `/api/clubs/${reservation.club_id}/image`,
+            isFullDay: reservation.is_full_day,
+            location: reservation.space_name
+          };
+          setSelectedReservation(reservation);
+          setReservationStatus(reservation.status);
+          setIsDetailsOpen(true);
+          // Set view mode to calendar to ensure the reservation is visible
+          setViewMode("calendar")
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching reservations:', err)
+      setError(err instanceof Error ? err.message : 'Failed to load reservations')
+    } finally {
+      setIsLoading(false)
+    }
+  }, [activePeriodType, activePeriodId, reservationIdFromUrl, setViewMode, setHighlightedReservationId, setUniqueClubs, setSelectedReservation, setReservationStatus, setIsDetailsOpen])
+
   // Fetch reservations when filter changes
   useEffect(() => {
-    const fetchReservations = async () => {
-      setIsLoading(true)
-      try {
-        const params = new URLSearchParams()
-        if (activePeriodType && activePeriodId) {
-          params.set("periodType", activePeriodType)
-          params.set("periodId", activePeriodId)
-        }
-        const url = params.toString() ? `/api/reservations?${params.toString()}` : "/api/reservations"
-
-        const response = await fetch(url)
-        if (!response.ok) {
-          throw new Error('Failed to fetch reservations')
-        }
-        const data = await response.json()
-        setReservations(data)
-        
-        // Extract unique clubs for filtering
-        const clubs = Array.from(new Set(data.map((r: Reservation) => r.club_id)))
-          .map(clubId => {
-            const reservation = data.find((r: Reservation) => r.club_id === clubId);
-            return {
-              id: clubId as string,
-              name: reservation?.club_name || 'Unknown Club'
-            };
-          });
-        setUniqueClubs(clubs);
-        
-        // If there's a reservation ID in the URL, highlight it and open its details
-        if (reservationIdFromUrl) {
-          setHighlightedReservationId(reservationIdFromUrl)
-          const reservation = data.find((r: Reservation) => r.id === reservationIdFromUrl)
-          if (reservation) {
-            handleReservationSelect(reservation)
-            // Set view mode to calendar to ensure the reservation is visible
-            setViewMode("calendar")
-          }
-        }
-      } catch (err) {
-        console.error('Error fetching reservations:', err)
-        setError(err instanceof Error ? err.message : 'Failed to load reservations')
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
     if (periodScope !== "all" && !activePeriodId) {
       setReservations([])
       setIsLoading(false)
@@ -369,7 +387,7 @@ function AllReservationsContent() {
     }
 
     fetchReservations()
-  }, [reservationIdFromUrl, periodScope, periodMode, specificPeriodId, mandates, academicYears])
+  }, [fetchReservations, periodScope, periodMode, specificPeriodId, mandates, academicYears])
 
   const handleReservationSelect = (reservation: Reservation) => {
     // Format the reservation data for the ReservationDetails component
@@ -473,10 +491,12 @@ function AllReservationsContent() {
       })
       if (!response.ok) throw new Error("Failed to update status")
 
-      setReservations((prev) => prev.map((r) => (r.id === reservationId ? { ...r, status: newStatus } : r)))
+      // Auto-refresh reservations to get latest data
+      await fetchReservations(true)
       setSelectedReservation((prev) => (prev && prev.id === reservationId ? { ...prev, status: newStatus } : prev))
     } catch (error) {
       console.error("Error updating reservation:", error)
+      setError("Failed to update reservation status. Please try again.")
     }
   }
 
@@ -593,22 +613,31 @@ function AllReservationsContent() {
               }}
               className="flex items-center gap-1 sm:gap-2 text-xs h-8 sm:h-9 flex-1 md:flex-auto justify-center"
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="h-3 w-3 sm:h-4 sm:w-4"
-              >
-                <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-                <path d="M3 3v5h5" />
-                <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
-                <path d="M16 21h5v-5" />
-              </svg>
-              Refresh
+              {isLoading ? (
+                <>
+                  <div className="h-3 w-3 sm:h-4 sm:w-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                  <span className="hidden sm:inline">Loading...</span>
+                </>
+              ) : (
+                <>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="h-3 w-3 sm:h-4 sm:w-4"
+                  >
+                    <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                    <path d="M3 3v5h5" />
+                    <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
+                    <path d="M16 21h5v-5" />
+                  </svg>
+                  Refresh
+                </>
+              )}
             </Button>
             <Button
               variant={viewMode === "calendar" ? "default" : "outline"}
@@ -1202,22 +1231,8 @@ function AllReservationsContent() {
             }}
             onClose={() => setIsDetailsOpen(false)}
             onStatusChange={async (newStatus) => {
-              try {
-                const response = await fetch(`/api/reservations/${selectedReservation.id}/status`, {
-                  method: 'PATCH',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ status: newStatus })
-                });
-                if (!response.ok) throw new Error('Failed to update status');
-                // Refresh reservations
-                const updatedReservations = reservations.map(r => 
-                  r.id === selectedReservation.id ? { ...r, status: newStatus } : r
-                );
-                setReservations(updatedReservations);
-                setSelectedReservation({ ...selectedReservation, status: newStatus });
-              } catch (error) {
-                console.error('Error updating reservation:', error);
-              }
+              // Auto-refresh reservations after status change
+              await fetchReservations(true)
             }}
           />
         )}
