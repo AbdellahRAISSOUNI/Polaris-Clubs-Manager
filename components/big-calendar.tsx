@@ -45,13 +45,17 @@ interface BigCalendarProps {
   onDateSelect?: (date: Date) => void;
   onReservationSelect?: (reservation: Reservation) => void;
   highlightedReservationId?: string | null;
+  periodType?: 'mandate' | 'academicYear';
+  periodId?: string | null;
 }
 
 export function BigCalendar({ 
   selectedDate, 
   onDateSelect, 
   onReservationSelect,
-  highlightedReservationId = null
+  highlightedReservationId = null,
+  periodType,
+  periodId
 }: BigCalendarProps) {
   const [currentDate, setCurrentDate] = useState(selectedDate || new Date())
   const [viewMode, setViewMode] = useState<'month' | 'week'>('month')
@@ -99,9 +103,14 @@ export function BigCalendar({
       setError(null)
       
       try {
+        const reservationsUrl =
+          periodType && periodId
+            ? `/api/reservations?periodType=${encodeURIComponent(periodType)}&periodId=${encodeURIComponent(periodId)}`
+            : '/api/reservations'
+
         // Fetch reservations, clubs, and spaces from API
         const [reservationsRes, clubsRes, spacesRes] = await Promise.all([
-          fetch('/api/reservations'),
+          fetch(reservationsUrl),
           fetch('/api/clubs'),
           fetch('/api/spaces'),
         ])
@@ -138,7 +147,7 @@ export function BigCalendar({
     }
     
     fetchData()
-  }, [])
+  }, [periodType, periodId])
 
   // Calendar navigation functions
   const nextMonth = () => setCurrentDate(addMonths(currentDate, 1))

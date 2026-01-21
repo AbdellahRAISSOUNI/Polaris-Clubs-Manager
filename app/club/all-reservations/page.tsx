@@ -11,6 +11,7 @@ import { Separator } from "@/components/ui/separator"
 import Link from "next/link"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
+import { Label } from "@/components/ui/label"
 import {
   Table,
   TableBody,
@@ -20,6 +21,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { useSearchParams } from "next/navigation"
+import { getCurrentPeriod, getPreviousPeriod, type TimePeriod } from "@/lib/time-periods-client"
 
 interface Reservation {
   id: string;
@@ -53,15 +55,64 @@ function AllReservationsContent() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [highlightedReservationId, setHighlightedReservationId] = useState<string | null>(null)
+  const [periodScope, setPeriodScope] = useState<"all" | "mandate" | "academicYear">("mandate")
+  const [periodMode, setPeriodMode] = useState<"current" | "previous" | "specific">("current")
+  const [specificPeriodId, setSpecificPeriodId] = useState<string>("")
+  const [mandates, setMandates] = useState<TimePeriod[]>([])
+  const [academicYears, setAcademicYears] = useState<TimePeriod[]>([])
   
   const searchParams = useSearchParams()
   const reservationIdFromUrl = searchParams.get('id')
+
+  const activePeriods = periodScope === "mandate" ? mandates : academicYears
+  const currentPeriod = periodScope === "all" ? null : getCurrentPeriod(activePeriods)
+  const previousPeriod = periodScope === "all" ? null : getPreviousPeriod(activePeriods, currentPeriod)
+  const activePeriodId =
+    periodScope === "all"
+      ? null
+      : periodMode === "current"
+        ? currentPeriod?.id || null
+        : periodMode === "previous"
+          ? previousPeriod?.id || null
+          : specificPeriodId || null
+  const activePeriodType = periodScope === "all" ? null : periodScope
+
+  // Fetch time periods on mount (default = current mandate)
+  useEffect(() => {
+    const fetchPeriods = async () => {
+      try {
+        const [mandatesRes, yearsRes] = await Promise.all([
+          fetch("/api/time-periods?type=mandate"),
+          fetch("/api/time-periods?type=academicYear"),
+        ])
+        const mandatesData = mandatesRes.ok ? await mandatesRes.json() : []
+        const yearsData = yearsRes.ok ? await yearsRes.json() : []
+        setMandates(mandatesData || [])
+        setAcademicYears(yearsData || [])
+
+        const currentMandate = getCurrentPeriod(mandatesData || [])
+        setPeriodScope("mandate")
+        setPeriodMode("current")
+        setSpecificPeriodId(currentMandate?.id || "")
+      } catch (e) {
+        console.error("Error fetching time periods:", e)
+      }
+    }
+    fetchPeriods()
+  }, [])
 
   // Use useCallback to memoize the fetchReservations function
   const fetchReservations = useCallback(async () => {
     setIsLoading(true)
     try {
-      const response = await fetch('/api/reservations')
+      const params = new URLSearchParams()
+      if (activePeriodType && activePeriodId) {
+        params.set("periodType", activePeriodType)
+        params.set("periodId", activePeriodId)
+      }
+      const url = params.toString() ? `/api/reservations?${params.toString()}` : "/api/reservations"
+
+      const response = await fetch(url)
       if (!response.ok) {
         throw new Error('Failed to fetch reservations')
       }
@@ -83,9 +134,14 @@ function AllReservationsContent() {
     } finally {
       setIsLoading(false)
     }
-  }, [reservationIdFromUrl, setIsLoading, setReservations, setError, setHighlightedReservationId, setSelectedReservation, setViewMode])
+  }, [reservationIdFromUrl, activePeriodType, activePeriodId, setIsLoading, setReservations, setError, setHighlightedReservationId, setSelectedReservation, setViewMode])
 
   useEffect(() => {
+    if (periodScope !== "all" && !activePeriodId) {
+      setReservations([])
+      setIsLoading(false)
+      return
+    }
     fetchReservations()
   }, [fetchReservations])
 
@@ -191,12 +247,95 @@ function AllReservationsContent() {
           </div>
       </div>
 
+      {/* Time period filter */}
+      <div className="rounded-lg border bg-white dark:bg-gray-950 p-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div>
+            <Label className="text-sm">Scope</Label>
+            <Select
+              value={periodScope}
+              onValueChange={(value) => {
+                const nextScope = value as "all" | "mandate" | "academicYear"
+                setPeriodScope(nextScope)
+                setPeriodMode(nextScope === "all" ? "current" : "current")
+                if (nextScope === "mandate") {
+                  setSpecificPeriodId(getCurrentPeriod(mandates)?.id || mandates?.[0]?.id || "")
+                } else if (nextScope === "academicYear") {
+                  setSpecificPeriodId(getCurrentPeriod(academicYears)?.id || academicYears?.[0]?.id || "")
+                } else {
+                  setSpecificPeriodId("")
+                }
+              }}
+            >
+              <SelectTrigger className="mt-1">
+                <SelectValue placeholder="Select scope" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="mandate">Mandat ADE</SelectItem>
+                <SelectItem value="academicYear">Année scolaire</SelectItem>
+                <SelectItem value="all">All</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {periodScope !== "all" ? (
+            <>
+              <div>
+                <Label className="text-sm">Period</Label>
+                <Select value={periodMode} onValueChange={(v) => setPeriodMode(v as any)}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Select period" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="current">Current</SelectItem>
+                    <SelectItem value="previous">Previous</SelectItem>
+                    <SelectItem value="specific">Specific</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-sm">{periodScope === "mandate" ? "Mandat" : "Année scolaire"}</Label>
+                <Select
+                  value={periodMode === "specific" ? specificPeriodId : activePeriodId || ""}
+                  onValueChange={(v) => {
+                    setPeriodMode("specific")
+                    setSpecificPeriodId(v)
+                  }}
+                >
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Select..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(periodScope === "mandate" ? mandates : academicYears).map((p) => {
+                      const start = new Date(p.start_date)
+                      const end = new Date(p.end_date)
+                      const label = `${p.name} (${start.toLocaleDateString()} → ${end.toLocaleDateString()})`
+                      return (
+                        <SelectItem key={p.id} value={p.id}>
+                          {label}
+                        </SelectItem>
+                      )
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
+            </>
+          ) : (
+            <div className="md:col-span-2 flex items-end">
+              <p className="text-xs text-muted-foreground">Showing all reservations</p>
+            </div>
+          )}
+        </div>
+      </div>
+
         {viewMode === "calendar" ? (
           <div className="space-y-4">
             <div className="rounded-md border">
       <BigCalendar 
         onReservationSelect={handleReservationSelect} 
         highlightedReservationId={highlightedReservationId}
+        periodType={activePeriodType || undefined}
+        periodId={activePeriodId || undefined}
       />
             </div>
             <div className="flex items-center gap-4 text-sm">

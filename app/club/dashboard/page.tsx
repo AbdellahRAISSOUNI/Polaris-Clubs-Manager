@@ -35,6 +35,7 @@ import { successNotification, errorNotification, infoNotification } from "@/lib/
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { toast } from "sonner"
 import { format } from "date-fns"
+import { getCurrentPeriod, getPreviousPeriod, type TimePeriod } from "@/lib/time-periods-client"
 
 // Define the Reservation type
 interface Reservation {
@@ -67,6 +68,11 @@ export default function ClubDashboard() {
   const [showReservationForm, setShowReservationForm] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedStatus, setSelectedStatus] = useState("all")
+  const [periodScope, setPeriodScope] = useState<"all" | "mandate" | "academicYear">("mandate")
+  const [periodMode, setPeriodMode] = useState<"current" | "previous" | "specific">("current")
+  const [specificPeriodId, setSpecificPeriodId] = useState<string>("")
+  const [mandates, setMandates] = useState<TimePeriod[]>([])
+  const [academicYears, setAcademicYears] = useState<TimePeriod[]>([])
   const [viewMode, setViewMode] = useState("calendar")
   const [isMobile, setIsMobile] = useState(false)
   const [reservations, setReservations] = useState<Reservation[]>([])
@@ -82,23 +88,72 @@ export default function ClubDashboard() {
   const [reservationToDelete, setReservationToDelete] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  // Fetch reservations and spaces on mount
+  const activePeriods = periodScope === "mandate" ? mandates : academicYears
+  const currentPeriod = periodScope === "all" ? null : getCurrentPeriod(activePeriods)
+  const previousPeriod = periodScope === "all" ? null : getPreviousPeriod(activePeriods, currentPeriod)
+  const activePeriodId =
+    periodScope === "all"
+      ? null
+      : periodMode === "current"
+        ? currentPeriod?.id || null
+        : periodMode === "previous"
+          ? previousPeriod?.id || null
+          : specificPeriodId || null
+
+  // Fetch time periods on mount (default = current mandate)
+  useEffect(() => {
+    const fetchPeriods = async () => {
+      try {
+        const [mandatesRes, yearsRes] = await Promise.all([
+          fetch("/api/time-periods?type=mandate"),
+          fetch("/api/time-periods?type=academicYear"),
+        ])
+
+        const mandatesData = mandatesRes.ok ? await mandatesRes.json() : []
+        const yearsData = yearsRes.ok ? await yearsRes.json() : []
+
+        setMandates(mandatesData || [])
+        setAcademicYears(yearsData || [])
+
+        const currentMandate = getCurrentPeriod(mandatesData || [])
+        setPeriodScope("mandate")
+        setPeriodMode("current")
+        setSpecificPeriodId(currentMandate?.id || "")
+      } catch (e) {
+        console.error("Error fetching time periods:", e)
+      }
+    }
+    fetchPeriods()
+  }, [])
+
+  // Fetch reservations and spaces (re-fetch when active time filter changes)
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true)
       try {
         // Get the club ID from localStorage or context
         const clubId = getClubId()
+        if (!clubId) {
+          throw new Error("No club ID found. Please log in again.")
+        }
         
+        const params = new URLSearchParams()
+        if (periodScope !== "all" && activePeriodId) {
+          params.set("periodType", periodScope)
+          params.set("periodId", activePeriodId)
+        }
+        const suffix = params.toString() ? `&${params.toString()}` : ""
+
         // Fetch reservations for this club
-        const reservationsResponse = await fetch(`/api/reservations?clubId=${clubId}`)
+        const reservationsResponse = await fetch(`/api/reservations?clubId=${clubId}${suffix}`)
         if (!reservationsResponse.ok) {
           throw new Error('Failed to fetch reservations')
         }
         const reservationsData = await reservationsResponse.json()
         
         // Fetch all reservations (for showing other clubs' bookings)
-        const allReservationsResponse = await fetch('/api/reservations')
+        const allReservationsUrl = params.toString() ? `/api/reservations?${params.toString()}` : "/api/reservations"
+        const allReservationsResponse = await fetch(allReservationsUrl)
         if (!allReservationsResponse.ok) {
           throw new Error('Failed to fetch all reservations')
         }
@@ -123,8 +178,15 @@ export default function ClubDashboard() {
       }
     }
     
+    // If mandate/year scope selected but no active period, show empty set instead of 404 spam.
+    if (periodScope !== "all" && !activePeriodId) {
+      setClubReservations([])
+      setReservations([])
+      return
+    }
+
     fetchData()
-  }, [])
+  }, [periodScope, periodMode, specificPeriodId, mandates, academicYears])
 
   // Check if mobile on mount and initialize theme
   useEffect(() => {
@@ -591,16 +653,25 @@ export default function ClubDashboard() {
                 infoNotification({ description: "Refreshing dashboard data..." })
                 try {
                   const clubId = getClubId()
+                  if (!clubId) throw new Error("No club ID found. Please log in again.")
+
+                  const params = new URLSearchParams()
+                  if (periodScope !== "all" && activePeriodId) {
+                    params.set("periodType", periodScope)
+                    params.set("periodId", activePeriodId)
+                  }
+                  const suffix = params.toString() ? `&${params.toString()}` : ""
                   
                   // Fetch reservations for this club
-                  const reservationsResponse = await fetch(`/api/reservations?clubId=${clubId}`)
+                  const reservationsResponse = await fetch(`/api/reservations?clubId=${clubId}${suffix}`)
                   if (!reservationsResponse.ok) {
                     throw new Error('Failed to fetch reservations')
                   }
                   const reservationsData = await reservationsResponse.json()
                   
                   // Fetch all reservations (for showing other clubs' bookings)
-                  const allReservationsResponse = await fetch('/api/reservations')
+                  const allReservationsUrl = params.toString() ? `/api/reservations?${params.toString()}` : "/api/reservations"
+                  const allReservationsResponse = await fetch(allReservationsUrl)
                   if (!allReservationsResponse.ok) {
                     throw new Error('Failed to fetch all reservations')
                   }
@@ -646,6 +717,97 @@ export default function ClubDashboard() {
             </Button>
           </div>
         </div>
+
+        {/* Time period filter */}
+        <Card className="shadow-sm">
+          <CardContent className="p-6">
+            <div className="flex flex-col md:flex-row gap-4 md:items-end">
+              <div className="flex-1">
+                <Label>Scope</Label>
+                <Select
+                  value={periodScope}
+                  onValueChange={(value) => {
+                    const nextScope = value as "all" | "mandate" | "academicYear"
+                    setPeriodScope(nextScope)
+                    setPeriodMode(nextScope === "all" ? "current" : "current")
+                    if (nextScope === "mandate") {
+                      setSpecificPeriodId(getCurrentPeriod(mandates)?.id || mandates?.[0]?.id || "")
+                    } else if (nextScope === "academicYear") {
+                      setSpecificPeriodId(getCurrentPeriod(academicYears)?.id || academicYears?.[0]?.id || "")
+                    } else {
+                      setSpecificPeriodId("")
+                    }
+                  }}
+                >
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Select scope" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="mandate">Mandat ADE</SelectItem>
+                    <SelectItem value="academicYear">Année scolaire</SelectItem>
+                    <SelectItem value="all">All</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {periodScope !== "all" && (
+                <>
+                  <div className="flex-1">
+                    <Label>Period</Label>
+                    <Select
+                      value={periodMode}
+                      onValueChange={(value) => {
+                        const nextMode = value as "current" | "previous" | "specific"
+                        setPeriodMode(nextMode)
+                        if (nextMode === "specific" && !specificPeriodId) {
+                          setSpecificPeriodId(activePeriods?.[0]?.id || "")
+                        }
+                      }}
+                    >
+                      <SelectTrigger className="mt-1">
+                        <SelectValue placeholder="Select period" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="current">Current</SelectItem>
+                        <SelectItem value="previous">Previous</SelectItem>
+                        <SelectItem value="specific">Specific</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {periodMode === "specific" && (
+                    <div className="flex-1">
+                      <Label>{periodScope === "mandate" ? "Mandat" : "Année scolaire"}</Label>
+                      <Select value={specificPeriodId} onValueChange={setSpecificPeriodId}>
+                        <SelectTrigger className="mt-1">
+                          <SelectValue placeholder="Select..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {activePeriods.map((p) => {
+                            const start = new Date(p.start_date)
+                            const end = new Date(p.end_date)
+                            const label = `${p.name} (${start.toLocaleDateString()} → ${end.toLocaleDateString()})`
+                            return (
+                              <SelectItem key={p.id} value={p.id}>
+                                {label}
+                              </SelectItem>
+                            )
+                          })}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+
+            {periodScope !== "all" && !activePeriodId && (
+              <p className="text-xs text-muted-foreground mt-3">
+                No matching period found for "{periodMode}". Ask an admin to create periods in Settings.
+              </p>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Reservation Statistics */}
         <div className="grid gap-6 grid-cols-2 md:grid-cols-4">

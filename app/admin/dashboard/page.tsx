@@ -35,6 +35,7 @@ import { cn } from "@/lib/utils"
 import { AdminSidebar } from "@/components/admin-sidebar"
 import { AdminLayout } from "@/components/admin-layout"
 import { useAdminUser } from "@/hooks/useAdminUser"
+import { getCurrentPeriod, getPreviousPeriod, type TimePeriod } from "@/lib/time-periods-client"
 
 // Define the Reservation type
 interface Reservation {
@@ -169,6 +170,11 @@ export default function AdminDashboard() {
   const [selectedVenue, setSelectedVenue] = useState("All Venues")
   const [selectedClub, setSelectedClub] = useState("All Clubs")
   const [selectedStatus, setSelectedStatus] = useState("all")
+  const [periodScope, setPeriodScope] = useState<"all" | "mandate" | "academicYear">("mandate")
+  const [periodMode, setPeriodMode] = useState<"current" | "previous" | "specific">("current")
+  const [specificPeriodId, setSpecificPeriodId] = useState<string>("")
+  const [mandates, setMandates] = useState<TimePeriod[]>([])
+  const [academicYears, setAcademicYears] = useState<TimePeriod[]>([])
   const [selectedReservation, setSelectedReservation] = useState<any | null>(null)
   const [isMobile, setIsMobile] = useState(false)
   const [reservations, setReservations] = useState<Reservation[]>([])
@@ -178,19 +184,49 @@ export default function AdminDashboard() {
   const [error, setError] = useState<string | null>(null)
   const { adminUser } = useAdminUser()
 
-  // Fetch reservations, spaces, and clubs on mount
+  const activePeriods = periodScope === "mandate" ? mandates : academicYears
+  const currentPeriod = periodScope === "all" ? null : getCurrentPeriod(activePeriods)
+  const previousPeriod = periodScope === "all" ? null : getPreviousPeriod(activePeriods, currentPeriod)
+  const activePeriodId =
+    periodScope === "all"
+      ? null
+      : periodMode === "current"
+        ? currentPeriod?.id || null
+        : periodMode === "previous"
+          ? previousPeriod?.id || null
+          : specificPeriodId || null
+
+  // Fetch time periods on mount (used for mandate/year filtering)
+  useEffect(() => {
+    const fetchPeriods = async () => {
+      try {
+        const [mandatesRes, yearsRes] = await Promise.all([
+          fetch("/api/time-periods?type=mandate"),
+          fetch("/api/time-periods?type=academicYear"),
+        ])
+
+        const mandatesData = mandatesRes.ok ? await mandatesRes.json() : []
+        const yearsData = yearsRes.ok ? await yearsRes.json() : []
+
+        setMandates(mandatesData || [])
+        setAcademicYears(yearsData || [])
+
+        // Default: current mandate
+        const currentMandate = getCurrentPeriod(mandatesData || [])
+        setPeriodScope("mandate")
+        setPeriodMode("current")
+        setSpecificPeriodId(currentMandate?.id || "")
+      } catch (e) {
+        console.error("Error fetching time periods:", e)
+      }
+    }
+    fetchPeriods()
+  }, [])
+
+  // Fetch spaces and clubs on mount
   useEffect(() => {
     const fetchData = async () => {
-      setIsLoading(true)
       try {
-        // Fetch all reservations
-        const reservationsResponse = await fetch('/api/reservations')
-        if (!reservationsResponse.ok) {
-          throw new Error('Failed to fetch reservations')
-        }
-        const reservationsData = await reservationsResponse.json()
-        setReservations(reservationsData)
-        
         // Fetch spaces
         const spacesResponse = await fetch('/api/spaces')
         if (!spacesResponse.ok) {
@@ -209,13 +245,45 @@ export default function AdminDashboard() {
       } catch (err) {
         console.error('Error fetching data:', err)
         setError(err instanceof Error ? err.message : 'Failed to load data')
-      } finally {
-        setIsLoading(false)
       }
     }
     
     fetchData()
   }, [])
+
+  // Fetch reservations whenever the active time filter changes
+  useEffect(() => {
+    const fetchReservations = async () => {
+      setIsLoading(true)
+      try {
+        const params = new URLSearchParams()
+        if (periodScope !== "all" && activePeriodId) {
+          params.set("periodType", periodScope)
+          params.set("periodId", activePeriodId)
+        }
+
+        const url = params.toString() ? `/api/reservations?${params.toString()}` : "/api/reservations"
+        const reservationsResponse = await fetch(url)
+        if (!reservationsResponse.ok) throw new Error("Failed to fetch reservations")
+        const reservationsData = await reservationsResponse.json()
+        setReservations(reservationsData)
+        setError(null)
+      } catch (err) {
+        console.error("Error fetching reservations:", err)
+        setError(err instanceof Error ? err.message : "Failed to load reservations")
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    // If mandate/year scope is selected but there is no active period yet, avoid fetching a 404 and wait.
+    if (periodScope !== "all" && !activePeriodId) {
+      setReservations([])
+      return
+    }
+
+    fetchReservations()
+  }, [periodScope, periodMode, specificPeriodId, mandates, academicYears])
 
   // Check if mobile on mount
   useEffect(() => {
@@ -357,7 +425,13 @@ export default function AdminDashboard() {
   const handleReservationStatusChange = async () => {
     // Refresh the reservations data
     try {
-      const response = await fetch('/api/reservations')
+      const params = new URLSearchParams()
+      if (periodScope !== "all" && activePeriodId) {
+        params.set("periodType", periodScope)
+        params.set("periodId", activePeriodId)
+      }
+      const url = params.toString() ? `/api/reservations?${params.toString()}` : "/api/reservations"
+      const response = await fetch(url)
       if (!response.ok) {
         throw new Error('Failed to fetch reservations')
       }
@@ -390,6 +464,100 @@ export default function AdminDashboard() {
             />
           </div>
         </div>
+
+        {/* Time period filter */}
+        <Card className="mb-4 sm:mb-6">
+          <CardContent className="p-4 sm:p-6">
+            <div className="flex flex-col sm:flex-row gap-3 sm:items-end">
+              <div className="flex-1">
+                <Label>Scope</Label>
+                <Select
+                  value={periodScope}
+                  onValueChange={(value) => {
+                    const nextScope = value as "all" | "mandate" | "academicYear"
+                    setPeriodScope(nextScope)
+                    setPeriodMode(nextScope === "all" ? "current" : "current")
+                    if (nextScope === "mandate") {
+                      setSpecificPeriodId(getCurrentPeriod(mandates)?.id || mandates?.[0]?.id || "")
+                    } else if (nextScope === "academicYear") {
+                      setSpecificPeriodId(getCurrentPeriod(academicYears)?.id || academicYears?.[0]?.id || "")
+                    } else {
+                      setSpecificPeriodId("")
+                    }
+                  }}
+                >
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Select scope" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="mandate">Mandat ADE</SelectItem>
+                    <SelectItem value="academicYear">Année scolaire</SelectItem>
+                    <SelectItem value="all">All</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {periodScope !== "all" && (
+                <>
+                  <div className="flex-1">
+                    <Label>Period</Label>
+                    <Select
+                      value={periodMode}
+                      onValueChange={(value) => {
+                        const nextMode = value as "current" | "previous" | "specific"
+                        setPeriodMode(nextMode)
+                        if (nextMode === "specific" && !specificPeriodId) {
+                          setSpecificPeriodId(activePeriods?.[0]?.id || "")
+                        }
+                      }}
+                    >
+                      <SelectTrigger className="mt-1">
+                        <SelectValue placeholder="Select period" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="current">Current</SelectItem>
+                        <SelectItem value="previous">Previous</SelectItem>
+                        <SelectItem value="specific">Specific</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {periodMode === "specific" && (
+                    <div className="flex-1">
+                      <Label>{periodScope === "mandate" ? "Mandat" : "Année scolaire"}</Label>
+                      <Select
+                        value={specificPeriodId}
+                        onValueChange={(value) => setSpecificPeriodId(value)}
+                      >
+                        <SelectTrigger className="mt-1">
+                          <SelectValue placeholder="Select..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {activePeriods.map((p) => {
+                            const start = new Date(p.start_date)
+                            const end = new Date(p.end_date)
+                            const label = `${p.name} (${start.toLocaleDateString()} → ${end.toLocaleDateString()})`
+                            return (
+                              <SelectItem key={p.id} value={p.id}>
+                                {label}
+                              </SelectItem>
+                            )
+                          })}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+
+            {periodScope !== "all" && !activePeriodId && (
+              <p className="text-xs text-muted-foreground mt-3">
+                No matching period found for "{periodMode}". Create periods in Admin Settings.
+              </p>
+            )}
+          </CardContent>
+        </Card>
 
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 sm:mb-6">
           <h2 className="text-lg sm:text-2xl font-bold tracking-tight">Admin Dashboard</h2>

@@ -5,6 +5,7 @@ import { Club } from "@/models/Club";
 import { Space } from "@/models/Space";
 import { User } from "@/models/User";
 import { sendNotification } from "@/lib/send-notification";
+import { TimePeriod, type TimePeriodType } from "@/models/TimePeriod";
 import { randomUUID } from "crypto";
 
 // Force dynamic rendering since we use request.url
@@ -52,12 +53,32 @@ export async function GET(request: Request) {
     const clubId = searchParams.get('clubId');
     const spaceId = searchParams.get('spaceId');
     const status = searchParams.get('status');
+    const periodType = searchParams.get('periodType') as TimePeriodType | null;
+    const periodId = searchParams.get('periodId');
 
     // Build MongoDB query
     const query: any = {};
     if (clubId) query.club_id = clubId;
     if (spaceId) query.space_id = spaceId;
     if (status) query.status = status;
+    if (periodType && periodId) {
+      if (!["mandate", "academicYear"].includes(periodType)) {
+        return NextResponse.json({ error: "Invalid periodType" }, { status: 400 });
+      }
+
+      const period = await TimePeriod.findOne({ id: periodId, type: periodType })
+        .select("start_date end_date")
+        .lean();
+
+      if (!period) {
+        return NextResponse.json({ error: "Time period not found" }, { status: 404 });
+      }
+
+      query.start_time = {
+        $gte: new Date(period.start_date),
+        $lte: new Date(period.end_date),
+      };
+    }
 
     // Fetch reservations from MongoDB
     const reservationsData = await Reservation.find(query).lean();
