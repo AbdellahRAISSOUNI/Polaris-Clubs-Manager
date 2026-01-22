@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { motion, AnimatePresence } from "framer-motion"
 import {
   Dialog,
   DialogContent,
@@ -15,6 +16,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { successNotification, errorNotification } from "@/lib/notifications"
 import { Trash2, X } from "lucide-react"
+import { cn } from "@/lib/utils"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -232,56 +234,74 @@ export function ReservationDetails({ reservation, onClose, onStatusChange }: Res
   return (
     <>
       <Dialog open={true} onOpenChange={onClose}>
-        <DialogContent className="p-0 overflow-hidden w-[100dvw] h-[100dvh] max-w-none rounded-none sm:rounded-lg sm:h-[90vh] sm:max-h-[90vh] sm:max-w-[540px] [&>button.absolute.right-4.top-4]:hidden" style={{ maxHeight: '100dvh' }}>
-          <div className="flex h-full flex-col min-h-0" style={{ height: '100%', maxHeight: '100%' }}>
-            <DialogHeader className="shrink-0 p-4 sm:p-6 border-b bg-background">
+        <DialogContent className="p-0 overflow-hidden w-[100dvw] h-[100dvh] max-w-none rounded-none sm:rounded-3xl sm:h-[90vh] sm:max-h-[90vh] sm:max-w-[540px] [&>button.absolute.right-4.top-4]:hidden" style={{ maxHeight: '100dvh' }}>
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+            className="flex h-full flex-col min-h-0" 
+            style={{ height: '100%', maxHeight: '100%' }}
+          >
+            <DialogHeader className="shrink-0 p-5 sm:p-6 border-b border-white/10 dark:border-white/5 bg-gradient-to-r from-white/50 to-transparent dark:from-gray-900/50 backdrop-blur-xl">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-start gap-3 min-w-0">
                   {reservation.clubLogo ? (
-                    <img
-                      src={reservation.clubLogo}
-                      alt={reservation.clubName}
-                      className="h-12 w-12 sm:h-11 sm:w-11 rounded-full object-cover ring-1 ring-gray-200 dark:ring-gray-800 flex-shrink-0"
-                    />
+                    <div className="relative">
+                      <img
+                        src={reservation.clubLogo}
+                        alt={reservation.clubName}
+                        className="h-14 w-14 sm:h-12 sm:w-12 rounded-2xl object-cover ring-2 ring-white/30 dark:ring-gray-800/50 flex-shrink-0 shadow-apple"
+                      />
+                      <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/20 to-transparent pointer-events-none" />
+                    </div>
                   ) : (
-                    <div className="h-12 w-12 sm:h-11 sm:w-11 rounded-full bg-muted ring-1 ring-gray-200 dark:ring-gray-800 flex-shrink-0" />
+                    <div className="h-14 w-14 sm:h-12 sm:w-12 rounded-2xl bg-gradient-to-br from-blue-500/20 to-purple-500/20 ring-2 ring-white/30 dark:ring-gray-800/50 flex-shrink-0 shadow-apple backdrop-blur-sm" />
                   )}
 
                   <div className="min-w-0">
-                    <DialogTitle className="text-lg sm:text-xl leading-tight line-clamp-2">
+                    <DialogTitle className="text-xl sm:text-2xl font-semibold leading-tight line-clamp-2 bg-gradient-to-r from-gray-900 to-gray-600 dark:from-gray-100 dark:to-gray-400 bg-clip-text text-transparent">
                       {reservation.title}
                     </DialogTitle>
                     <div className="mt-2 flex flex-wrap items-center gap-2">
-                      <Badge variant="outline" className={`rounded-full px-3 py-1 text-xs sm:text-sm ${statusPillClass}`}>
+                      <Badge variant="outline" className={cn("rounded-full px-3 py-1 text-xs sm:text-sm font-medium", statusPillClass)}>
                         {statusLabel}
                       </Badge>
-                      <DialogDescription className="text-xs sm:text-sm text-muted-foreground truncate">
+                      <DialogDescription className="text-xs sm:text-sm text-muted-foreground truncate font-light">
                         {reservation.clubName}
                       </DialogDescription>
                     </div>
                   </div>
                 </div>
 
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="h-10 w-10 sm:h-9 sm:w-9"
-                  onClick={onClose}
-                  aria-label="Close"
-                >
-                  <X className="h-5 w-5" />
-                </Button>
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-10 w-10 sm:h-9 sm:w-9 rounded-2xl glass border-0 shadow-apple hover:shadow-apple-lg transition-apple"
+                    onClick={onClose}
+                    aria-label="Close"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </motion.div>
               </div>
             </DialogHeader>
 
-          {error && (
-            <div className="mx-4 sm:mx-6 mt-3 sm:mt-4 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 p-2 sm:p-3 rounded-md text-xs sm:text-sm">
-              {error}
-            </div>
-          )}
+          <AnimatePresence>
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="mx-5 sm:mx-6 mt-4 sm:mt-5 bg-red-50/80 dark:bg-red-900/30 text-red-600 dark:text-red-400 p-3 sm:p-4 rounded-2xl text-xs sm:text-sm glass border border-red-200/50 dark:border-red-800/50 backdrop-blur-sm"
+              >
+                {error}
+              </motion.div>
+            )}
+          </AnimatePresence>
 
-            <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain touch-pan-y p-4 sm:p-6 pb-6" style={{ WebkitOverflowScrolling: 'touch', height: '100%', maxHeight: '100%', overflowY: 'auto' }}>
+            <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain touch-pan-y p-5 sm:p-6 pb-6 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent" style={{ WebkitOverflowScrolling: 'touch', height: '100%', maxHeight: '100%', overflowY: 'auto' }}>
             {isEditing ? (
               <div className="space-y-3 sm:space-y-4">
                 <div className="grid gap-1.5 sm:gap-2">
@@ -300,20 +320,25 @@ export function ReservationDetails({ reservation, onClose, onStatusChange }: Res
                 </div>
               </div>
             ) : (
-              <div className="space-y-4">
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+                className="space-y-4"
+              >
                 {/* When / Where */}
-                <div className="rounded-2xl border bg-muted/20 p-4">
-                  <div className="grid grid-cols-1 gap-3">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <div className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Date</div>
-                        <div className="mt-1 text-sm font-medium">{reservation.date.toLocaleDateString()}</div>
+                <div className="rounded-3xl glass border-0 shadow-apple p-5 sm:p-6 backdrop-blur-xl">
+                  <div className="grid grid-cols-1 gap-4">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1">
+                        <div className="text-xs uppercase tracking-wider text-muted-foreground font-medium mb-2">Date</div>
+                        <div className="text-base font-semibold">{reservation.date.toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}</div>
                       </div>
-                      <div className="text-right">
-                        <div className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Time</div>
-                        <div className="mt-1 text-sm font-medium">
+                      <div className="text-right flex-1">
+                        <div className="text-xs uppercase tracking-wider text-muted-foreground font-medium mb-2">Time</div>
+                        <div className="text-base font-semibold">
                           {reservation.isFullDay ? (
-                            <Badge variant="outline" className="rounded-full px-3 py-1 text-xs">
+                            <Badge variant="outline" className="rounded-full px-3 py-1 text-xs glass border-0">
                               Full Day
                             </Badge>
                           ) : (
@@ -324,10 +349,10 @@ export function ReservationDetails({ reservation, onClose, onStatusChange }: Res
                     </div>
 
                     {reservation.location && (
-                      <div className="pt-3 border-t">
-                        <div className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Location</div>
-                        <div className="mt-1 text-sm font-medium flex items-center gap-2">
-                          <MapPin className="h-4 w-4 text-muted-foreground" />
+                      <div className="pt-4 border-t border-white/10 dark:border-white/5">
+                        <div className="text-xs uppercase tracking-wider text-muted-foreground font-medium mb-2">Location</div>
+                        <div className="text-base font-semibold flex items-center gap-2">
+                          <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                           <span className="break-words">{reservation.location}</span>
                         </div>
                       </div>
@@ -337,24 +362,34 @@ export function ReservationDetails({ reservation, onClose, onStatusChange }: Res
 
                 {/* Admin / Status message */}
                 {reservation.message && (
-                  <div className="rounded-2xl border p-4">
-                    <div className="text-xs uppercase tracking-wider text-muted-foreground font-medium">
+                  <motion.div 
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1 }}
+                    className="rounded-3xl glass border-0 shadow-apple p-5 sm:p-6 backdrop-blur-xl"
+                  >
+                    <div className="text-xs uppercase tracking-wider text-muted-foreground font-medium mb-3">
                       {status === "rejected" ? "Rejection Reason" : "Admin Message"}
                     </div>
-                    <div className="mt-2 text-sm leading-relaxed">{reservation.message}</div>
-                  </div>
+                    <div className="text-sm leading-relaxed text-foreground/90">{reservation.message}</div>
+                  </motion.div>
                 )}
 
                 {/* Decision (admin) */}
                 {status === "pending" && (
-                  <div className="space-y-4">
+                  <motion.div 
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                    className="space-y-4"
+                  >
                     <div className="text-xs uppercase tracking-wider text-muted-foreground font-medium px-1">
                       Decision
                     </div>
 
                     {/* Shared message input */}
-                    <div className="rounded-2xl border p-4">
-                      <Label htmlFor="decision-message" className="text-xs font-medium text-muted-foreground">
+                    <div className="rounded-3xl glass border-0 shadow-apple p-5 sm:p-6 backdrop-blur-xl">
+                      <Label htmlFor="decision-message" className="text-xs font-medium text-muted-foreground mb-3 block">
                         Message to the club (optional)
                       </Label>
                       <Textarea
@@ -362,94 +397,109 @@ export function ReservationDetails({ reservation, onClose, onStatusChange }: Res
                         placeholder="Add a note for the club (optional)"
                         value={message}
                         onChange={(e) => setMessage(e.target.value)}
-                        className="mt-2 min-h-[100px] text-sm resize-none"
+                        className="min-h-[100px] text-sm resize-none rounded-2xl glass border-0 shadow-apple bg-white/50 dark:bg-gray-900/50 backdrop-blur-sm focus:bg-white dark:focus:bg-gray-900/70 transition-apple"
                       />
                     </div>
 
                     {/* Action buttons */}
                     <div className="flex flex-col gap-3">
-                      <Button
-                        type="button"
-                        onClick={handleApprove}
-                        disabled={isSubmitting}
-                        className="w-full h-12 text-base font-semibold bg-green-600 hover:bg-green-700 text-white"
-                      >
-                        {isSubmitting ? (
-                          <>
-                            <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                            Approving...
-                          </>
-                        ) : (
-                          "Approve Reservation"
-                        )}
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="destructive"
-                        onClick={handleReject}
-                        disabled={isSubmitting}
-                        className="w-full h-12 text-base font-semibold"
-                      >
-                        {isSubmitting ? (
-                          <>
-                            <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                            Rejecting...
-                          </>
-                        ) : (
-                          "Reject Reservation"
-                        )}
-                      </Button>
+                      <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                        <Button
+                          type="button"
+                          onClick={handleApprove}
+                          disabled={isSubmitting}
+                          className="w-full h-12 text-base font-semibold rounded-2xl bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white shadow-apple hover:shadow-apple-lg border-0 transition-apple"
+                        >
+                          {isSubmitting ? (
+                            <>
+                              <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                              Approving...
+                            </>
+                          ) : (
+                            "Approve Reservation"
+                          )}
+                        </Button>
+                      </motion.div>
+                      <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          onClick={handleReject}
+                          disabled={isSubmitting}
+                          className="w-full h-12 text-base font-semibold rounded-2xl bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 shadow-apple hover:shadow-apple-lg border-0 transition-apple"
+                        >
+                          {isSubmitting ? (
+                            <>
+                              <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                              Rejecting...
+                            </>
+                          ) : (
+                            "Reject Reservation"
+                          )}
+                        </Button>
+                      </motion.div>
                     </div>
-                  </div>
+                  </motion.div>
                 )}
 
                 {/* Danger zone */}
-                <div className="pt-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setShowDeleteConfirm(true)}
-                    disabled={isSubmitting}
-                    className="w-full h-11 text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 dark:border-red-800 dark:hover:bg-red-950/50"
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <div className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />
-                        Deleting...
-                      </>
-                    ) : (
-                      <>
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Delete reservation
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </div>
+                <motion.div 
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+                  className="pt-2"
+                >
+                  <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setShowDeleteConfirm(true)}
+                      disabled={isSubmitting}
+                      className="w-full h-12 rounded-2xl text-red-600 dark:text-red-400 border-0 glass border-red-200/50 dark:border-red-800/50 hover:bg-red-50/80 dark:hover:bg-red-950/30 hover:text-red-700 dark:hover:text-red-300 shadow-apple hover:shadow-apple-lg transition-apple backdrop-blur-sm"
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <div className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />
+                          Deleting...
+                        </>
+                      ) : (
+                        <>
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete reservation
+                        </>
+                      )}
+                    </Button>
+                  </motion.div>
+                </motion.div>
+              </motion.div>
             )}
             </div>
-          </div>
+          </motion.div>
         </DialogContent>
       </Dialog>
 
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
-        <AlertDialogContent className="max-w-[90vw] sm:max-w-[400px] p-4 sm:p-6">
+        <AlertDialogContent className="max-w-[90vw] sm:max-w-[400px] p-5 sm:p-6 glass-strong border-0 rounded-3xl shadow-apple-lg">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-base sm:text-lg">Delete Reservation?</AlertDialogTitle>
-            <AlertDialogDescription className="text-xs sm:text-sm">
+            <AlertDialogTitle className="text-lg sm:text-xl font-semibold">Delete Reservation?</AlertDialogTitle>
+            <AlertDialogDescription className="text-xs sm:text-sm text-muted-foreground mt-2">
               This action cannot be undone. This will permanently delete the reservation
               for "{reservation.title}" on {reservation.date.toLocaleDateString()}.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="gap-2 sm:gap-2 flex-col sm:flex-row">
-            <AlertDialogCancel disabled={isSubmitting} className="mt-0 text-xs sm:text-sm h-8 sm:h-10">Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDelete}
-              disabled={isSubmitting}
-              className="bg-red-600 hover:bg-red-700 text-xs sm:text-sm h-8 sm:h-10"
-            >
-              {isSubmitting ? "Deleting..." : "Delete Reservation"}
-            </AlertDialogAction>
+          <AlertDialogFooter className="gap-3 sm:gap-3 flex-col sm:flex-row mt-6">
+            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+              <AlertDialogCancel disabled={isSubmitting} className="mt-0 text-xs sm:text-sm h-11 sm:h-11 rounded-2xl glass border-0 shadow-apple">Cancel</AlertDialogCancel>
+            </motion.div>
+            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+              <AlertDialogAction
+                onClick={handleDelete}
+                disabled={isSubmitting}
+                className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-xs sm:text-sm h-11 sm:h-11 rounded-2xl border-0 shadow-apple hover:shadow-apple-lg transition-apple"
+              >
+                {isSubmitting ? "Deleting..." : "Delete Reservation"}
+              </AlertDialogAction>
+            </motion.div>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

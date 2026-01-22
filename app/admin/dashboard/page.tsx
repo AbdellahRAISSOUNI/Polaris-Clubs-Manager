@@ -29,6 +29,7 @@ import {
   XCircle,
   Calendar,
 } from "lucide-react"
+import { motion, AnimatePresence } from "framer-motion"
 import { ReservationDetails } from "@/components/reservation-details"
 import { Progress } from "@/components/ui/progress"
 import { cn } from "@/lib/utils"
@@ -463,25 +464,39 @@ export default function AdminDashboard() {
 
   return (
     <AdminLayout>
-      <div className="flex flex-col gap-4 sm:gap-6">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 pb-8 sm:pb-12 overflow-x-hidden">
+        <div className="flex flex-col gap-4 sm:gap-6 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
         
         {/* Mobile search - visible only on mobile */}
-        <div className="md:hidden mb-4">
+        <motion.div 
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          className="md:hidden mb-2"
+        >
           <div className="relative">
-            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
             <Input
               placeholder="Search reservations..."
-              className="pl-8"
+              className="pl-10 h-11 rounded-2xl border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-apple transition-apple focus:bg-white dark:focus:bg-gray-900/90"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-        </div>
+        </motion.div>
 
         {/* Time period filter - Collapsible */}
-        {showFilters && (
-          <Card className="mb-4 sm:mb-6 animate-in slide-in-from-top-2 duration-200">
-            <CardContent className="p-3 sm:p-4">
+        <AnimatePresence>
+          {showFilters && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+              className="mb-4 sm:mb-6 overflow-hidden"
+            >
+              <Card className="glass shadow-apple border-0 rounded-3xl">
+                <CardContent className="p-4 sm:p-6">
               <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 sm:items-end">
                 <div className="flex-1">
                   <Label className="text-xs">Scope</Label>
@@ -500,7 +515,7 @@ export default function AdminDashboard() {
                       }
                     }}
                   >
-                    <SelectTrigger className="mt-1 h-8 text-xs">
+                    <SelectTrigger className="mt-1 h-10 text-xs rounded-2xl glass border-0 shadow-apple">
                       <SelectValue placeholder="Select scope" />
                     </SelectTrigger>
                     <SelectContent>
@@ -525,7 +540,7 @@ export default function AdminDashboard() {
                           }
                         }}
                       >
-                        <SelectTrigger className="mt-1 h-8 text-xs">
+                        <SelectTrigger className="mt-1 h-10 text-xs rounded-2xl glass border-0 shadow-apple">
                           <SelectValue placeholder="Select period" />
                         </SelectTrigger>
                         <SelectContent>
@@ -543,7 +558,7 @@ export default function AdminDashboard() {
                           value={specificPeriodId}
                           onValueChange={(value) => setSpecificPeriodId(value)}
                         >
-                          <SelectTrigger className="mt-1 h-8 text-xs">
+                          <SelectTrigger className="mt-1 h-10 text-xs rounded-2xl glass border-0 shadow-apple">
                             <SelectValue placeholder="Select..." />
                           </SelectTrigger>
                           <SelectContent>
@@ -570,237 +585,309 @@ export default function AdminDashboard() {
                   No matching period found for "{periodMode}". Create periods in Admin Settings.
                 </p>
               )}
-            </CardContent>
-          </Card>
-        )}
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 sm:mb-6">
-          <div className="flex flex-col gap-1">
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight">Admin Dashboard</h1>
-            <p className="text-sm text-muted-foreground">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.1 }}
+          className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 sm:mb-8"
+        >
+          <div className="flex flex-col gap-2">
+            <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight bg-gradient-to-r from-gray-900 to-gray-600 dark:from-gray-100 dark:to-gray-400 bg-clip-text text-transparent">
+              Admin Dashboard
+            </h1>
+            <p className="text-sm sm:text-base text-muted-foreground font-light">
               Welcome back, <span className="font-medium text-foreground">{adminUser?.name || 'Admin'}</span>
             </p>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <Button 
-              variant="outline" 
-              onClick={handleReservationStatusChange}
-              className="flex items-center gap-2 text-xs sm:text-sm flex-1 sm:flex-auto justify-center"
-              size="sm"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="h-3 w-3 sm:h-4 sm:w-4"
+          <div className="flex flex-wrap gap-2 sm:gap-3">
+            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+              <Button 
+                variant="outline" 
+                onClick={handleReservationStatusChange}
+                className="flex items-center gap-2 text-xs sm:text-sm flex-1 sm:flex-auto justify-center h-10 sm:h-11 rounded-2xl glass border-0 shadow-apple hover:shadow-apple-lg transition-apple"
+                size="sm"
               >
-                <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
-                <path d="M21 3v5h-5" />
-              </svg>
-              Refresh
-            </Button>
-            <Button
-              variant={showFilters ? "default" : "outline"}
-              size="sm"
-              onClick={() => setShowFilters(!showFilters)}
-              className="flex items-center gap-1 sm:gap-2 text-xs h-8 sm:h-9 border-blue-200 dark:border-blue-800 hover:bg-blue-50 dark:hover:bg-blue-950/30"
-              title="Time Period Filters"
-            >
-              <CalendarIcon className="h-3 w-3 sm:h-4 sm:w-4 text-blue-600 dark:text-blue-400" />
-              <span className="hidden sm:inline">Period</span>
-            </Button>
-            <Button 
-              variant="destructive" 
-              onClick={() => setShowDeleteRejectedConfirm(true)}
-              disabled={isDeletingRejected}
-              className="flex items-center gap-2 text-xs sm:text-sm flex-1 sm:flex-auto justify-center"
-              size="sm"
-            >
-              <XCircle className="h-3 w-3 sm:h-4 sm:w-4" />
-              Delete Rejected
-            </Button>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="h-3 w-3 sm:h-4 sm:w-4"
+                >
+                  <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
+                  <path d="M21 3v5h-5" />
+                </svg>
+                Refresh
+              </Button>
+            </motion.div>
+            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+              <Button
+                variant={showFilters ? "default" : "outline"}
+                size="sm"
+                onClick={() => setShowFilters(!showFilters)}
+                className="flex items-center gap-1 sm:gap-2 text-xs h-10 sm:h-11 rounded-2xl border-0 shadow-apple hover:shadow-apple-lg transition-apple bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400"
+                title="Time Period Filters"
+              >
+                <CalendarIcon className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span className="hidden sm:inline">Period</span>
+              </Button>
+            </motion.div>
+            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+              <Button 
+                variant="destructive" 
+                onClick={() => setShowDeleteRejectedConfirm(true)}
+                disabled={isDeletingRejected}
+                className="flex items-center gap-2 text-xs sm:text-sm flex-1 sm:flex-auto justify-center h-10 sm:h-11 rounded-2xl border-0 shadow-apple hover:shadow-apple-lg transition-apple"
+                size="sm"
+              >
+                <XCircle className="h-3 w-3 sm:h-4 sm:w-4" />
+                Delete Rejected
+              </Button>
+            </motion.div>
           </div>
-        </div>
+        </motion.div>
 
-        <div className="grid grid-cols-2 gap-2 sm:gap-4 md:grid-cols-2 lg:grid-cols-4 mb-4 sm:mb-6">
-          <Card>
-            <CardContent className="p-3 sm:p-4">
-              <div className="flex items-center justify-between space-x-2 sm:space-x-4">
-                <div>
-                  <p className="text-xs font-medium text-muted-foreground">Total</p>
-                  <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold">{filteredReservations.length}</p>
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6 sm:mb-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.2 }}
+            whileHover={{ y: -4 }}
+          >
+            <Card className="liquid-glass shadow-apple border-0 rounded-3xl hover-lift overflow-hidden">
+              <CardContent className="p-4 sm:p-6 relative z-10">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs sm:text-sm font-medium text-muted-foreground mb-1">Total</p>
+                    <p className="text-2xl sm:text-3xl md:text-4xl font-semibold">{filteredReservations.length}</p>
+                  </div>
+                  <div className="p-3 bg-gradient-to-br from-blue-500/20 to-blue-600/20 rounded-2xl backdrop-blur-sm">
+                    <CalendarIcon className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600 dark:text-blue-400" />
+                  </div>
                 </div>
-                <div className="p-1 sm:p-1.5 md:p-2 bg-blue-100 rounded-full dark:bg-blue-900/30">
-                  <CalendarIcon className="h-3 w-3 sm:h-4 sm:w-4 md:h-5 md:w-5 lg:h-6 lg:w-6 text-blue-600 dark:text-blue-400" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </motion.div>
 
-          <Card>
-            <CardContent className="p-3 sm:p-4">
-              <div className="flex items-center justify-between space-x-2 sm:space-x-4">
-                <div>
-                  <p className="text-xs font-medium text-muted-foreground">Pending</p>
-                  <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold">
-                    {filteredReservations.filter((r) => r.status === "pending").length}
-                  </p>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.3 }}
+            whileHover={{ y: -4 }}
+          >
+            <Card className="liquid-glass shadow-apple border-0 rounded-3xl hover-lift overflow-hidden">
+              <CardContent className="p-4 sm:p-6 relative z-10">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs sm:text-sm font-medium text-muted-foreground mb-1">Pending</p>
+                    <p className="text-2xl sm:text-3xl md:text-4xl font-semibold">
+                      {filteredReservations.filter((r) => r.status === "pending").length}
+                    </p>
+                  </div>
+                  <div className="p-3 bg-gradient-to-br from-yellow-500/20 to-yellow-600/20 rounded-2xl backdrop-blur-sm">
+                    <Clock className="h-5 w-5 sm:h-6 sm:w-6 text-yellow-600 dark:text-yellow-400" />
+                  </div>
                 </div>
-                <div className="p-1 sm:p-1.5 md:p-2 bg-yellow-100 rounded-full dark:bg-yellow-900/30">
-                  <Clock className="h-3 w-3 sm:h-4 sm:w-4 md:h-5 md:w-5 lg:h-6 lg:w-6 text-yellow-600 dark:text-yellow-400" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </motion.div>
 
-          <Card>
-            <CardContent className="p-3 sm:p-4">
-              <div className="flex items-center justify-between space-x-2 sm:space-x-4">
-                <div>
-                  <p className="text-xs font-medium text-muted-foreground">Approved</p>
-                  <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold">
-                    {filteredReservations.filter((r) => r.status === "approved").length}
-                  </p>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.4 }}
+            whileHover={{ y: -4 }}
+          >
+            <Card className="glass shadow-apple border-0 rounded-3xl hover-lift overflow-hidden">
+              <CardContent className="p-4 sm:p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs sm:text-sm font-medium text-muted-foreground mb-1">Approved</p>
+                    <p className="text-2xl sm:text-3xl md:text-4xl font-semibold">
+                      {filteredReservations.filter((r) => r.status === "approved").length}
+                    </p>
+                  </div>
+                  <div className="p-3 bg-gradient-to-br from-green-500/20 to-green-600/20 rounded-2xl backdrop-blur-sm">
+                    <CheckCircle2 className="h-5 w-5 sm:h-6 sm:w-6 text-green-600 dark:text-green-400" />
+                  </div>
                 </div>
-                <div className="p-1 sm:p-1.5 md:p-2 bg-green-100 rounded-full dark:bg-green-900/30">
-                  <CheckCircle2 className="h-3 w-3 sm:h-4 sm:w-4 md:h-5 md:w-5 lg:h-6 lg:w-6 text-green-600 dark:text-green-400" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </motion.div>
 
-          <Card>
-            <CardContent className="p-3 sm:p-4">
-              <div className="flex items-center justify-between space-x-2 sm:space-x-4">
-                <div>
-                  <p className="text-xs font-medium text-muted-foreground">Rejected</p>
-                  <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold">
-                    {filteredReservations.filter((r) => r.status === "rejected").length}
-                  </p>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.5 }}
+            whileHover={{ y: -4 }}
+          >
+            <Card className="liquid-glass shadow-apple border-0 rounded-3xl hover-lift overflow-hidden">
+              <CardContent className="p-4 sm:p-6 relative z-10">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs sm:text-sm font-medium text-muted-foreground mb-1">Rejected</p>
+                    <p className="text-2xl sm:text-3xl md:text-4xl font-semibold">
+                      {filteredReservations.filter((r) => r.status === "rejected").length}
+                    </p>
+                  </div>
+                  <div className="p-3 bg-gradient-to-br from-red-500/20 to-red-600/20 rounded-2xl backdrop-blur-sm">
+                    <XCircle className="h-5 w-5 sm:h-6 sm:w-6 text-red-600 dark:text-red-400" />
+                  </div>
                 </div>
-                <div className="p-1 sm:p-1.5 md:p-2 bg-red-100 rounded-full dark:bg-red-900/30">
-                  <XCircle className="h-3 w-3 sm:h-4 sm:w-4 md:h-5 md:w-5 lg:h-6 lg:w-6 text-red-600 dark:text-red-400" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </motion.div>
         </div>
 
         <div className="grid gap-4 sm:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-          <Card className="col-span-1 md:col-span-2">
-            <CardHeader className="p-4 sm:p-6">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <div>
-                  <CardTitle className="text-base sm:text-lg">Reservation Calendar</CardTitle>
-                  <CardDescription className="text-xs sm:text-sm">Overview of all club reservations</CardDescription>
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <Button 
-                    variant="outline" 
-                    onClick={handleReservationStatusChange}
-                    className="flex items-center gap-1 sm:gap-2 text-xs"
-                    size="sm"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="h-3 w-3 sm:h-4 sm:w-4"
-                    >
-                      <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
-                      <path d="M21 3v5h-5" />
-                    </svg>
-                    Refresh
-                  </Button>
-                  <Button asChild size="sm" className="text-xs">
-                    <Link href="/admin/all-reservations" className="flex items-center gap-1 sm:gap-2">
-                      <Calendar className="h-3 w-3 sm:h-4 sm:w-4" />
-                      View All
-                    </Link>
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="px-2 sm:px-6 pb-4 sm:pb-6 overflow-x-auto">
-              <div className="min-w-[280px]">
-                <CalendarComponent
-                  mode="single"
-                  selected={date}
-                  onSelect={setDate}
-                  className="rounded-md border"
-                  showOutsideDays={true}
-                  modifiers={{
-                    booked: (date) => getDatesWithReservations(date),
-                  }}
-                  modifiersClassNames={{
-                    booked: "relative after:absolute after:top-1 after:right-1 after:h-1.5 after:w-1.5 after:rounded-full after:bg-red-500"
-                  }}
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="p-4 sm:p-6">
-              <CardTitle className="text-base sm:text-lg">Selected Date Schedule</CardTitle>
-              <CardDescription className="text-xs sm:text-sm">
-                {date
-                  ? date.toLocaleDateString("en-US", {
-                      weekday: "long",
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                    })
-                  : "Select a date"}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="px-4 pb-4 sm:px-6 sm:pb-6">
-              <div className="space-y-3 sm:space-y-4">
-                {reservationsForSelectedDate.length === 0 ? (
-                  <div className="text-center py-6 sm:py-8">
-                    <Clock className="h-6 w-6 sm:h-8 sm:w-8 mx-auto text-muted-foreground opacity-50 mb-2" />
-                    <p className="text-sm text-muted-foreground">No reservations for this date</p>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.6 }}
+            className="col-span-1 md:col-span-2"
+          >
+            <Card className="glass shadow-apple-lg border-0 rounded-3xl overflow-hidden">
+              <CardHeader className="p-5 sm:p-6 bg-gradient-to-r from-white/50 to-transparent dark:from-gray-900/50">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <div>
+                    <CardTitle className="text-lg sm:text-xl font-semibold mb-1">Reservation Calendar</CardTitle>
+                    <CardDescription className="text-xs sm:text-sm">Overview of all club reservations</CardDescription>
                   </div>
-                ) : (
-                  reservationsForSelectedDate.map((reservation) => (
-                    <div
-                      key={reservation.id}
-                      className="flex items-center gap-2 sm:gap-4 p-2 rounded-lg hover:bg-accent transition-colors cursor-pointer"
-                      onClick={() => setSelectedReservation({
-                        ...reservation,
-                        isFullDay: reservation.isFullDay
-                      })}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                      <Button 
+                        variant="outline" 
+                        onClick={handleReservationStatusChange}
+                        className="flex items-center gap-1 sm:gap-2 text-xs h-9 rounded-2xl glass border-0 shadow-apple"
+                        size="sm"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          className="h-3 w-3 sm:h-4 sm:w-4"
+                        >
+                          <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
+                          <path d="M21 3v5h-5" />
+                        </svg>
+                        Refresh
+                      </Button>
+                    </motion.div>
+                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                      <Button asChild size="sm" className="text-xs h-9 rounded-2xl bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-200 border-0 shadow-apple transition-apple">
+                        <Link href="/admin/all-reservations" className="flex items-center gap-1 sm:gap-2">
+                          <Calendar className="h-3 w-3 sm:h-4 sm:w-4" />
+                          View All
+                        </Link>
+                      </Button>
+                    </motion.div>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="px-4 sm:px-6 pb-6 sm:pb-8 overflow-x-auto">
+                <div className="min-w-[280px]">
+                  <div className="glass-strong rounded-3xl p-4 shadow-apple">
+                    <CalendarComponent
+                      mode="single"
+                      selected={date}
+                      onSelect={setDate}
+                      className="rounded-2xl border-0"
+                      showOutsideDays={true}
+                      modifiers={{
+                        booked: (date) => getDatesWithReservations(date),
+                      }}
+                      modifiersClassNames={{
+                        booked: "relative after:absolute after:top-1 after:right-1 after:h-1.5 after:w-1.5 after:rounded-full after:bg-red-500"
+                      }}
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.7 }}
+          >
+            <Card className="glass shadow-apple-lg border-0 rounded-3xl overflow-hidden h-full">
+              <CardHeader className="p-5 sm:p-6 bg-gradient-to-r from-white/50 to-transparent dark:from-gray-900/50">
+                <CardTitle className="text-lg sm:text-xl font-semibold mb-1">Selected Date Schedule</CardTitle>
+                <CardDescription className="text-xs sm:text-sm">
+                  {date
+                    ? date.toLocaleDateString("en-US", {
+                        weekday: "long",
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                      })
+                    : "Select a date"}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="px-4 pb-4 sm:px-6 sm:pb-6">
+                <div className="space-y-3 sm:space-y-4 max-h-[500px] overflow-y-auto overscroll-contain scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent" style={{ WebkitOverflowScrolling: 'touch' }}>
+                  {reservationsForSelectedDate.length === 0 ? (
+                    <motion.div 
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="text-center py-8 sm:py-12"
                     >
-                      <Avatar className="h-7 w-7 sm:h-9 sm:w-9">
-                        <AvatarImage src={reservation.clubLogo} alt={reservation.clubName} />
-                        <AvatarFallback>
-                          {reservation.clubName
-                            .split(" ")
-                            .map((n) => n[0])
-                            .join("")}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs sm:text-sm font-medium truncate">{reservation.title}</p>
-                        <p className="text-xs text-muted-foreground truncate">
-                          {reservation.clubName} • {reservation.venue} • {reservation.time}
-                        </p>
-                      </div>
-                      {getStatusBadge(reservation.status)}
-                    </div>
-                  ))
-                )}
-              </div>
-            </CardContent>
-          </Card>
+                      <Clock className="h-8 w-8 sm:h-10 sm:w-10 mx-auto text-muted-foreground opacity-50 mb-3" />
+                      <p className="text-sm text-muted-foreground">No reservations for this date</p>
+                    </motion.div>
+                  ) : (
+                    <AnimatePresence>
+                      {reservationsForSelectedDate.map((reservation, index) => (
+                        <motion.div
+                          key={reservation.id}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ duration: 0.3, delay: index * 0.1 }}
+                          className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-2xl glass border-0 shadow-apple hover:shadow-apple-lg cursor-pointer transition-apple"
+                          onClick={() => setSelectedReservation({
+                            ...reservation,
+                            isFullDay: reservation.isFullDay
+                          })}
+                        >
+                          <Avatar className="h-10 w-10 sm:h-12 sm:w-12 ring-2 ring-white/50 dark:ring-gray-800/50">
+                            <AvatarImage src={reservation.clubLogo} alt={reservation.clubName} />
+                            <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-500 text-white">
+                              {reservation.clubName
+                                .split(" ")
+                                .map((n) => n[0])
+                                .join("")}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm sm:text-base font-medium truncate mb-1">{reservation.title}</p>
+                            <p className="text-xs sm:text-sm text-muted-foreground truncate">
+                              {reservation.clubName} • {reservation.venue} • {reservation.time}
+                            </p>
+                          </div>
+                          {getStatusBadge(reservation.status)}
+                        </motion.div>
+                      ))}
+                    </AnimatePresence>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </div>
         </div>
       </div>
 
@@ -814,7 +901,7 @@ export default function AdminDashboard() {
 
       {/* Delete All Rejected Reservations Confirmation Dialog */}
       <AlertDialog open={showDeleteRejectedConfirm} onOpenChange={setShowDeleteRejectedConfirm}>
-        <AlertDialogContent className="max-w-[90vw] sm:max-w-[425px]">
+        <AlertDialogContent className="max-w-[90vw] sm:max-w-[425px] glass-strong rounded-3xl border-0 shadow-apple-lg">
           <AlertDialogHeader>
             <AlertDialogTitle>Delete All Rejected Reservations?</AlertDialogTitle>
             <AlertDialogDescription>
