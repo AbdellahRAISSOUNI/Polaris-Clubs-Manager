@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, Suspense } from "react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
-import { Calendar, Clock, MapPin, Users, Building, CheckCircle2, Clock3, AlertCircle, X, TableIcon, CalendarIcon, Search, ArrowUpDown, Filter, Eye, FileDown } from "lucide-react"
+import { Calendar, Clock, MapPin, Users, Building, CheckCircle2, Clock3, AlertCircle, X, TableIcon, CalendarIcon, Search, ArrowUpDown, Filter, Eye, FileDown, Trash2 } from "lucide-react"
 import { BigCalendar } from "@/components/big-calendar"
 import { Badge } from "@/components/ui/badge"
 import { format, formatDistance, parseISO, eachMonthOfInterval, startOfYear, endOfYear, eachDayOfInterval, startOfMonth, endOfMonth, isSameDay } from "date-fns"
@@ -12,6 +12,16 @@ import { AdminLayout } from "@/components/admin-layout"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ReservationDetails } from "@/components/reservation-details"
 import { Input } from "@/components/ui/input"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Document, Page, Text, View, StyleSheet, PDFViewer, pdf, Image } from '@react-pdf/renderer'
 import {
   Table,
@@ -272,6 +282,9 @@ function AllReservationsContent() {
   const [uniqueClubs, setUniqueClubs] = useState<{id: string, name: string}[]>([])
   const [highlightedReservationId, setHighlightedReservationId] = useState<string | null>(null)
   const [showFilters, setShowFilters] = useState(false)
+  const [selectedReservations, setSelectedReservations] = useState<Set<string>>(new Set())
+  const [isBulkActionLoading, setIsBulkActionLoading] = useState(false)
+  const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false)
   
   // Get URL parameters
   const searchParams = useSearchParams()
@@ -497,6 +510,72 @@ function AllReservationsContent() {
     } catch (error) {
       console.error("Error updating reservation:", error)
       setError("Failed to update reservation status. Please try again.")
+    }
+  }
+
+  // Bulk action handlers
+  const handleBulkAction = async (action: 'approve' | 'reject' | 'delete' | 'status', status?: string, message?: string) => {
+    if (selectedReservations.size === 0) return
+
+    setIsBulkActionLoading(true)
+    try {
+      const response = await fetch('/api/reservations/bulk', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          reservationIds: Array.from(selectedReservations),
+          action: action === 'status' ? 'status' : action,
+          status: status,
+          message: message,
+        }),
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to perform bulk action')
+      }
+
+      const result = await response.json()
+      
+      // Show success notification
+      const { successNotification } = await import('@/lib/notifications')
+      successNotification({
+        title: "Bulk Action Successful",
+        description: result.message || `Successfully processed ${selectedReservations.size} reservation(s)`
+      })
+
+      // Clear selection and refresh
+      setSelectedReservations(new Set())
+      await fetchReservations(true)
+    } catch (error: any) {
+      console.error('Error performing bulk action:', error)
+      const { errorNotification } = await import('@/lib/notifications')
+      errorNotification({
+        title: "Bulk Action Failed",
+        description: error.message || 'Failed to perform bulk action'
+      })
+    } finally {
+      setIsBulkActionLoading(false)
+    }
+  }
+
+  const toggleReservationSelection = (reservationId: string) => {
+    setSelectedReservations(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(reservationId)) {
+        newSet.delete(reservationId)
+      } else {
+        newSet.add(reservationId)
+      }
+      return newSet
+    })
+  }
+
+  const toggleSelectAll = () => {
+    if (selectedReservations.size === filteredAndSortedReservations.length) {
+      setSelectedReservations(new Set())
+    } else {
+      setSelectedReservations(new Set(filteredAndSortedReservations.map(r => r.id)))
     }
   }
 
@@ -888,6 +967,70 @@ function AllReservationsContent() {
                 </Popover>
               </div>
             </div>
+
+            {/* Bulk Actions Toolbar */}
+            {selectedReservations.size > 0 && (
+              <div className="rounded-lg border bg-blue-50 dark:bg-blue-950/20 p-3 sm:p-4 flex flex-wrap items-center gap-2 sm:gap-3 animate-in slide-in-from-top-2 duration-200">
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                  <Badge variant="secondary" className="text-xs sm:text-sm">
+                    {selectedReservations.size} selected
+                  </Badge>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSelectedReservations(new Set())}
+                    className="h-7 sm:h-8 text-xs"
+                  >
+                    Clear
+                  </Button>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleBulkAction('approve')}
+                    disabled={isBulkActionLoading}
+                    className="h-8 sm:h-9 text-xs sm:text-sm"
+                  >
+                    {isBulkActionLoading ? (
+                      <div className="h-3 w-3 sm:h-4 sm:w-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-1 sm:mr-2" />
+                    ) : (
+                      <CheckCircle2 className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2 text-green-600" />
+                    )}
+                    Approve
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleBulkAction('reject')}
+                    disabled={isBulkActionLoading}
+                    className="h-8 sm:h-9 text-xs sm:text-sm"
+                  >
+                    {isBulkActionLoading ? (
+                      <div className="h-3 w-3 sm:h-4 sm:w-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-1 sm:mr-2" />
+                    ) : (
+                      <X className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2 text-red-600" />
+                    )}
+                    Reject
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => setShowBulkDeleteConfirm(true)}
+                    disabled={isBulkActionLoading}
+                    className="h-8 sm:h-9 text-xs sm:text-sm"
+                  >
+                    {isBulkActionLoading ? (
+                      <div className="h-3 w-3 sm:h-4 sm:w-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-1 sm:mr-2" />
+                    ) : (
+                      <Trash2 className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                    )}
+                    Delete
+                  </Button>
+                </div>
+              </div>
+            )}
+
             <div className="rounded-md border overflow-hidden">
               {isLoading ? (
                 <div className="p-6 sm:p-8 text-center text-sm sm:text-base text-muted-foreground">
@@ -908,13 +1051,23 @@ function AllReservationsContent() {
                     {filteredAndSortedReservations.map((reservation: Reservation) => {
                       const startTime = new Date(reservation.start_time)
                       const endTime = new Date(reservation.end_time)
+                      const isSelected = selectedReservations.has(reservation.id)
                       return (
-                        <button
-                          type="button"
+                        <div
                           key={reservation.id}
-                          className="w-full text-left p-4 hover:bg-gray-50 dark:hover:bg-gray-900/40 transition-colors"
-                          onClick={() => handleReservationSelect(reservation)}
+                          className={`w-full p-4 hover:bg-gray-50 dark:hover:bg-gray-900/40 transition-colors flex items-start gap-3 ${isSelected ? 'bg-blue-50 dark:bg-blue-950/20' : ''}`}
                         >
+                          <Checkbox
+                            checked={isSelected}
+                            onCheckedChange={() => toggleReservationSelection(reservation.id)}
+                            onClick={(e) => e.stopPropagation()}
+                            className="mt-1"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleReservationSelect(reservation)}
+                            className="flex-1 text-left"
+                          >
                           <div className="flex items-start justify-between gap-3">
                             <div className="flex items-start gap-3 min-w-0">
                               <img
@@ -1014,7 +1167,8 @@ function AllReservationsContent() {
                               </Button>
                             )}
                           </div>
-                        </button>
+                          </button>
+                        </div>
                       )
                     })}
                   </div>
@@ -1024,6 +1178,13 @@ function AllReservationsContent() {
                     <Table className="table-fixed w-full">
                       <TableHeader>
                         <TableRow>
+                          <TableHead className="w-[3%] py-2 sm:py-3">
+                            <Checkbox
+                              checked={selectedReservations.size > 0 && selectedReservations.size === filteredAndSortedReservations.length}
+                              onCheckedChange={toggleSelectAll}
+                              className="ml-1"
+                            />
+                          </TableHead>
                           <TableHead
                             className="cursor-pointer text-xs sm:text-sm py-2 sm:py-3 w-[10%]"
                             onClick={() => handleSort('date')}
@@ -1095,11 +1256,19 @@ function AllReservationsContent() {
                           const startTime = new Date(reservation.start_time)
                           const endTime = new Date(reservation.end_time)
                           const createdAt = new Date(reservation.created_at)
+                          const isSelected = selectedReservations.has(reservation.id)
                           return (
                             <TableRow
                               key={reservation.id}
-                              className="hover:bg-gray-50 dark:hover:bg-gray-800 text-xs sm:text-sm"
+                              className={`hover:bg-gray-50 dark:hover:bg-gray-800 text-xs sm:text-sm ${isSelected ? 'bg-blue-50 dark:bg-blue-950/20' : ''}`}
                             >
+                              <TableCell className="py-2 sm:py-3">
+                                <Checkbox
+                                  checked={isSelected}
+                                  onCheckedChange={() => toggleReservationSelection(reservation.id)}
+                                  onClick={(e) => e.stopPropagation()}
+                                />
+                              </TableCell>
                               <TableCell className="py-2 sm:py-3">
                                 {format(startTime, "MMM d, yyyy")}
                               </TableCell>
@@ -1236,6 +1405,36 @@ function AllReservationsContent() {
             }}
           />
         )}
+
+        {/* Bulk Delete Confirmation Dialog */}
+        <AlertDialog open={showBulkDeleteConfirm} onOpenChange={setShowBulkDeleteConfirm}>
+          <AlertDialogContent className="max-w-[90vw] sm:max-w-[425px]">
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete {selectedReservations.size} Reservation(s)?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete {selectedReservations.size} reservation(s)? This action cannot be undone.
+                All selected reservations will be permanently removed from the system.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isBulkActionLoading}>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => handleBulkAction('delete')}
+                disabled={isBulkActionLoading}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                {isBulkActionLoading ? (
+                  <>
+                    <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                    Deleting...
+                  </>
+                ) : (
+                  'Delete All'
+                )}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </AdminLayout>
   );

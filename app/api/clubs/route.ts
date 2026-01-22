@@ -106,7 +106,12 @@ export async function GET(request: Request) {
       created_at: club.created_at ? new Date(club.created_at).toISOString() : new Date().toISOString(),
     }));
     
-    return NextResponse.json(transformedClubs);
+    // Add caching headers for better performance (5 minutes cache)
+    return NextResponse.json(transformedClubs, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
+      },
+    });
   } catch (error) {
     console.error("Error in clubs API:", error);
     return NextResponse.json(mockClubs);

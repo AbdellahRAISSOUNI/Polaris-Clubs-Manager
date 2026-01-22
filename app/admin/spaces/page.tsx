@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import React, { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -16,7 +16,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Search, MoreHorizontal, Edit, Trash2, Plus, X, RefreshCw } from "lucide-react"
+import { Search, MoreHorizontal, Edit, Trash2, Plus, X, RefreshCw, CheckCircle, XCircle, Building } from "lucide-react"
+import { Checkbox } from "@/components/ui/checkbox"
 import { AdminLayout } from "@/components/admin-layout"
 import { toast } from "@/components/ui/use-toast"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
@@ -40,6 +41,9 @@ export default function SpacesPage() {
   const [spaceImage, setSpaceImage] = useState<File | null>(null)
   const [features, setFeatures] = useState<string[]>([])
   const [newFeature, setNewFeature] = useState("")
+  const [selectedSpaces, setSelectedSpaces] = useState<Set<string>>(new Set())
+  const [isBulkActionLoading, setIsBulkActionLoading] = useState(false)
+  const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false)
 
   // Fetch spaces from API
   useEffect(() => {
@@ -269,6 +273,92 @@ export default function SpacesPage() {
     }
   }
 
+  // Bulk action handlers
+  const handleBulkSpaceAction = async (action: 'activate' | 'deactivate' | 'delete') => {
+    if (selectedSpaces.size === 0) return
+
+    setIsBulkActionLoading(true)
+    try {
+      if (action === 'delete') {
+        const response = await fetch('/api/spaces/bulk', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ spaceIds: Array.from(selectedSpaces) }),
+        })
+
+        if (!response.ok) {
+          const error = await response.json()
+          throw new Error(error.error || 'Failed to delete spaces')
+        }
+
+        const result = await response.json()
+        toast({
+          title: "Success",
+          description: result.message || `Successfully deleted ${selectedSpaces.size} space(s)`,
+        })
+      } else {
+        const response = await fetch('/api/spaces/bulk', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            spaceIds: Array.from(selectedSpaces),
+            action,
+          }),
+        })
+
+        if (!response.ok) {
+          const error = await response.json()
+          throw new Error(error.error || 'Failed to perform bulk action')
+        }
+
+        const result = await response.json()
+        toast({
+          title: "Success",
+          description: result.message || `Successfully ${action === 'activate' ? 'activated' : 'deactivated'} ${selectedSpaces.size} space(s)`,
+        })
+      }
+
+      // Clear selection and refresh
+      setSelectedSpaces(new Set())
+      setShowBulkDeleteConfirm(false)
+      // Refresh spaces
+      const response = await fetch('/api/spaces')
+      if (response.ok) {
+        const data = await response.json()
+        setSpaces(data || [])
+      }
+    } catch (error: any) {
+      console.error('Error performing bulk action:', error)
+      toast({
+        title: "Error",
+        description: error.message || 'Failed to perform bulk action',
+        variant: "destructive",
+      })
+    } finally {
+      setIsBulkActionLoading(false)
+    }
+  }
+
+  const toggleSpaceSelection = (spaceId: string) => {
+    setSelectedSpaces(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(spaceId)) {
+        newSet.delete(spaceId)
+      } else {
+        newSet.add(spaceId)
+      }
+      return newSet
+    })
+  }
+
+  const toggleSelectAllSpaces = () => {
+    if (selectedSpaces.size === filteredSpaces.length) {
+      setSelectedSpaces(new Set())
+    } else {
+      setSelectedSpaces(new Set(filteredSpaces.map(s => s.id)))
+    }
+  }
+
   return (
     <AdminLayout>
       <div className="flex items-center justify-between mb-6">
@@ -313,6 +403,67 @@ export default function SpacesPage() {
         </div>
       </div>
 
+      {/* Bulk Actions Toolbar */}
+      {selectedSpaces.size > 0 && (
+        <Card className="mb-4 border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/20">
+          <CardContent className="p-4 flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <Badge variant="secondary" className="text-sm">
+                {selectedSpaces.size} selected
+              </Badge>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setSelectedSpaces(new Set())}
+                className="h-8 text-xs"
+              >
+                Clear
+              </Button>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleBulkSpaceAction('activate')}
+                disabled={isBulkActionLoading}
+                className="h-8 text-xs sm:text-sm"
+              >
+                {isBulkActionLoading ? (
+                  <div className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />
+                ) : (
+                  <CheckCircle className="h-4 w-4 mr-2 text-green-600" />
+                )}
+                Activate
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleBulkSpaceAction('deactivate')}
+                disabled={isBulkActionLoading}
+                className="h-8 text-xs sm:text-sm"
+              >
+                {isBulkActionLoading ? (
+                  <div className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />
+                ) : (
+                  <XCircle className="h-4 w-4 mr-2 text-red-600" />
+                )}
+                Deactivate
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => setShowBulkDeleteConfirm(true)}
+                disabled={isBulkActionLoading}
+                className="h-8 text-xs sm:text-sm"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -338,88 +489,104 @@ export default function SpacesPage() {
             </div>
           ) : (
             <div className="rounded-md border">
-              <div className="grid grid-cols-5 gap-4 p-4 text-sm font-medium text-muted-foreground border-b">
+              <div className="grid grid-cols-6 gap-4 p-4 text-sm font-medium text-muted-foreground border-b">
+                <div className="w-10">
+                  <Checkbox
+                    checked={selectedSpaces.size > 0 && selectedSpaces.size === filteredSpaces.length}
+                    onCheckedChange={toggleSelectAllSpaces}
+                  />
+                </div>
                 <div className="col-span-2">Space</div>
                 <div>Capacity</div>
                 <div>Features</div>
                 <div className="text-right">Actions</div>
               </div>
               <div className="divide-y">
-                {filteredSpaces.map((space) => (
-                  <div key={space.id} className="grid grid-cols-5 gap-4 p-4 items-center">
-                    <div className="col-span-2 flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-md bg-gray-100 dark:bg-gray-800 overflow-hidden">
-                        <img 
-                          src={space.image || "/spaces/default.jpg"} 
-                          alt={space.name} 
-                          className="h-full w-full object-cover"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src = "/spaces/default.jpg"
-                          }}
+                {filteredSpaces.map((space) => {
+                  const isSelected = selectedSpaces.has(space.id)
+                  return (
+                    <div key={space.id} className={`grid grid-cols-6 gap-4 p-4 items-center ${isSelected ? 'bg-blue-50 dark:bg-blue-950/20' : ''}`}>
+                      <div className="w-10">
+                        <Checkbox
+                          checked={isSelected}
+                          onCheckedChange={() => toggleSpaceSelection(space.id)}
+                          onClick={(e) => e.stopPropagation()}
                         />
                       </div>
+                      <div className="col-span-2 flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-md bg-gray-100 dark:bg-gray-800 overflow-hidden">
+                          <img 
+                            src={space.image || "/spaces/default.jpg"} 
+                            alt={space.name} 
+                            className="h-full w-full object-cover"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = "/spaces/default.jpg"
+                            }}
+                          />
+                        </div>
+                        <div>
+                          <p className="font-medium text-foreground">{space.name}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {new Date(space.created_at).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
                       <div>
-                        <p className="font-medium text-foreground">{space.name}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {new Date(space.created_at).toLocaleDateString()}
-                        </p>
+                        <Badge variant="outline" className="font-mono">
+                          {space.capacity || 0}
+                        </Badge>
+                      </div>
+                      <div className="flex flex-wrap gap-1">
+                        {space.features && space.features.length > 0 ? (
+                          space.features.slice(0, 3).map((feature, index) => (
+                            <Badge key={index} variant="secondary" className="text-xs">
+                              {feature}
+                            </Badge>
+                          ))
+                        ) : (
+                          <span className="text-sm text-muted-foreground">None</span>
+                        )}
+                        {space.features && space.features.length > 3 && (
+                          <Badge variant="outline" className="text-xs">
+                            +{space.features.length - 3} more
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <MoreHorizontal className="h-4 w-4" />
+                              <span className="sr-only">Open menu</span>
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setSelectedSpace(space)
+                                setShowAddSpace(true)
+                              }}
+                            >
+                              <Edit className="h-4 w-4 mr-2" />
+                              Edit Details
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              className="text-red-600 dark:text-red-400"
+                              onClick={() => {
+                                setSelectedSpace(space)
+                                setShowDeleteConfirm(true)
+                              }}
+                              disabled={space.name.toLowerCase() === "non-specific"}
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Delete Space
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                     </div>
-                    <div>
-                      <Badge variant="outline" className="font-mono">
-                        {space.capacity || 0}
-                      </Badge>
-                    </div>
-                    <div className="flex flex-wrap gap-1">
-                      {space.features && space.features.length > 0 ? (
-                        space.features.slice(0, 3).map((feature, index) => (
-                          <Badge key={index} variant="secondary" className="text-xs">
-                            {feature}
-                          </Badge>
-                        ))
-                      ) : (
-                        <span className="text-sm text-muted-foreground">None</span>
-                      )}
-                      {space.features && space.features.length > 3 && (
-                        <Badge variant="outline" className="text-xs">
-                          +{space.features.length - 3} more
-                        </Badge>
-                      )}
-                    </div>
-                    <div className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreHorizontal className="h-4 w-4" />
-                            <span className="sr-only">Open menu</span>
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            onClick={() => {
-                              setSelectedSpace(space)
-                              setShowAddSpace(true)
-                            }}
-                          >
-                            <Edit className="h-4 w-4 mr-2" />
-                            Edit Details
-                          </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            className="text-red-600 dark:text-red-400"
-                            onClick={() => {
-                              setSelectedSpace(space)
-                              setShowDeleteConfirm(true)
-                            }}
-                            disabled={space.name.toLowerCase() === "non-specific"}
-                          >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Delete Space
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  </div>
-                ))}
+                  )
+                })}
 
                 {filteredSpaces.length === 0 && (
                   <div className="p-4 text-center text-muted-foreground">No spaces found matching your search.</div>
@@ -630,6 +797,36 @@ export default function SpacesPage() {
             <AlertDialogCancel onClick={() => setSelectedSpace(null)}>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleDeleteSpace} className="bg-red-600 hover:bg-red-700">
               Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Bulk Delete Confirmation Dialog */}
+      <AlertDialog open={showBulkDeleteConfirm} onOpenChange={setShowBulkDeleteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {selectedSpaces.size} Space(s)?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete {selectedSpaces.size} space(s)? This action cannot be undone.
+              Spaces with existing reservations cannot be deleted. All associated data will be permanently removed.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isBulkActionLoading}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => handleBulkSpaceAction('delete')}
+              disabled={isBulkActionLoading}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {isBulkActionLoading ? (
+                <>
+                  <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                  Deleting...
+                </>
+              ) : (
+                'Delete All'
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

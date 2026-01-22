@@ -13,6 +13,7 @@ import { Separator } from '@/components/ui/separator'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { getCurrentPeriod, getPreviousPeriod, type TimePeriod } from '@/lib/time-periods-client'
+import { getAdminId, getClubId } from '@/lib/storage'
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -31,6 +32,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { cn } from "@/lib/utils"
+import { Checkbox } from "@/components/ui/checkbox"
 
 const NotificationIcon = ({ type, senderId }: { type: string, senderId?: string }) => {
   if (senderId) {
@@ -88,6 +90,8 @@ export function NotificationsPage() {
   const [isDeleteAllDialogOpen, setIsDeleteAllDialogOpen] = useState(false)
   const [notificationToDelete, setNotificationToDelete] = useState<string | null>(null)
   const [showFilters, setShowFilters] = useState(false)
+  const [selectedNotifications, setSelectedNotifications] = useState<Set<string>>(new Set())
+  const [isBulkActionLoading, setIsBulkActionLoading] = useState(false)
   const [periodScope, setPeriodScope] = useState<"all" | "mandate" | "academicYear">("mandate")
   const [periodMode, setPeriodMode] = useState<"current" | "previous" | "specific">("current")
   const [specificPeriodId, setSpecificPeriodId] = useState<string>("")
@@ -157,6 +161,83 @@ export function NotificationsPage() {
     setIsDeleteAllDialogOpen(false)
   }
 
+  // Bulk action handlers
+  const handleBulkNotificationAction = async (action: 'markRead' | 'markUnread' | 'delete') => {
+    if (selectedNotifications.size === 0) return
+
+    setIsBulkActionLoading(true)
+    try {
+      const adminId = getAdminId()
+      const clubId = getClubId()
+      const userId = adminId || clubId
+      const userType = adminId ? 'admin' : 'club'
+
+      if (!userId || !userType) {
+        throw new Error('User not authenticated')
+      }
+
+      const response = await fetch('/api/notifications/bulk', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-id': userId,
+          'x-user-type': userType,
+        },
+        body: JSON.stringify({
+          notificationIds: Array.from(selectedNotifications),
+          action,
+        }),
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to perform bulk action')
+      }
+
+      const result = await response.json()
+      
+      // Show success notification
+      const { successNotification } = await import('@/lib/notifications')
+      successNotification({
+        title: "Bulk Action Successful",
+        description: result.message || `Successfully processed ${selectedNotifications.size} notification(s)`
+      })
+
+      // Clear selection and refresh
+      setSelectedNotifications(new Set())
+      await refreshNotifications()
+    } catch (error: any) {
+      console.error('Error performing bulk action:', error)
+      const { errorNotification } = await import('@/lib/notifications')
+      errorNotification({
+        title: "Bulk Action Failed",
+        description: error.message || 'Failed to perform bulk action'
+      })
+    } finally {
+      setIsBulkActionLoading(false)
+    }
+  }
+
+  const toggleNotificationSelection = (notificationId: string) => {
+    setSelectedNotifications(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(notificationId)) {
+        newSet.delete(notificationId)
+      } else {
+        newSet.add(notificationId)
+      }
+      return newSet
+    })
+  }
+
+  const toggleSelectAllNotifications = () => {
+    if (selectedNotifications.size === filteredNotifications.length) {
+      setSelectedNotifications(new Set())
+    } else {
+      setSelectedNotifications(new Set(filteredNotifications.map(n => n.id)))
+    }
+  }
+
   const filteredNotifications = notifications.filter(notification => {
     // Filter by read/unread status
     if (filter === 'unread' && notification.is_read) return false
@@ -205,19 +286,27 @@ export function NotificationsPage() {
     
     return (
       <div className="space-y-3 sm:space-y-4">
-        {filteredNotifications.map((notification) => (
-          <Card
-            key={notification.id}
-            className={`transition-colors overflow-hidden ${
-              !notification.is_read 
-                ? 'border-l-4 border-l-blue-500 dark:border-l-blue-400' 
-                : ''
-            }`}
-          >
-            <div className="p-3 sm:p-4 md:p-5">
-              <div className="flex items-start gap-3 sm:gap-4">
-                <NotificationIcon type={notification.type} senderId={notification.sender_id} />
-                <div className="flex-1 min-w-0">
+        {filteredNotifications.map((notification) => {
+          const isSelected = selectedNotifications.has(notification.id)
+          return (
+            <Card
+              key={notification.id}
+              className={`transition-colors overflow-hidden ${
+                !notification.is_read 
+                  ? 'border-l-4 border-l-blue-500 dark:border-l-blue-400' 
+                  : ''
+              } ${isSelected ? 'ring-2 ring-blue-500 dark:ring-blue-400' : ''}`}
+            >
+              <div className="p-3 sm:p-4 md:p-5">
+                <div className="flex items-start gap-3 sm:gap-4">
+                  <Checkbox
+                    checked={isSelected}
+                    onCheckedChange={() => toggleNotificationSelection(notification.id)}
+                    onClick={(e) => e.stopPropagation()}
+                    className="mt-1"
+                  />
+                  <NotificationIcon type={notification.type} senderId={notification.sender_id} />
+                  <div className="flex-1 min-w-0">
                   <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
                     <h3 className={`font-semibold text-base sm:text-lg ${!notification.is_read ? 'text-black dark:text-white' : 'text-gray-700 dark:text-gray-300'}`}>
                       {notification.title}
@@ -291,7 +380,8 @@ export function NotificationsPage() {
               </div>
             </div>
           </Card>
-        ))}
+          )
+        })}
       </div>
     )
   }
@@ -388,6 +478,73 @@ export function NotificationsPage() {
         </div>
       </div>
 
+      {/* Bulk Actions Toolbar */}
+      {selectedNotifications.size > 0 && (
+        <div className="rounded-lg border bg-blue-50 dark:bg-blue-950/20 p-3 sm:p-4 flex flex-wrap items-center gap-2 sm:gap-3 mb-4 animate-in slide-in-from-top-2 duration-200">
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <Badge variant="secondary" className="text-xs sm:text-sm">
+              {selectedNotifications.size} selected
+            </Badge>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSelectedNotifications(new Set())}
+              className="h-7 sm:h-8 text-xs"
+            >
+              Clear
+            </Button>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleBulkNotificationAction('markRead')}
+              disabled={isBulkActionLoading}
+              className="h-8 sm:h-9 text-xs sm:text-sm"
+            >
+              {isBulkActionLoading ? (
+                <div className="h-3 w-3 sm:h-4 sm:w-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-1 sm:mr-2" />
+              ) : (
+                <MailOpen className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+              )}
+              Mark as read
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleBulkNotificationAction('markUnread')}
+              disabled={isBulkActionLoading}
+              className="h-8 sm:h-9 text-xs sm:text-sm"
+            >
+              {isBulkActionLoading ? (
+                <div className="h-3 w-3 sm:h-4 sm:w-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-1 sm:mr-2" />
+              ) : (
+                <Bell className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+              )}
+              Mark as unread
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => {
+                if (window.confirm(`Are you sure you want to delete ${selectedNotifications.size} notification(s)? This action cannot be undone.`)) {
+                  handleBulkNotificationAction('delete')
+                }
+              }}
+              disabled={isBulkActionLoading}
+              className="h-8 sm:h-9 text-xs sm:text-sm"
+            >
+              {isBulkActionLoading ? (
+                <div className="h-3 w-3 sm:h-4 sm:w-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-1 sm:mr-2" />
+              ) : (
+                <Trash2 className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+              )}
+              Delete
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Period filter - Collapsible */}
       {showFilters && (
         <Card className="mb-4 sm:mb-6 animate-in slide-in-from-top-2 duration-200">
@@ -474,20 +631,34 @@ export function NotificationsPage() {
       )}
 
       <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="mb-4 h-10 grid grid-cols-3 sticky top-0 bg-background z-10">
-          <TabsTrigger value="all" className="text-sm">
-            All
-            <Badge variant="secondary" className="ml-2 text-xs">{notifications.length}</Badge>
-          </TabsTrigger>
-          <TabsTrigger value="unread" className="text-sm">
-            Unread
-            <Badge variant="secondary" className="ml-2 text-xs">{unreadCount}</Badge>
-          </TabsTrigger>
-          <TabsTrigger value="read" className="text-sm">
-            Read
-            <Badge variant="secondary" className="ml-2 text-xs">{readCount}</Badge>
-          </TabsTrigger>
-        </TabsList>
+        <div className="flex items-center justify-between mb-4">
+          <TabsList className="h-10 grid grid-cols-3 sticky top-0 bg-background z-10">
+            <TabsTrigger value="all" className="text-sm">
+              All
+              <Badge variant="secondary" className="ml-2 text-xs">{notifications.length}</Badge>
+            </TabsTrigger>
+            <TabsTrigger value="unread" className="text-sm">
+              Unread
+              <Badge variant="secondary" className="ml-2 text-xs">{unreadCount}</Badge>
+            </TabsTrigger>
+            <TabsTrigger value="read" className="text-sm">
+              Read
+              <Badge variant="secondary" className="ml-2 text-xs">{readCount}</Badge>
+            </TabsTrigger>
+          </TabsList>
+          {filteredNotifications.length > 0 && (
+            <div className="flex items-center gap-2">
+              <Checkbox
+                checked={selectedNotifications.size > 0 && selectedNotifications.size === filteredNotifications.length}
+                onCheckedChange={toggleSelectAllNotifications}
+                className="ml-2"
+              />
+              <Label className="text-xs text-muted-foreground cursor-pointer" onClick={toggleSelectAllNotifications}>
+                Select all
+              </Label>
+            </div>
+          )}
+        </div>
         
         <TabsContent value="all" className="mt-0 focus-visible:outline-none focus-visible:ring-0">
           {renderNotificationList()}

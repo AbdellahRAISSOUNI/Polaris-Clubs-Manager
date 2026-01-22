@@ -83,12 +83,22 @@ export async function GET(request: Request) {
     // Fetch reservations from MongoDB
     const reservationsData = await Reservation.find(query).lean();
 
-    // Get all clubs to create a mapping
-    const clubsData = await Club.find({}).select('id name').lean();
-    const clubMap = new Map(clubsData.map(club => [club.id, club.name]));
+    // Extract unique club and space IDs from reservations to optimize queries
+    const uniqueClubIds = [...new Set(reservationsData.map(r => r.club_id).filter(Boolean))];
+    const uniqueSpaceIds = [...new Set(reservationsData.map(r => r.space_id).filter(Boolean))];
 
-    // Get all spaces to create a mapping
-    const spacesData = await Space.find({}).select('id name').lean();
+    // Only fetch clubs and spaces that are actually referenced in reservations
+    // This is much more efficient than fetching all clubs/spaces
+    const [clubsData, spacesData] = await Promise.all([
+      uniqueClubIds.length > 0 
+        ? Club.find({ id: { $in: uniqueClubIds } }).select('id name').lean()
+        : Promise.resolve([]),
+      uniqueSpaceIds.length > 0
+        ? Space.find({ id: { $in: uniqueSpaceIds } }).select('id name').lean()
+        : Promise.resolve([])
+    ]);
+
+    const clubMap = new Map(clubsData.map(club => [club.id, club.name]));
     const spaceMap = new Map(spacesData.map(space => [space.id, space.name]));
 
     // Transform the reservations data to include club names and space names

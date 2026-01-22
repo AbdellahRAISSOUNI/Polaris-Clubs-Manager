@@ -24,7 +24,8 @@ import {
   Reply, 
   Smile,
   Menu,
-  ArrowLeft
+  ArrowLeft,
+  MailOpen
 } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -221,6 +222,8 @@ export function MessagingUI({ userId, userType }: MessagingUIProps) {
   const [shouldScrollToBottom, setShouldScrollToBottom] = useState(false)
   const [isSidebarOpen, setIsSidebarOpen] = useState(true)
   const [isMobile, setIsMobile] = useState(false)
+  const [selectedConversations, setSelectedConversations] = useState<Set<string>>(new Set())
+  const [isBulkActionLoading, setIsBulkActionLoading] = useState(false)
 
   // Check if we're on mobile
   useEffect(() => {
@@ -744,6 +747,86 @@ export function MessagingUI({ userId, userType }: MessagingUIProps) {
     textareaRef.current?.focus()
   }
 
+  // Bulk action handlers
+  const handleBulkMessageAction = async (action: 'markRead' | 'delete') => {
+    if (selectedConversations.size === 0) return
+
+    setIsBulkActionLoading(true)
+    try {
+      // Get all message IDs from selected conversations
+      const messageIds: string[] = []
+      for (const convoId of selectedConversations) {
+        const convo = conversations.find(c => c.id === convoId)
+        if (convo) {
+          const convoMessages = messages.filter(msg =>
+            (msg.sender_id === convo.id && msg.sender_type === convo.type && msg.recipient_id === userId && msg.recipient_type === userType) ||
+            (msg.sender_id === userId && msg.sender_type === userType && msg.recipient_id === convo.id && msg.recipient_type === convo.type)
+          )
+          messageIds.push(...convoMessages.map(m => m.id))
+        }
+      }
+
+      if (messageIds.length === 0) {
+        setSelectedConversations(new Set())
+        setIsBulkActionLoading(false)
+        return
+      }
+
+      const response = await fetch('/api/messages/bulk', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-id': userId,
+          'x-user-type': userType,
+        },
+        body: JSON.stringify({
+          messageIds,
+          action,
+        }),
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to perform bulk action')
+      }
+
+      const result = await response.json()
+      
+      toast.success(result.message || `Successfully processed ${selectedConversations.size} conversation(s)`)
+      
+      // Clear selection and refresh
+      setSelectedConversations(new Set())
+      // Refresh conversations
+      const freshConversations = await getConversations()
+      setConversations(freshConversations)
+    } catch (error: any) {
+      console.error('Error performing bulk action:', error)
+      toast.error(error.message || 'Failed to perform bulk action')
+    } finally {
+      setIsBulkActionLoading(false)
+    }
+  }
+
+  const toggleConversationSelection = (conversationId: string) => {
+    setSelectedConversations(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(conversationId)) {
+        newSet.delete(conversationId)
+      } else {
+        newSet.add(conversationId)
+      }
+      return newSet
+    })
+  }
+
+  const toggleSelectAllConversations = () => {
+    if (selectedConversations.size === filteredConversations.length) {
+      setSelectedConversations(new Set())
+    } else {
+      setSelectedConversations(new Set(filteredConversations.map(c => c.id)))
+    }
+  }
+
   // Handle opening a conversation
   const handleOpenConversation = async (partnerId: string, partnerType: 'admin' | 'club') => {
     setLoadingConversation(true);
@@ -860,6 +943,59 @@ export function MessagingUI({ userId, userType }: MessagingUIProps) {
 
         {/* Search and new conversation section */}
         <div className="flex-shrink-0 p-4 border-b">
+          {/* Bulk Actions Toolbar */}
+          {selectedConversations.size > 0 && (
+            <div className="rounded-lg border bg-blue-50 dark:bg-blue-950/20 p-3 mb-4 flex flex-wrap items-center gap-2 animate-in slide-in-from-top-2 duration-200">
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                <Badge variant="secondary" className="text-xs sm:text-sm">
+                  {selectedConversations.size} selected
+                </Badge>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSelectedConversations(new Set())}
+                  className="h-7 text-xs"
+                >
+                  Clear
+                </Button>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleBulkMessageAction('markRead')}
+                  disabled={isBulkActionLoading}
+                  className="h-8 text-xs sm:text-sm"
+                >
+                  {isBulkActionLoading ? (
+                    <div className="h-3 w-3 sm:h-4 sm:w-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-1 sm:mr-2" />
+                  ) : (
+                    <MailOpen className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                  )}
+                  Mark as read
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => {
+                    if (window.confirm(`Are you sure you want to delete ${selectedConversations.size} conversation(s)? This action cannot be undone.`)) {
+                      handleBulkMessageAction('delete')
+                    }
+                  }}
+                  disabled={isBulkActionLoading}
+                  className="h-8 text-xs sm:text-sm"
+                >
+                  {isBulkActionLoading ? (
+                    <div className="h-3 w-3 sm:h-4 sm:w-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-1 sm:mr-2" />
+                  ) : (
+                    <Trash className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                  )}
+                  Delete
+                </Button>
+              </div>
+            </div>
+          )}
+          
           <div className="relative mb-4">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
@@ -928,46 +1064,70 @@ export function MessagingUI({ userId, userType }: MessagingUIProps) {
             </div>
           ) : (
             <div className="space-y-1 p-2 pb-safe">
+              {filteredConversations.length > 0 && (
+                <div className="px-2 pb-2 flex items-center justify-between">
+                  <Checkbox
+                    checked={selectedConversations.size > 0 && selectedConversations.size === filteredConversations.length}
+                    onCheckedChange={toggleSelectAllConversations}
+                  />
+                  <span className="text-xs text-muted-foreground">
+                    Select all ({filteredConversations.length})
+                  </span>
+                </div>
+              )}
               {filteredConversations.map((convo) => {
                 const isActive = activeConversation === convo.id
                 const isOnline = isUserOnline(convo.id, convo.type)
+                const isSelected = selectedConversations.has(convo.id)
 
                 return (
-                  <button
+                  <div
                     key={`${convo.type}-${convo.id}`}
-                    onClick={() => handleSelectConversation(convo.id, convo.type)}
                     className={cn(
                       "w-full p-4 flex items-start gap-3 rounded-lg transition-colors min-h-[4.5rem]",
                       isActive
                         ? "bg-secondary"
-                        : "hover:bg-secondary/50"
+                        : isSelected
+                          ? "bg-blue-50 dark:bg-blue-950/20"
+                          : "hover:bg-secondary/50"
                     )}
                   >
-                    <div className="relative">
-                      <Avatar className="h-12 w-12 md:h-10 md:w-10">
-                        <AvatarImage src={convo.avatar} />
-                        <AvatarFallback>{convo.name[0]}</AvatarFallback>
-                      </Avatar>
-                      {isOnline && (
-                        <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-green-500 border-2 border-background" />
-                      )}
-                    </div>
-                    <div className="flex-1 text-left space-y-1 min-w-0">
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="font-medium truncate text-base">{convo.name}</p>
-                        {convo.unreadCount > 0 && (
-                          <Badge variant="default" className="h-6 min-w-[24px] text-xs flex items-center justify-center rounded-full">
-                            {convo.unreadCount}
-                          </Badge>
+                    <Checkbox
+                      checked={isSelected}
+                      onCheckedChange={() => toggleConversationSelection(convo.id)}
+                      onClick={(e) => e.stopPropagation()}
+                      className="mt-2"
+                    />
+                    <button
+                      onClick={() => handleSelectConversation(convo.id, convo.type)}
+                      className="flex-1 flex items-start gap-3 text-left"
+                    >
+                      <div className="relative">
+                        <Avatar className="h-12 w-12 md:h-10 md:w-10">
+                          <AvatarImage src={convo.avatar} />
+                          <AvatarFallback>{convo.name[0]}</AvatarFallback>
+                        </Avatar>
+                        {isOnline && (
+                          <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-green-500 border-2 border-background" />
                         )}
                       </div>
-                      {convo.lastMessage && (
-                        <p className="text-sm text-muted-foreground truncate">
-                          {convo.lastMessage.content}
-                        </p>
-                      )}
-                    </div>
-                  </button>
+                      <div className="flex-1 text-left space-y-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="font-medium truncate text-base">{convo.name}</p>
+                          {convo.unreadCount > 0 && (
+                            <Badge variant="default" className="h-6 min-w-[24px] text-xs flex items-center justify-center rounded-full">
+                              {convo.unreadCount}
+                            </Badge>
+                          )}
+                        </div>
+                        {convo.lastMessage && (
+                          <p className="text-sm text-muted-foreground truncate">
+                            {convo.lastMessage.content}
+                          </p>
+                        )}
+                      </div>
+                    </button>
+                  </div>
                 )
               })}
             </div>

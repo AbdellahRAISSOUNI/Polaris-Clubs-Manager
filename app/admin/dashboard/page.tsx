@@ -241,20 +241,25 @@ export default function AdminDashboard() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Fetch spaces
-        const spacesResponse = await fetch('/api/spaces')
+        // Parallelize API calls for better performance
+        const [spacesResponse, clubsResponse] = await Promise.all([
+          fetch('/api/spaces'),
+          fetch('/api/clubs')
+        ])
+        
         if (!spacesResponse.ok) {
           throw new Error('Failed to fetch spaces')
         }
-        const spacesData = await spacesResponse.json()
-        setSpaces(spacesData)
-        
-        // Fetch clubs
-        const clubsResponse = await fetch('/api/clubs')
         if (!clubsResponse.ok) {
           throw new Error('Failed to fetch clubs')
         }
-        const clubsData = await clubsResponse.json()
+        
+        const [spacesData, clubsData] = await Promise.all([
+          spacesResponse.json(),
+          clubsResponse.json()
+        ])
+        
+        setSpaces(spacesData)
         setClubs(clubsData)
       } catch (err) {
         console.error('Error fetching data:', err)

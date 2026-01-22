@@ -93,21 +93,24 @@ export default function AnalyticsPage() {
 
   const fetchAnalytics = useCallback(async () => {
     try {
-      // Fetch reservations from MongoDB API
-      const reservationsResponse = await fetch('/api/reservations')
+      // Parallelize all API calls for better performance
+      const [reservationsResponse, clubsResponse, spacesResponse] = await Promise.all([
+        fetch('/api/reservations'),
+        fetch('/api/clubs'),
+        fetch('/api/spaces')
+      ])
+      
       if (!reservationsResponse.ok) throw new Error('Failed to fetch reservations')
-      const reservations = await reservationsResponse.json()
-
-      // Fetch active clubs from MongoDB API
-      const clubsResponse = await fetch('/api/clubs')
       if (!clubsResponse.ok) throw new Error('Failed to fetch clubs')
-      const allClubs = await clubsResponse.json()
-      const clubs = allClubs.filter((c: any) => c.status === 'active')
-
-      // Fetch spaces from MongoDB API
-      const spacesResponse = await fetch('/api/spaces')
       if (!spacesResponse.ok) throw new Error('Failed to fetch spaces')
-      const spaces = await spacesResponse.json()
+      
+      const [reservations, allClubs, spaces] = await Promise.all([
+        reservationsResponse.json(),
+        clubsResponse.json(),
+        spacesResponse.json()
+      ])
+      
+      const clubs = allClubs.filter((c: any) => c.status === 'active')
 
       // Calculate analytics
       const totalReservations = reservations?.length || 0

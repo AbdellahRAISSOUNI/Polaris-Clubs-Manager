@@ -65,7 +65,12 @@ export async function GET() {
       created_at: space.created_at ? new Date(space.created_at).toISOString() : new Date().toISOString(),
     }));
     
-    return NextResponse.json(transformedSpaces);
+    // Add caching headers for better performance (5 minutes cache)
+    return NextResponse.json(transformedSpaces, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
+      },
+    });
   } catch (error) {
     console.error("Error in spaces API:", error);
     // Fall back to mock data if there's an error

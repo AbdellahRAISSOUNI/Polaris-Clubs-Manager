@@ -1,8 +1,6 @@
 "use client"
 
-import type React from "react"
-
-import { useState, useEffect } from "react"
+import React, { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -20,6 +18,7 @@ import {
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Search, MoreHorizontal, Mail, Key, UserPlus, Edit, Trash2, CheckCircle, XCircle, Plus, X, Users, CalendarPlus, Clock } from "lucide-react"
+import { Checkbox } from "@/components/ui/checkbox"
 import { AdminLayout } from "@/components/admin-layout"
 import { toast } from "@/components/ui/use-toast"
 import { successNotification, errorNotification, warningNotification } from "@/lib/notifications"
@@ -49,6 +48,9 @@ export default function ClubsPage() {
   const [clubLogo, setClubLogo] = useState<File | null>(null)
   const [clubPassword, setClubPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
+  const [selectedClubs, setSelectedClubs] = useState<Set<string>>(new Set())
+  const [isBulkActionLoading, setIsBulkActionLoading] = useState(false)
+  const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false)
 
   // Fetch clubs from MongoDB
   useEffect(() => {
@@ -80,6 +82,91 @@ export default function ClubsPage() {
       club.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       club.email.toLowerCase().includes(searchQuery.toLowerCase())
   )
+
+  // Bulk action handlers
+  const handleBulkClubAction = async (action: 'activate' | 'deactivate' | 'delete') => {
+    if (selectedClubs.size === 0) return
+
+    setIsBulkActionLoading(true)
+    try {
+      if (action === 'delete') {
+        const response = await fetch('/api/clubs/bulk', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ clubIds: Array.from(selectedClubs) }),
+        })
+
+        if (!response.ok) {
+          const error = await response.json()
+          throw new Error(error.error || 'Failed to delete clubs')
+        }
+
+        const result = await response.json()
+        successNotification({
+          title: "Bulk Delete Successful",
+          description: result.message || `Successfully deleted ${selectedClubs.size} club(s)`
+        })
+      } else {
+        const response = await fetch('/api/clubs/bulk', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            clubIds: Array.from(selectedClubs),
+            action,
+          }),
+        })
+
+        if (!response.ok) {
+          const error = await response.json()
+          throw new Error(error.error || 'Failed to perform bulk action')
+        }
+
+        const result = await response.json()
+        successNotification({
+          title: "Bulk Action Successful",
+          description: result.message || `Successfully ${action === 'activate' ? 'activated' : 'deactivated'} ${selectedClubs.size} club(s)`
+        })
+      }
+
+      // Clear selection and refresh
+      setSelectedClubs(new Set())
+      setShowBulkDeleteConfirm(false)
+      // Refresh clubs
+      const response = await fetch('/api/clubs')
+      if (response.ok) {
+        const data = await response.json()
+        setClubs(data || [])
+      }
+    } catch (error: any) {
+      console.error('Error performing bulk action:', error)
+      errorNotification({
+        title: "Bulk Action Failed",
+        description: error.message || 'Failed to perform bulk action'
+      })
+    } finally {
+      setIsBulkActionLoading(false)
+    }
+  }
+
+  const toggleClubSelection = (clubId: string) => {
+    setSelectedClubs(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(clubId)) {
+        newSet.delete(clubId)
+      } else {
+        newSet.add(clubId)
+      }
+      return newSet
+    })
+  }
+
+  const toggleSelectAllClubs = () => {
+    if (selectedClubs.size === filteredClubs.length) {
+      setSelectedClubs(new Set())
+    } else {
+      setSelectedClubs(new Set(filteredClubs.map(c => c.id)))
+    }
+  }
 
   // Reset form state when opening/closing dialogs
   useEffect(() => {
@@ -446,6 +533,67 @@ export default function ClubsPage() {
         </Card>
       </div>
 
+      {/* Bulk Actions Toolbar */}
+      {selectedClubs.size > 0 && (
+        <Card className="shadow-sm mb-4 border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/20">
+          <CardContent className="p-4 flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <Badge variant="secondary" className="text-sm">
+                {selectedClubs.size} selected
+              </Badge>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setSelectedClubs(new Set())}
+                className="h-8 text-xs"
+              >
+                Clear
+              </Button>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleBulkClubAction('activate')}
+                disabled={isBulkActionLoading}
+                className="h-8 text-xs sm:text-sm"
+              >
+                {isBulkActionLoading ? (
+                  <div className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />
+                ) : (
+                  <CheckCircle className="h-4 w-4 mr-2 text-green-600" />
+                )}
+                Activate
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleBulkClubAction('deactivate')}
+                disabled={isBulkActionLoading}
+                className="h-8 text-xs sm:text-sm"
+              >
+                {isBulkActionLoading ? (
+                  <div className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />
+                ) : (
+                  <XCircle className="h-4 w-4 mr-2 text-red-600" />
+                )}
+                Deactivate
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => setShowBulkDeleteConfirm(true)}
+                disabled={isBulkActionLoading}
+                className="h-8 text-xs sm:text-sm"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <Card className="shadow-sm">
         <CardHeader className="border-b bg-muted/40 p-6">
           <div className="flex items-center justify-between">
@@ -474,7 +622,13 @@ export default function ClubsPage() {
           ) : (
             <div className="relative">
               <div className="sticky top-0 border-b bg-muted/50 backdrop-blur-sm">
-                <div className="grid grid-cols-6 gap-4 p-4 text-sm font-medium text-muted-foreground">
+                <div className="grid grid-cols-7 gap-4 p-4 text-sm font-medium text-muted-foreground">
+                  <div className="w-10">
+                    <Checkbox
+                      checked={selectedClubs.size > 0 && selectedClubs.size === filteredClubs.length}
+                      onCheckedChange={toggleSelectAllClubs}
+                    />
+                  </div>
                   <div className="col-span-2">Club</div>
                   <div>Status</div>
                   <div>Last Login</div>
@@ -483,21 +637,30 @@ export default function ClubsPage() {
                 </div>
               </div>
               <div className="divide-y">
-                {filteredClubs.map((club) => (
-                  <div key={club.id} className="grid grid-cols-6 gap-4 p-4 items-center hover:bg-muted/50 transition-colors">
-                    <div className="col-span-2 flex items-center gap-3">
-                      <Avatar className="h-10 w-10 border">
-                        <AvatarImage src={club.logo || ""} alt={club.name} />
-                        <AvatarFallback className="bg-primary/10">{club.name.substring(0, 2).toUpperCase()}</AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <p className="font-medium text-foreground">{club.name}</p>
-                        <p className="text-sm text-muted-foreground flex items-center gap-1">
-                          <Mail className="h-3 w-3" />
-                          {club.email}
-                        </p>
+                {filteredClubs.map((club) => {
+                  const isSelected = selectedClubs.has(club.id)
+                  return (
+                    <div key={club.id} className={`grid grid-cols-7 gap-4 p-4 items-center hover:bg-muted/50 transition-colors ${isSelected ? 'bg-blue-50 dark:bg-blue-950/20' : ''}`}>
+                      <div className="w-10">
+                        <Checkbox
+                          checked={isSelected}
+                          onCheckedChange={() => toggleClubSelection(club.id)}
+                          onClick={(e) => e.stopPropagation()}
+                        />
                       </div>
-                    </div>
+                      <div className="col-span-2 flex items-center gap-3">
+                        <Avatar className="h-10 w-10 border">
+                          <AvatarImage src={club.logo || ""} alt={club.name} />
+                          <AvatarFallback className="bg-primary/10">{club.name.substring(0, 2).toUpperCase()}</AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <p className="font-medium text-foreground">{club.name}</p>
+                          <p className="text-sm text-muted-foreground flex items-center gap-1">
+                            <Mail className="h-3 w-3" />
+                            {club.email}
+                          </p>
+                        </div>
+                      </div>
                     <div>
                       {club.status === "active" ? (
                         <Badge variant="default" className="flex w-fit items-center gap-1 bg-green-500/15 text-green-600 hover:bg-green-500/25 hover:text-green-600">
@@ -568,8 +731,9 @@ export default function ClubsPage() {
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
-                  </div>
-                ))}
+                    </div>
+                  )
+                })}
 
                 {filteredClubs.length === 0 && (
                   <div className="p-8 text-center">
@@ -835,6 +999,36 @@ export default function ClubsPage() {
             <AlertDialogCancel onClick={() => setSelectedClub(null)}>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleDeleteClub} className="bg-red-600 hover:bg-red-700">
               Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Bulk Delete Confirmation Dialog */}
+      <AlertDialog open={showBulkDeleteConfirm} onOpenChange={setShowBulkDeleteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {selectedClubs.size} Club(s)?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete {selectedClubs.size} club(s)? This action cannot be undone.
+              Clubs with active reservations cannot be deleted. All associated data will be permanently removed.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isBulkActionLoading}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => handleBulkClubAction('delete')}
+              disabled={isBulkActionLoading}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {isBulkActionLoading ? (
+                <>
+                  <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                  Deleting...
+                </>
+              ) : (
+                'Delete All'
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

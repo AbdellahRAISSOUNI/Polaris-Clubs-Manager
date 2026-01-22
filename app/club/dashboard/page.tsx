@@ -145,27 +145,29 @@ export default function ClubDashboard() {
         }
         const suffix = params.toString() ? `&${params.toString()}` : ""
 
-        // Fetch reservations for this club
-        const reservationsResponse = await fetch(`/api/reservations?clubId=${clubId}${suffix}`)
+        // Parallelize all API calls for better performance
+        const allReservationsUrl = params.toString() ? `/api/reservations?${params.toString()}` : "/api/reservations"
+        const [reservationsResponse, allReservationsResponse, spacesResponse] = await Promise.all([
+          fetch(`/api/reservations?clubId=${clubId}${suffix}`),
+          fetch(allReservationsUrl),
+          fetch('/api/spaces')
+        ])
+        
         if (!reservationsResponse.ok) {
           throw new Error('Failed to fetch reservations')
         }
-        const reservationsData = await reservationsResponse.json()
-        
-        // Fetch all reservations (for showing other clubs' bookings)
-        const allReservationsUrl = params.toString() ? `/api/reservations?${params.toString()}` : "/api/reservations"
-        const allReservationsResponse = await fetch(allReservationsUrl)
         if (!allReservationsResponse.ok) {
           throw new Error('Failed to fetch all reservations')
         }
-        const allReservationsData = await allReservationsResponse.json()
-        
-        // Fetch spaces
-        const spacesResponse = await fetch('/api/spaces')
         if (!spacesResponse.ok) {
           throw new Error('Failed to fetch spaces')
         }
-        const spacesData = await spacesResponse.json()
+        
+        const [reservationsData, allReservationsData, spacesData] = await Promise.all([
+          reservationsResponse.json(),
+          allReservationsResponse.json(),
+          spacesResponse.json()
+        ])
         
         setReservations(allReservationsData)
         setClubReservations(reservationsData)
