@@ -33,6 +33,8 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { cn } from "@/lib/utils"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Pagination } from "@/components/ui/pagination"
+import { motion, AnimatePresence } from "framer-motion"
 
 const NotificationIcon = ({ type, senderId }: { type: string, senderId?: string }) => {
   if (senderId) {
@@ -97,6 +99,8 @@ export function NotificationsPage() {
   const [specificPeriodId, setSpecificPeriodId] = useState<string>("")
   const [mandates, setMandates] = useState<TimePeriod[]>([])
   const [academicYears, setAcademicYears] = useState<TimePeriod[]>([])
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage] = useState(10)
   
   // Fetch time periods on mount
   useEffect(() => {
@@ -128,7 +132,13 @@ export function NotificationsPage() {
   // Keep filter and tab selection in sync
   useEffect(() => {
     setFilter(activeTab)
+    setCurrentPage(1) // Reset to page 1 when filter changes
   }, [activeTab])
+  
+  // Reset to page 1 when period filters change
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [periodScope, periodMode, specificPeriodId])
   
   // Calculate active period date range
   const activePeriods = periodScope === "mandate" ? mandates : academicYears
@@ -256,6 +266,12 @@ export function NotificationsPage() {
 
   const unreadCount = notifications.filter(n => !n.is_read).length
   const readCount = notifications.filter(n => n.is_read).length
+  
+  // Pagination calculations
+  const totalPages = Math.ceil(filteredNotifications.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const paginatedNotifications = filteredNotifications.slice(startIndex, endIndex)
 
   // Format message with proper line breaks
   const formatMessage = (message: string) => {
@@ -270,33 +286,47 @@ export function NotificationsPage() {
   const renderNotificationList = () => {
     if (filteredNotifications.length === 0) {
       return (
-        <Card className="p-6 sm:p-8 text-center">
-          <Bell className="mx-auto h-10 w-10 sm:h-12 sm:w-12 mb-3 sm:mb-4 text-gray-400" />
-          <p className="text-base sm:text-lg font-medium">No notifications</p>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            {filter === 'all' 
-              ? "You don't have any notifications yet" 
-              : filter === 'unread' 
-                ? "You don't have any unread notifications" 
-                : "You don't have any read notifications"}
-          </p>
-        </Card>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          className="px-4 sm:px-0"
+        >
+          <Card className="p-6 sm:p-8 text-center glass shadow-apple border-0 rounded-3xl">
+            <Bell className="mx-auto h-10 w-10 sm:h-12 sm:w-12 mb-3 sm:mb-4 text-gray-400" />
+            <p className="text-base sm:text-lg font-medium">No notifications</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+              {filter === 'all' 
+                ? "You don't have any notifications yet" 
+                : filter === 'unread' 
+                  ? "You don't have any unread notifications" 
+                  : "You don't have any read notifications"}
+            </p>
+          </Card>
+        </motion.div>
       )
     }
     
     return (
-      <div className="space-y-3 sm:space-y-4">
-        {filteredNotifications.map((notification) => {
+      <div className="space-y-3 sm:space-y-4 px-4 sm:px-0">
+        <AnimatePresence mode="popLayout">
+          {paginatedNotifications.map((notification, index) => {
           const isSelected = selectedNotifications.has(notification.id)
           return (
-            <Card
+            <motion.div
               key={notification.id}
-              className={`transition-colors overflow-hidden ${
-                !notification.is_read 
-                  ? 'border-l-4 border-l-blue-500 dark:border-l-blue-400' 
-                  : ''
-              } ${isSelected ? 'ring-2 ring-blue-500 dark:ring-blue-400' : ''}`}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3, delay: index * 0.05 }}
             >
+              <Card
+                className={`glass shadow-apple border-0 rounded-3xl transition-apple overflow-hidden ${
+                  !notification.is_read 
+                    ? 'ring-2 ring-blue-500/30 dark:ring-blue-400/30' 
+                    : ''
+                } ${isSelected ? 'ring-2 ring-blue-500 dark:ring-blue-400' : ''} hover:shadow-apple-lg`}
+              >
               <div className="p-3 sm:p-4 md:p-5">
                 <div className="flex items-start gap-3 sm:gap-4">
                   <Checkbox
@@ -314,7 +344,7 @@ export function NotificationsPage() {
                     <div className="flex items-center gap-2">
                       <Badge 
                         variant={notification.is_read ? "outline" : "secondary"}
-                        className="whitespace-nowrap text-xs"
+                        className="whitespace-nowrap text-xs glass border-0 shadow-apple"
                       >
                         {notification.is_read ? 'Read' : 'New'}
                       </Badge>
@@ -355,295 +385,349 @@ export function NotificationsPage() {
                     )}
                     <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto mt-2 sm:mt-0">
                       {!notification.is_read && (
+                        <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleMarkAsRead(notification.id)}
+                            className="text-xs h-7 sm:h-8 flex-1 sm:flex-auto rounded-2xl glass border-0 shadow-apple hover:shadow-apple-lg transition-apple"
+                          >
+                            <MailOpen className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                            Mark as read
+                          </Button>
+                        </motion.div>
+                      )}
+                      <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => handleMarkAsRead(notification.id)}
-                          className="text-xs h-7 sm:h-8 flex-1 sm:flex-auto"
+                          onClick={() => setNotificationToDelete(notification.id)}
+                          className="text-xs h-7 sm:h-8 text-red-500 hover:text-red-700 hover:bg-red-50/50 dark:hover:bg-red-950/30 flex-1 sm:flex-auto rounded-2xl glass border-0 shadow-apple hover:shadow-apple-lg transition-apple"
                         >
-                          <MailOpen className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
-                          Mark as read
+                          <Trash2 className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                          Delete
                         </Button>
-                      )}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setNotificationToDelete(notification.id)}
-                        className="text-xs h-7 sm:h-8 text-red-500 hover:text-red-700 hover:bg-red-50 flex-1 sm:flex-auto"
-                      >
-                        <Trash2 className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
-                        Delete
-                      </Button>
+                      </motion.div>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
           </Card>
+          </motion.div>
           )
         })}
+        </AnimatePresence>
       </div>
     )
   }
 
   return (
-    <div className="container mx-auto py-4 sm:py-8 px-3 sm:px-4 max-w-4xl">
-      <div className="flex flex-col gap-3 sm:gap-4 mb-4 sm:mb-6">
-        <div>
-          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold">Notifications</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5 sm:mt-1">
-            Stay updated with important information
-          </p>
-        </div>
-        
-        <div className="flex flex-wrap items-center gap-2 self-start">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="flex items-center gap-1.5 text-sm h-9 border-purple-200 dark:border-purple-800 hover:bg-purple-50 dark:hover:bg-purple-950/30">
-                <Filter className="h-4 w-4 text-purple-600 dark:text-purple-400" />
-                Status
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 pb-8 sm:pb-12 overflow-x-hidden">
+      <div className="w-full sm:container sm:mx-auto py-4 sm:py-8 px-0 sm:px-4 md:px-6 lg:px-8 sm:max-w-4xl">
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          className="flex flex-col gap-4 sm:gap-6 mb-4 sm:mb-6 px-4 sm:px-0"
+        >
+          <div>
+            <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight bg-gradient-to-r from-gray-900 to-gray-600 dark:from-gray-100 dark:to-gray-400 bg-clip-text text-transparent">
+              Notifications
+            </h1>
+            <p className="text-sm sm:text-base text-muted-foreground mt-1 sm:mt-2">
+              Stay updated with important information
+            </p>
+          </div>
+          
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3 px-4 sm:px-0">
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="flex items-center gap-1.5 text-sm h-9 rounded-2xl glass border-0 shadow-apple hover:shadow-apple-lg transition-apple">
+                    <Filter className="h-4 w-4" />
+                    Status
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="text-sm glass-strong border-0 shadow-apple-lg rounded-2xl">
+                  <DropdownMenuItem onClick={() => { setFilter('all'); setActiveTab('all'); }} className="rounded-xl">
+                    All notifications
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => { setFilter('unread'); setActiveTab('unread'); }} className="rounded-xl">
+                    Unread only
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => { setFilter('read'); setActiveTab('read'); }} className="rounded-xl">
+                    Read only
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </motion.div>
+            
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Button
+                variant={showFilters ? "default" : "outline"}
+                size="sm"
+                onClick={() => setShowFilters(!showFilters)}
+                className={`flex items-center gap-1.5 text-sm h-9 rounded-2xl border-0 shadow-apple hover:shadow-apple-lg transition-apple ${
+                  showFilters 
+                    ? 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white' 
+                    : 'glass'
+                }`}
+                title="Time Period Filters"
+              >
+                <CalendarIcon className="h-4 w-4" />
+                <span className="hidden sm:inline">Period</span>
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="text-sm">
-              <DropdownMenuItem onClick={() => { setFilter('all'); setActiveTab('all'); }}>
-                All notifications
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => { setFilter('unread'); setActiveTab('unread'); }}>
-                Unread only
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => { setFilter('read'); setActiveTab('read'); }}>
-                Read only
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          
-          <Button
-            variant={showFilters ? "default" : "outline"}
-            size="sm"
-            onClick={() => setShowFilters(!showFilters)}
-            className="flex items-center gap-1.5 text-sm h-9 border-blue-200 dark:border-blue-800 hover:bg-blue-50 dark:hover:bg-blue-950/30"
-            title="Time Period Filters"
-          >
-            <CalendarIcon className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-            <span className="hidden sm:inline">Period</span>
-          </Button>
-          
-          <Button 
-            onClick={refreshNotifications} 
-            variant="outline" 
-            size="sm"
-            className="flex items-center gap-1.5 text-sm h-9"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="h-4 w-4"
-            >
-              <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-              <path d="M3 3v5h5" />
-              <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
-              <path d="M16 21h5v-5" />
-            </svg>
-            Refresh
-          </Button>
-          
-          {unreadCount > 0 && (
-            <Button 
-              onClick={markAllAsRead} 
-              variant="outline" 
-              size="sm"
-              className="flex items-center gap-1.5 text-sm h-9"
-            >
-              <MailOpen className="h-4 w-4" />
-              Mark all as read
-            </Button>
-          )}
-          
-          {notifications.length > 0 && (
-            <Button 
-              onClick={() => setIsDeleteAllDialogOpen(true)} 
-              variant="outline" 
-              size="sm"
-              className="flex items-center gap-1.5 text-sm h-9 text-red-500 hover:text-red-700 hover:bg-red-50"
-            >
-              <Trash2 className="h-4 w-4" />
-              Delete all
-            </Button>
-          )}
-        </div>
-      </div>
+            </motion.div>
+            
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Button 
+                onClick={refreshNotifications} 
+                variant="outline" 
+                size="sm"
+                className="flex items-center gap-1.5 text-sm h-9 rounded-2xl glass border-0 shadow-apple hover:shadow-apple-lg transition-apple"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="h-4 w-4"
+                >
+                  <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                  <path d="M3 3v5h5" />
+                  <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
+                  <path d="M16 21h5v-5" />
+                </svg>
+                Refresh
+              </Button>
+            </motion.div>
+            
+            {unreadCount > 0 && (
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <Button 
+                  onClick={markAllAsRead} 
+                  variant="outline" 
+                  size="sm"
+                  className="flex items-center gap-1.5 text-sm h-9 rounded-2xl glass border-0 shadow-apple hover:shadow-apple-lg transition-apple"
+                >
+                  <MailOpen className="h-4 w-4" />
+                  Mark all as read
+                </Button>
+              </motion.div>
+            )}
+            
+            {notifications.length > 0 && (
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.98 }}>
+                <Button 
+                  onClick={() => setIsDeleteAllDialogOpen(true)} 
+                  variant="outline" 
+                  size="sm"
+                  className="flex items-center gap-1.5 text-sm h-9 rounded-2xl glass border-0 shadow-apple hover:shadow-apple-lg transition-apple text-red-500 hover:text-red-700 hover:bg-red-50/50 dark:hover:bg-red-950/30"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Delete all
+                </Button>
+              </motion.div>
+            )}
+          </div>
+        </motion.div>
 
       {/* Bulk Actions Toolbar */}
-      {selectedNotifications.size > 0 && (
-        <div className="rounded-lg border bg-blue-50 dark:bg-blue-950/20 p-3 sm:p-4 flex flex-wrap items-center gap-2 sm:gap-3 mb-4 animate-in slide-in-from-top-2 duration-200">
-          <div className="flex items-center gap-2 flex-1 min-w-0">
-            <Badge variant="secondary" className="text-xs sm:text-sm">
-              {selectedNotifications.size} selected
-            </Badge>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setSelectedNotifications(new Set())}
-              className="h-7 sm:h-8 text-xs"
-            >
-              Clear
-            </Button>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleBulkNotificationAction('markRead')}
-              disabled={isBulkActionLoading}
-              className="h-8 sm:h-9 text-xs sm:text-sm"
-            >
-              {isBulkActionLoading ? (
-                <div className="h-3 w-3 sm:h-4 sm:w-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-1 sm:mr-2" />
-              ) : (
-                <MailOpen className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-              )}
-              Mark as read
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleBulkNotificationAction('markUnread')}
-              disabled={isBulkActionLoading}
-              className="h-8 sm:h-9 text-xs sm:text-sm"
-            >
-              {isBulkActionLoading ? (
-                <div className="h-3 w-3 sm:h-4 sm:w-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-1 sm:mr-2" />
-              ) : (
-                <Bell className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-              )}
-              Mark as unread
-            </Button>
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={() => {
-                if (window.confirm(`Are you sure you want to delete ${selectedNotifications.size} notification(s)? This action cannot be undone.`)) {
-                  handleBulkNotificationAction('delete')
-                }
-              }}
-              disabled={isBulkActionLoading}
-              className="h-8 sm:h-9 text-xs sm:text-sm"
-            >
-              {isBulkActionLoading ? (
-                <div className="h-3 w-3 sm:h-4 sm:w-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-1 sm:mr-2" />
-              ) : (
-                <Trash2 className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-              )}
-              Delete
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {/* Period filter - Collapsible */}
-      {showFilters && (
-        <Card className="mb-4 sm:mb-6 animate-in slide-in-from-top-2 duration-200">
-          <CardContent className="p-3 sm:p-4">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
-              <div>
-                <Label className="text-xs">Scope</Label>
-                <Select
-                  value={periodScope}
-                  onValueChange={(value) => {
-                    const nextScope = value as "all" | "mandate" | "academicYear"
-                    setPeriodScope(nextScope)
-                    setPeriodMode(nextScope === "all" ? "current" : "current")
-                    if (nextScope === "mandate") {
-                      setSpecificPeriodId(getCurrentPeriod(mandates)?.id || mandates?.[0]?.id || "")
-                    } else if (nextScope === "academicYear") {
-                      setSpecificPeriodId(getCurrentPeriod(academicYears)?.id || academicYears?.[0]?.id || "")
-                    } else {
-                      setSpecificPeriodId("")
+      <AnimatePresence>
+        {selectedNotifications.size > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+            className="rounded-3xl glass border-0 shadow-apple-lg p-3 sm:p-4 flex flex-wrap items-center gap-2 sm:gap-3 mb-4 sm:mb-6 mx-4 sm:mx-0"
+          >
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <Badge variant="secondary" className="text-xs sm:text-sm glass border-0 shadow-apple">
+                {selectedNotifications.size} selected
+              </Badge>
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSelectedNotifications(new Set())}
+                  className="h-7 sm:h-8 text-xs rounded-2xl"
+                >
+                  Clear
+                </Button>
+              </motion.div>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleBulkNotificationAction('markRead')}
+                  disabled={isBulkActionLoading}
+                  className="h-8 sm:h-9 text-xs sm:text-sm rounded-2xl glass border-0 shadow-apple hover:shadow-apple-lg transition-apple"
+                >
+                  {isBulkActionLoading ? (
+                    <div className="h-3 w-3 sm:h-4 sm:w-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-1 sm:mr-2" />
+                  ) : (
+                    <MailOpen className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                  )}
+                  Mark as read
+                </Button>
+              </motion.div>
+              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleBulkNotificationAction('markUnread')}
+                  disabled={isBulkActionLoading}
+                  className="h-8 sm:h-9 text-xs sm:text-sm rounded-2xl glass border-0 shadow-apple hover:shadow-apple-lg transition-apple"
+                >
+                  {isBulkActionLoading ? (
+                    <div className="h-3 w-3 sm:h-4 sm:w-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-1 sm:mr-2" />
+                  ) : (
+                    <Bell className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                  )}
+                  Mark as unread
+                </Button>
+              </motion.div>
+              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => {
+                    if (window.confirm(`Are you sure you want to delete ${selectedNotifications.size} notification(s)? This action cannot be undone.`)) {
+                      handleBulkNotificationAction('delete')
                     }
                   }}
+                  disabled={isBulkActionLoading}
+                  className="h-8 sm:h-9 text-xs sm:text-sm rounded-2xl bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white shadow-apple hover:shadow-apple-lg border-0 transition-apple"
                 >
-                  <SelectTrigger className="mt-1 h-8 text-xs">
-                    <SelectValue placeholder="Select scope" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="mandate">Mandat ADE</SelectItem>
-                    <SelectItem value="academicYear">Année scolaire</SelectItem>
-                    <SelectItem value="all">All</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+                  {isBulkActionLoading ? (
+                    <div className="h-3 w-3 sm:h-4 sm:w-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-1 sm:mr-2" />
+                  ) : (
+                    <Trash2 className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                  )}
+                  Delete
+                </Button>
+              </motion.div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-              {periodScope !== "all" ? (
-                <>
+      {/* Period filter - Collapsible */}
+      <AnimatePresence>
+        {showFilters && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+            className="mb-4 sm:mb-6 overflow-hidden mx-4 sm:mx-0"
+          >
+            <Card className="glass shadow-apple border-0 rounded-3xl">
+              <CardContent className="p-4 sm:p-6">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
                   <div>
-                    <Label className="text-xs">Period</Label>
-                    <Select value={periodMode} onValueChange={(v) => setPeriodMode(v as any)}>
-                      <SelectTrigger className="mt-1 h-8 text-xs">
-                        <SelectValue placeholder="Select period" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="current">Current</SelectItem>
-                        <SelectItem value="previous">Previous</SelectItem>
-                        <SelectItem value="specific">Specific</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label className="text-xs">{periodScope === "mandate" ? "Mandat" : "Année scolaire"}</Label>
+                    <Label className="text-xs">Scope</Label>
                     <Select
-                      value={periodMode === "specific" ? specificPeriodId : activePeriodId || ""}
-                      onValueChange={(v) => {
-                        setPeriodMode("specific")
-                        setSpecificPeriodId(v)
+                      value={periodScope}
+                      onValueChange={(value) => {
+                        const nextScope = value as "all" | "mandate" | "academicYear"
+                        setPeriodScope(nextScope)
+                        setPeriodMode(nextScope === "all" ? "current" : "current")
+                        if (nextScope === "mandate") {
+                          setSpecificPeriodId(getCurrentPeriod(mandates)?.id || mandates?.[0]?.id || "")
+                        } else if (nextScope === "academicYear") {
+                          setSpecificPeriodId(getCurrentPeriod(academicYears)?.id || academicYears?.[0]?.id || "")
+                        } else {
+                          setSpecificPeriodId("")
+                        }
                       }}
                     >
-                      <SelectTrigger className="mt-1 h-8 text-xs">
-                        <SelectValue placeholder="Select..." />
+                      <SelectTrigger className="mt-1 h-10 text-xs rounded-2xl glass border-0 shadow-apple">
+                        <SelectValue placeholder="Select scope" />
                       </SelectTrigger>
-                      <SelectContent>
-                        {(periodScope === "mandate" ? mandates : academicYears).map((p) => {
-                          const start = new Date(p.start_date)
-                          const end = new Date(p.end_date)
-                          const label = `${p.name} (${start.toLocaleDateString()} → ${end.toLocaleDateString()})`
-                          return (
-                            <SelectItem key={p.id} value={p.id}>
-                              {label}
-                            </SelectItem>
-                          )
-                        })}
+                      <SelectContent className="glass-strong border-0 shadow-apple-lg rounded-2xl">
+                        <SelectItem value="mandate" className="rounded-xl">Mandat ADE</SelectItem>
+                        <SelectItem value="academicYear" className="rounded-xl">Année scolaire</SelectItem>
+                        <SelectItem value="all" className="rounded-xl">All</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
-                </>
-              ) : (
-                <div className="sm:col-span-2 flex items-end">
-                  <p className="text-xs text-muted-foreground">Showing all notifications</p>
+
+                  {periodScope !== "all" ? (
+                    <>
+                      <div>
+                        <Label className="text-xs">Period</Label>
+                        <Select value={periodMode} onValueChange={(v) => setPeriodMode(v as any)}>
+                          <SelectTrigger className="mt-1 h-10 text-xs rounded-2xl glass border-0 shadow-apple">
+                            <SelectValue placeholder="Select period" />
+                          </SelectTrigger>
+                          <SelectContent className="glass-strong border-0 shadow-apple-lg rounded-2xl">
+                            <SelectItem value="current" className="rounded-xl">Current</SelectItem>
+                            <SelectItem value="previous" className="rounded-xl">Previous</SelectItem>
+                            <SelectItem value="specific" className="rounded-xl">Specific</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label className="text-xs">{periodScope === "mandate" ? "Mandat" : "Année scolaire"}</Label>
+                        <Select
+                          value={periodMode === "specific" ? specificPeriodId : activePeriodId || ""}
+                          onValueChange={(v) => {
+                            setPeriodMode("specific")
+                            setSpecificPeriodId(v)
+                          }}
+                        >
+                          <SelectTrigger className="mt-1 h-10 text-xs rounded-2xl glass border-0 shadow-apple">
+                            <SelectValue placeholder="Select..." />
+                          </SelectTrigger>
+                          <SelectContent className="glass-strong border-0 shadow-apple-lg rounded-2xl">
+                            {(periodScope === "mandate" ? mandates : academicYears).map((p) => {
+                              const start = new Date(p.start_date)
+                              const end = new Date(p.end_date)
+                              const label = `${p.name} (${start.toLocaleDateString()} → ${end.toLocaleDateString()})`
+                              return (
+                                <SelectItem key={p.id} value={p.id} className="rounded-xl">
+                                  {label}
+                                </SelectItem>
+                              )
+                            })}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="sm:col-span-2 flex items-end">
+                      <p className="text-xs text-muted-foreground">Showing all notifications</p>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <div className="flex items-center justify-between mb-4">
-          <TabsList className="h-10 grid grid-cols-3 sticky top-0 bg-background z-10">
-            <TabsTrigger value="all" className="text-sm">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 mb-4 sm:mb-6 px-4 sm:px-0">
+          <TabsList className="h-10 grid grid-cols-3 glass border-0 shadow-apple rounded-2xl p-1">
+            <TabsTrigger value="all" className="text-sm rounded-xl data-[state=active]:bg-white dark:data-[state=active]:bg-gray-800 data-[state=active]:shadow-apple transition-apple">
               All
-              <Badge variant="secondary" className="ml-2 text-xs">{notifications.length}</Badge>
+              <Badge variant="secondary" className="ml-2 text-xs glass border-0">{notifications.length}</Badge>
             </TabsTrigger>
-            <TabsTrigger value="unread" className="text-sm">
+            <TabsTrigger value="unread" className="text-sm rounded-xl data-[state=active]:bg-white dark:data-[state=active]:bg-gray-800 data-[state=active]:shadow-apple transition-apple">
               Unread
-              <Badge variant="secondary" className="ml-2 text-xs">{unreadCount}</Badge>
+              <Badge variant="secondary" className="ml-2 text-xs glass border-0">{unreadCount}</Badge>
             </TabsTrigger>
-            <TabsTrigger value="read" className="text-sm">
+            <TabsTrigger value="read" className="text-sm rounded-xl data-[state=active]:bg-white dark:data-[state=active]:bg-gray-800 data-[state=active]:shadow-apple transition-apple">
               Read
-              <Badge variant="secondary" className="ml-2 text-xs">{readCount}</Badge>
+              <Badge variant="secondary" className="ml-2 text-xs glass border-0">{readCount}</Badge>
             </TabsTrigger>
           </TabsList>
           {filteredNotifications.length > 0 && (
@@ -660,33 +744,68 @@ export function NotificationsPage() {
           )}
         </div>
         
-        <TabsContent value="all" className="mt-0 focus-visible:outline-none focus-visible:ring-0">
+        <TabsContent value="all" className="mt-0 focus-visible:outline-none focus-visible:ring-0 px-0">
           {renderNotificationList()}
+          {totalPages > 1 && (
+            <div className="mt-6 px-4 sm:px-0">
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+                itemsPerPage={itemsPerPage}
+                totalItems={filteredNotifications.length}
+              />
+            </div>
+          )}
         </TabsContent>
         
-        <TabsContent value="unread" className="mt-0 focus-visible:outline-none focus-visible:ring-0">
+        <TabsContent value="unread" className="mt-0 focus-visible:outline-none focus-visible:ring-0 px-0">
           {renderNotificationList()}
+          {totalPages > 1 && (
+            <div className="mt-6 px-4 sm:px-0">
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+                itemsPerPage={itemsPerPage}
+                totalItems={filteredNotifications.length}
+              />
+            </div>
+          )}
         </TabsContent>
         
-        <TabsContent value="read" className="mt-0 focus-visible:outline-none focus-visible:ring-0">
+        <TabsContent value="read" className="mt-0 focus-visible:outline-none focus-visible:ring-0 px-0">
           {renderNotificationList()}
+          {totalPages > 1 && (
+            <div className="mt-6 px-4 sm:px-0">
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+                itemsPerPage={itemsPerPage}
+                totalItems={filteredNotifications.length}
+              />
+            </div>
+          )}
         </TabsContent>
       </Tabs>
       
       {/* Delete Single Notification Dialog */}
       <AlertDialog open={!!notificationToDelete} onOpenChange={(open) => !open && setNotificationToDelete(null)}>
-        <AlertDialogContent className="max-w-[90vw] sm:max-w-[425px] p-4 sm:p-6">
+        <AlertDialogContent className="max-w-[90vw] sm:max-w-[425px] p-4 sm:p-6 glass-strong border-0 rounded-3xl shadow-apple-lg">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-base sm:text-lg">Delete Notification</AlertDialogTitle>
+            <AlertDialogTitle className="text-base sm:text-lg bg-gradient-to-r from-gray-900 to-gray-600 dark:from-gray-100 dark:to-gray-400 bg-clip-text text-transparent">
+              Delete Notification
+            </AlertDialogTitle>
             <AlertDialogDescription className="text-sm">
               Are you sure you want to delete this notification? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex-col sm:flex-row gap-2">
-            <AlertDialogCancel className="mt-0 text-sm h-9">Cancel</AlertDialogCancel>
+            <AlertDialogCancel className="mt-0 text-sm h-9 rounded-2xl glass border-0 shadow-apple">Cancel</AlertDialogCancel>
             <AlertDialogAction 
               onClick={() => notificationToDelete && handleDeleteNotification(notificationToDelete)}
-              className="bg-red-500 hover:bg-red-600 text-sm h-9"
+              className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-sm h-9 rounded-2xl shadow-apple hover:shadow-apple-lg border-0 transition-apple"
             >
               Delete
             </AlertDialogAction>
@@ -696,24 +815,27 @@ export function NotificationsPage() {
       
       {/* Delete All Notifications Dialog */}
       <AlertDialog open={isDeleteAllDialogOpen} onOpenChange={setIsDeleteAllDialogOpen}>
-        <AlertDialogContent className="max-w-[90vw] sm:max-w-[425px] p-4 sm:p-6">
+        <AlertDialogContent className="max-w-[90vw] sm:max-w-[425px] p-4 sm:p-6 glass-strong border-0 rounded-3xl shadow-apple-lg">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-base sm:text-lg">Delete All Notifications</AlertDialogTitle>
+            <AlertDialogTitle className="text-base sm:text-lg bg-gradient-to-r from-gray-900 to-gray-600 dark:from-gray-100 dark:to-gray-400 bg-clip-text text-transparent">
+              Delete All Notifications
+            </AlertDialogTitle>
             <AlertDialogDescription className="text-sm">
               Are you sure you want to delete all notifications? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex-col sm:flex-row gap-2">
-            <AlertDialogCancel className="mt-0 text-sm h-9">Cancel</AlertDialogCancel>
+            <AlertDialogCancel className="mt-0 text-sm h-9 rounded-2xl glass border-0 shadow-apple">Cancel</AlertDialogCancel>
             <AlertDialogAction 
               onClick={handleDeleteAllNotifications}
-              className="bg-red-500 hover:bg-red-600 text-sm h-9"
+              className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-sm h-9 rounded-2xl shadow-apple hover:shadow-apple-lg border-0 transition-apple"
             >
               Delete All
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      </div>
     </div>
   )
 } 
