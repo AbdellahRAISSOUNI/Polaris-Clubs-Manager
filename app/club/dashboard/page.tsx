@@ -14,6 +14,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
   Calendar,
   CalendarDays,
+  CalendarIcon,
   CheckCircle2,
   Clock,
   Filter,
@@ -36,6 +37,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { toast } from "sonner"
 import { format } from "date-fns"
 import { getCurrentPeriod, getPreviousPeriod, type TimePeriod } from "@/lib/time-periods-client"
+import { Pagination } from "@/components/ui/pagination"
 
 // Define the Reservation type
 interface Reservation {
@@ -88,6 +90,8 @@ export default function ClubDashboard() {
   const [reservationToDelete, setReservationToDelete] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showFilters, setShowFilters] = useState(false)
+  const [upcomingPage, setUpcomingPage] = useState(1)
+  const [upcomingItemsPerPage] = useState(9) // 3x3 grid
 
   const activePeriods = periodScope === "mandate" ? mandates : academicYears
   const currentPeriod = periodScope === "all" ? null : getCurrentPeriod(activePeriods)
@@ -300,6 +304,17 @@ export default function ClubDashboard() {
     const matchesStatus = selectedStatus === "all" || reservation.status === selectedStatus
     return matchesStatus
   })
+
+  // Pagination for upcoming reservations
+  const upcomingTotalPages = Math.ceil(filteredReservations.length / upcomingItemsPerPage)
+  const upcomingStartIndex = (upcomingPage - 1) * upcomingItemsPerPage
+  const upcomingEndIndex = upcomingStartIndex + upcomingItemsPerPage
+  const paginatedUpcomingReservations = filteredReservations.slice(upcomingStartIndex, upcomingEndIndex)
+
+  // Reset to page 1 when filter changes
+  useEffect(() => {
+    setUpcomingPage(1)
+  }, [selectedStatus])
 
   // Get reservations for the selected date
   const reservationsForSelectedDate = date
@@ -722,11 +737,11 @@ export default function ClubDashboard() {
               variant={showFilters ? "default" : "outline"}
               size="sm"
               onClick={() => setShowFilters(!showFilters)}
-              className="w-full md:w-auto flex items-center gap-2"
-              title="Toggle filters"
+              className="w-full md:w-auto flex items-center gap-2 border-blue-200 dark:border-blue-800 hover:bg-blue-50 dark:hover:bg-blue-950/30"
+              title="Time Period Filters"
             >
-              <Filter className="h-4 w-4" />
-              <span className="hidden sm:inline">Filters</span>
+              <CalendarIcon className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+              <span className="hidden sm:inline">Period</span>
             </Button>
           </div>
         </div>
@@ -1289,8 +1304,9 @@ export default function ClubDashboard() {
                     </Button>
                   </div>
                 ) : (
-                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    {filteredReservations.map((reservation) => (
+                  <>
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                      {paginatedUpcomingReservations.map((reservation) => (
                       <div 
                         key={reservation.id} 
                         className={`p-5 rounded-lg border hover:shadow-md transition-shadow cursor-pointer bg-white dark:bg-gray-800`}
@@ -1337,8 +1353,22 @@ export default function ClubDashboard() {
                           </Button>
                         </div>
                       </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+
+                    {/* Pagination */}
+                    {upcomingTotalPages > 1 && (
+                      <div className="mt-6">
+                        <Pagination
+                          currentPage={upcomingPage}
+                          totalPages={upcomingTotalPages}
+                          onPageChange={setUpcomingPage}
+                          itemsPerPage={upcomingItemsPerPage}
+                          totalItems={filteredReservations.length}
+                        />
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             </CardContent>

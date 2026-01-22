@@ -17,7 +17,7 @@ export async function GET(
       return new Response(null, {
         status: 307, // Temporary redirect
         headers: {
-          'Location': '/default-club-image.png'
+          'Location': '/placeholder-logo.png'
         },
       });
     }
@@ -44,7 +44,7 @@ export async function GET(
     return new Response(null, {
       status: 307,
       headers: {
-        'Location': '/default-club-image.png'
+        'Location': '/placeholder-logo.png'
       },
     });
   }

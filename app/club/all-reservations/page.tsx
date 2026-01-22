@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/table"
 import { useSearchParams } from "next/navigation"
 import { getCurrentPeriod, getPreviousPeriod, type TimePeriod } from "@/lib/time-periods-client"
+import { Pagination } from "@/components/ui/pagination"
 
 interface Reservation {
   id: string;
@@ -61,6 +62,8 @@ function AllReservationsContent() {
   const [mandates, setMandates] = useState<TimePeriod[]>([])
   const [academicYears, setAcademicYears] = useState<TimePeriod[]>([])
   const [showFilters, setShowFilters] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage] = useState(20)
   
   const searchParams = useSearchParams()
   const reservationIdFromUrl = searchParams.get('id')
@@ -149,6 +152,17 @@ function AllReservationsContent() {
   const handleReservationSelect = (reservation: Reservation) => {
     setSelectedReservation(reservation)
   }
+
+  // Pagination calculations
+  const totalPages = Math.ceil(reservations.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const paginatedReservations = reservations.slice(startIndex, endIndex)
+
+  // Reset to page 1 when period changes
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [activePeriodType, activePeriodId])
 
   const getStatusInfo = (status: string) => {
     switch (status.toLowerCase()) {
@@ -259,11 +273,11 @@ function AllReservationsContent() {
               variant={showFilters ? "default" : "outline"}
               size="sm"
               onClick={() => setShowFilters(!showFilters)}
-              className="flex items-center gap-2"
-              title="Toggle filters"
+              className="flex items-center gap-2 border-blue-200 dark:border-blue-800 hover:bg-blue-50 dark:hover:bg-blue-950/30"
+              title="Time Period Filters"
             >
-              <Filter className="h-4 w-4" />
-              <span className="hidden sm:inline">Filters</span>
+              <CalendarIcon className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+              <span className="hidden sm:inline">Period</span>
             </Button>
           </div>
       </div>
@@ -392,7 +406,7 @@ function AllReservationsContent() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {reservations.map((reservation) => {
+                  {paginatedReservations.map((reservation) => {
                     const statusInfo = getStatusInfo(reservation.status)
                     return (
                       <TableRow key={reservation.id} onClick={() => handleReservationSelect(reservation)} className="cursor-pointer">
@@ -404,7 +418,7 @@ function AllReservationsContent() {
                                 alt={reservation.club_name || 'Club logo'}
                                 onError={(e) => {
                                   const target = e.target as HTMLImageElement;
-                                  target.src = '/default-club-image.png';
+                                  target.src = '/placeholder-logo.png';
                                 }}
                               />
                               <AvatarFallback>
@@ -434,7 +448,7 @@ function AllReservationsContent() {
             
             {/* Mobile Card View */}
             <div className="md:hidden divide-y">
-              {reservations.map((reservation) => {
+              {paginatedReservations.map((reservation) => {
                 const statusInfo = getStatusInfo(reservation.status)
                 return (
                   <div
@@ -448,10 +462,10 @@ function AllReservationsContent() {
                           <AvatarImage 
                             src={`/api/clubs/${reservation.club_id}/image`} 
                             alt={reservation.club_name || 'Club logo'}
-                            onError={(e) => {
-                              const target = e.target as HTMLImageElement;
-                              target.src = '/default-club-image.png';
-                            }}
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement;
+                                  target.src = '/placeholder-logo.png';
+                                }}
                           />
                           <AvatarFallback>
                             {reservation.club_name?.split(' ').map(word => word[0]).join('').toUpperCase() || 'C'}
@@ -491,6 +505,19 @@ function AllReservationsContent() {
                 )
               })}
             </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="mt-4 px-2">
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={setCurrentPage}
+                  itemsPerPage={itemsPerPage}
+                  totalItems={reservations.length}
+                />
+              </div>
+            )}
           </div>
         )}
       </main>

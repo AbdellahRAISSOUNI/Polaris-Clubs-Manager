@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, Suspense } from "react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
-import { Calendar, Clock, MapPin, Users, Building, CheckCircle2, Clock3, AlertCircle, X, TableIcon, CalendarIcon, Search, ArrowUpDown, Filter, Eye, FileDown, Trash2 } from "lucide-react"
+import { Calendar, Clock, MapPin, Users, Building, CheckCircle2, Clock3, AlertCircle, X, TableIcon, CalendarIcon, Search, ArrowUpDown, Filter, Eye, FileDown, Trash2, SlidersHorizontal } from "lucide-react"
 import { BigCalendar } from "@/components/big-calendar"
 import { Badge } from "@/components/ui/badge"
 import { format, formatDistance, parseISO, eachMonthOfInterval, startOfYear, endOfYear, eachDayOfInterval, startOfMonth, endOfMonth, isSameDay } from "date-fns"
@@ -40,6 +40,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 import { useSearchParams } from "next/navigation"
 import { getCurrentPeriod, getPreviousPeriod, type TimePeriod } from "@/lib/time-periods-client"
+import { Pagination } from "@/components/ui/pagination"
 
 interface Reservation {
   id: string;
@@ -285,6 +286,8 @@ function AllReservationsContent() {
   const [selectedReservations, setSelectedReservations] = useState<Set<string>>(new Set())
   const [isBulkActionLoading, setIsBulkActionLoading] = useState(false)
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage] = useState(20)
   
   // Get URL parameters
   const searchParams = useSearchParams()
@@ -634,6 +637,17 @@ function AllReservationsContent() {
       }
     });
 
+  // Pagination calculations
+  const totalPages = Math.ceil(filteredAndSortedReservations.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const paginatedReservations = filteredAndSortedReservations.slice(startIndex, endIndex)
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchQuery, statusFilter, clubFilter, sortField, sortDirection])
+
   // Get sort icon
   const getSortIcon = (field: SortField) => {
     if (field !== sortField) return <ArrowUpDown className="ml-2 h-4 w-4" />;
@@ -749,11 +763,11 @@ function AllReservationsContent() {
               variant={showFilters ? "default" : "outline"}
               size="sm"
               onClick={() => setShowFilters(!showFilters)}
-              className="h-8 sm:h-9 flex items-center gap-1 sm:gap-2 text-xs"
-              title="Toggle filters"
+              className="h-8 sm:h-9 flex items-center gap-1 sm:gap-2 text-xs border-blue-200 dark:border-blue-800 hover:bg-blue-50 dark:hover:bg-blue-950/30"
+              title="Time Period Filters"
             >
-              <Filter className="h-3 w-3 sm:h-4 sm:w-4" />
-              <span className="hidden sm:inline">Filters</span>
+              <CalendarIcon className="h-3 w-3 sm:h-4 sm:w-4 text-blue-600 dark:text-blue-400" />
+              <span className="hidden sm:inline">Period</span>
             </Button>
           </div>
         </div>
@@ -881,11 +895,16 @@ function AllReservationsContent() {
               <div className="flex gap-2 self-end sm:self-auto">
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" size="sm" className="flex items-center gap-1 sm:gap-2 text-xs h-8 sm:h-9">
-                      <Filter className="h-3 w-3 sm:h-4 sm:w-4" />
-                      Filter
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="flex items-center gap-1 sm:gap-2 text-xs h-8 sm:h-9 border-purple-200 dark:border-purple-800 hover:bg-purple-50 dark:hover:bg-purple-950/30"
+                    >
+                      <SlidersHorizontal className="h-3 w-3 sm:h-4 sm:w-4 text-purple-600 dark:text-purple-400" />
+                      <span className="hidden sm:inline">Table Filters</span>
+                      <span className="sm:hidden">Filters</span>
                       {(statusFilter.length > 0 || clubFilter.length > 0) && (
-                        <Badge variant="secondary" className="ml-1 rounded-full px-1 py-0 text-[10px] sm:text-xs">
+                        <Badge variant="secondary" className="ml-1 rounded-full px-1.5 py-0 text-[10px] sm:text-xs bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300">
                           {statusFilter.length + clubFilter.length}
                         </Badge>
                       )}
@@ -1048,7 +1067,7 @@ function AllReservationsContent() {
                 <>
                   {/* Mobile: card list (no horizontal scrolling) */}
                   <div className="md:hidden divide-y">
-                    {filteredAndSortedReservations.map((reservation: Reservation) => {
+                    {paginatedReservations.map((reservation: Reservation) => {
                       const startTime = new Date(reservation.start_time)
                       const endTime = new Date(reservation.end_time)
                       const isSelected = selectedReservations.has(reservation.id)
@@ -1075,7 +1094,7 @@ function AllReservationsContent() {
                                 alt={reservation.club_name || "Club logo"}
                                 className="h-10 w-10 rounded-full object-cover flex-shrink-0"
                                 onError={(e) => {
-                                  e.currentTarget.src = "/default-club-image.png"
+                                  e.currentTarget.src = "/placeholder-logo.png"
                                 }}
                               />
                               <div className="min-w-0">
@@ -1252,7 +1271,7 @@ function AllReservationsContent() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {filteredAndSortedReservations.map((reservation: Reservation) => {
+                        {paginatedReservations.map((reservation: Reservation) => {
                           const startTime = new Date(reservation.start_time)
                           const endTime = new Date(reservation.end_time)
                           const createdAt = new Date(reservation.created_at)
@@ -1280,7 +1299,7 @@ function AllReservationsContent() {
                                     className="h-5 w-5 sm:h-6 sm:w-6 rounded-full object-cover flex-shrink-0"
                                     onError={(e) => {
                                       // If image fails to load, replace with default
-                                      e.currentTarget.src = '/default-club-image.png'
+                                      e.currentTarget.src = '/placeholder-logo.png'
                                     }}
                                   />
                                   <span className="truncate max-w-[80px] sm:max-w-[120px] inline-block">
@@ -1377,6 +1396,19 @@ function AllReservationsContent() {
                       </TableBody>
                     </Table>
                   </div>
+
+                  {/* Pagination */}
+                  {totalPages > 1 && (
+                    <div className="mt-4 px-2">
+                      <Pagination
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        onPageChange={setCurrentPage}
+                        itemsPerPage={itemsPerPage}
+                        totalItems={filteredAndSortedReservations.length}
+                      />
+                    </div>
+                  )}
                 </>
               )}
             </div>

@@ -4,7 +4,7 @@ import { useNotifications } from '@/lib/notifications-context'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { formatDistanceToNow, format } from 'date-fns'
-import { Bell, CheckCircle, AlertCircle, Info, AlertTriangle, MailOpen, Trash2, Filter } from 'lucide-react'
+import { Bell, CheckCircle, AlertCircle, Info, AlertTriangle, MailOpen, Trash2, Filter, CalendarIcon } from 'lucide-react'
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -399,8 +399,8 @@ export function NotificationsPage() {
         <div className="flex flex-wrap items-center gap-2 self-start">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="flex items-center gap-1.5 text-sm h-9">
-                <Filter className="h-4 w-4" />
+              <Button variant="outline" size="sm" className="flex items-center gap-1.5 text-sm h-9 border-purple-200 dark:border-purple-800 hover:bg-purple-50 dark:hover:bg-purple-950/30">
+                <Filter className="h-4 w-4 text-purple-600 dark:text-purple-400" />
                 Status
               </Button>
             </DropdownMenuTrigger>
@@ -421,10 +421,10 @@ export function NotificationsPage() {
             variant={showFilters ? "default" : "outline"}
             size="sm"
             onClick={() => setShowFilters(!showFilters)}
-            className="flex items-center gap-1.5 text-sm h-9"
-            title="Toggle period filters"
+            className="flex items-center gap-1.5 text-sm h-9 border-blue-200 dark:border-blue-800 hover:bg-blue-50 dark:hover:bg-blue-950/30"
+            title="Time Period Filters"
           >
-            <Filter className="h-4 w-4" />
+            <CalendarIcon className="h-4 w-4 text-blue-600 dark:text-blue-400" />
             <span className="hidden sm:inline">Period</span>
           </Button>
           

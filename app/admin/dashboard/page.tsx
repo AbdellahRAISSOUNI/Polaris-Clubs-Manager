@@ -464,12 +464,6 @@ export default function AdminDashboard() {
   return (
     <AdminLayout>
       <div className="flex flex-col gap-4 sm:gap-6">
-        <div className="flex flex-col gap-2">
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-sm sm:text-lg text-muted-foreground">
-            Hello, <span className="font-medium">{adminUser?.name || 'Admin'}</span>! Welcome to your dashboard.
-          </p>
-        </div>
         
         {/* Mobile search - visible only on mobile */}
         <div className="md:hidden mb-4">
@@ -581,7 +575,12 @@ export default function AdminDashboard() {
         )}
 
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 sm:mb-6">
-          <h2 className="text-lg sm:text-2xl font-bold tracking-tight">Admin Dashboard</h2>
+          <div className="flex flex-col gap-1">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight">Admin Dashboard</h1>
+            <p className="text-sm text-muted-foreground">
+              Welcome back, <span className="font-medium text-foreground">{adminUser?.name || 'Admin'}</span>
+            </p>
+          </div>
           <div className="flex flex-wrap gap-2">
             <Button 
               variant="outline" 
@@ -608,11 +607,11 @@ export default function AdminDashboard() {
               variant={showFilters ? "default" : "outline"}
               size="sm"
               onClick={() => setShowFilters(!showFilters)}
-              className="flex items-center gap-1 sm:gap-2 text-xs h-8 sm:h-9"
-              title="Toggle filters"
+              className="flex items-center gap-1 sm:gap-2 text-xs h-8 sm:h-9 border-blue-200 dark:border-blue-800 hover:bg-blue-50 dark:hover:bg-blue-950/30"
+              title="Time Period Filters"
             >
-              <Filter className="h-3 w-3 sm:h-4 sm:w-4" />
-              <span className="hidden sm:inline">Filters</span>
+              <CalendarIcon className="h-3 w-3 sm:h-4 sm:w-4 text-blue-600 dark:text-blue-400" />
+              <span className="hidden sm:inline">Period</span>
             </Button>
             <Button 
               variant="destructive" 
