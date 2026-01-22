@@ -1094,7 +1094,18 @@ function AllReservationsContent() {
                                 alt={reservation.club_name || "Club logo"}
                                 className="h-10 w-10 rounded-full object-cover flex-shrink-0"
                                 onError={(e) => {
-                                  e.currentTarget.src = "/placeholder-logo.png"
+                                  const target = e.currentTarget as HTMLImageElement
+                                  // Check if we're already trying placeholder or if it's the default-club-image
+                                  if (target.src && 
+                                      !target.src.includes('placeholder-logo.png') && 
+                                      !target.src.includes('data:') &&
+                                      !target.src.includes('default-club-image.png')) {
+                                    // Only retry once with placeholder
+                                    target.src = "/placeholder-logo.png"
+                                  } else {
+                                    // Hide to prevent infinite loops
+                                    target.style.display = 'none'
+                                  }
                                 }}
                               />
                               <div className="min-w-0">
@@ -1298,8 +1309,18 @@ function AllReservationsContent() {
                                     alt={reservation.club_name || 'Club logo'}
                                     className="h-5 w-5 sm:h-6 sm:w-6 rounded-full object-cover flex-shrink-0"
                                     onError={(e) => {
-                                      // If image fails to load, replace with default
-                                      e.currentTarget.src = '/placeholder-logo.png'
+                                      const target = e.currentTarget as HTMLImageElement
+                                      // Check if we're already trying placeholder or if it's the default-club-image
+                                      if (target.src && 
+                                          !target.src.includes('placeholder-logo.png') && 
+                                          !target.src.includes('data:') &&
+                                          !target.src.includes('default-club-image.png')) {
+                                        // Only retry once with placeholder
+                                        target.src = '/placeholder-logo.png'
+                                      } else {
+                                        // Hide to prevent infinite loops
+                                        target.style.display = 'none'
+                                      }
                                     }}
                                   />
                                   <span className="truncate max-w-[80px] sm:max-w-[120px] inline-block">

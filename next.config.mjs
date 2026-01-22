@@ -39,6 +39,11 @@ const nextConfig = {
   rewrites: async () => {
     return {
       beforeFiles: [
+        // Redirect old default-club-image.png to placeholder to prevent 404 loops
+        {
+          source: '/default-club-image.png',
+          destination: '/placeholder-logo.png',
+        },
         // Handle API routes dynamically
         {
           source: '/api/:path*',

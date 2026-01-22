@@ -23,13 +23,30 @@ Avatar.displayName = AvatarPrimitive.Root.displayName
 const AvatarImage = React.forwardRef<
   React.ElementRef<typeof AvatarPrimitive.Image>,
   React.ComponentPropsWithoutRef<typeof AvatarPrimitive.Image>
->(({ className, ...props }, ref) => (
-  <AvatarPrimitive.Image
-    ref={ref}
-    className={cn("aspect-square h-full w-full", className)}
-    {...props}
-  />
-))
+>(({ className, src, onError, ...props }, ref) => {
+  const handleError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+    const target = e.currentTarget as HTMLImageElement
+    // Prevent infinite loops by checking if we're already trying to load placeholder
+    if (target.src && !target.src.includes('placeholder-logo.png') && !target.src.includes('data:')) {
+      target.src = '/placeholder-logo.png'
+    } else if (onError) {
+      onError(e)
+    } else {
+      // Hide the image if placeholder also fails
+      target.style.display = 'none'
+    }
+  }
+
+  return (
+    <AvatarPrimitive.Image
+      ref={ref}
+      className={cn("aspect-square h-full w-full", className)}
+      src={src}
+      onError={handleError}
+      {...props}
+    />
+  )
+})
 AvatarImage.displayName = AvatarPrimitive.Image.displayName
 
 const AvatarFallback = React.forwardRef<

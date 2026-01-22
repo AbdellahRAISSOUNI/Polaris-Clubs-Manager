@@ -416,7 +416,12 @@ export function BigCalendar({
                                   alt={reservation.club_name || 'Club logo'}
                                   className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0 rounded-full object-cover"
                                   onError={(e) => {
-                                    e.currentTarget.src = '/default-club-image.png'
+                                    const target = e.currentTarget as HTMLImageElement
+                                    if (target.src && !target.src.includes('placeholder-logo.png')) {
+                                      target.src = '/placeholder-logo.png'
+                                    } else {
+                                      target.style.display = 'none'
+                                    }
                                   }}
                                 />
                                 <span className="font-medium truncate">{reservation.title}</span>
@@ -585,7 +590,12 @@ export function BigCalendar({
                                 alt={reservation.club_name || 'Club logo'}
                                 className="h-5 w-5 flex-shrink-0 rounded-full object-cover"
                                 onError={(e) => {
-                                  e.currentTarget.src = '/default-club-image.png'
+                                  const target = e.currentTarget as HTMLImageElement
+                                  if (target.src && !target.src.includes('placeholder-logo.png')) {
+                                    target.src = '/placeholder-logo.png'
+                                  } else {
+                                    target.style.display = 'none'
+                                  }
                                 }}
                               />
                               <div className="font-medium truncate">
@@ -873,7 +883,12 @@ export function BigCalendar({
                           alt={reservation.club_name || 'Club logo'}
                           className="h-9 w-9 flex-shrink-0 rounded-full object-cover"
                           onError={(e) => {
-                            e.currentTarget.src = '/default-club-image.png'
+                            const target = e.currentTarget as HTMLImageElement
+                            if (target.src && !target.src.includes('placeholder-logo.png')) {
+                              target.src = '/placeholder-logo.png'
+                            } else {
+                              target.style.display = 'none'
+                            }
                           }}
                         />
                         <div className="min-w-0">

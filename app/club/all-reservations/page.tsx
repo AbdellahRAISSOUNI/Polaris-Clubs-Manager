@@ -418,7 +418,11 @@ function AllReservationsContent() {
                                 alt={reservation.club_name || 'Club logo'}
                                 onError={(e) => {
                                   const target = e.target as HTMLImageElement;
-                                  target.src = '/placeholder-logo.png';
+                                  if (target.src && !target.src.includes('placeholder-logo.png')) {
+                                    target.src = '/placeholder-logo.png';
+                                  } else {
+                                    target.style.display = 'none';
+                                  }
                                 }}
                               />
                               <AvatarFallback>
@@ -464,7 +468,11 @@ function AllReservationsContent() {
                             alt={reservation.club_name || 'Club logo'}
                                 onError={(e) => {
                                   const target = e.target as HTMLImageElement;
-                                  target.src = '/placeholder-logo.png';
+                                  if (target.src && !target.src.includes('placeholder-logo.png')) {
+                                    target.src = '/placeholder-logo.png';
+                                  } else {
+                                    target.style.display = 'none';
+                                  }
                                 }}
                           />
                           <AvatarFallback>

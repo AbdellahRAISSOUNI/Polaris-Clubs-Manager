@@ -32,11 +32,24 @@ export async function GET(
       });
     }
 
-    // If it's a relative path, redirect to it
+    // If it's a relative path, check if it's the old default-club-image.png
+    const logoPath = club.logo.startsWith('/') ? club.logo : `/${club.logo}`
+    if (logoPath === '/default-club-image.png' || logoPath.includes('default-club-image.png')) {
+      // Redirect to placeholder instead of the non-existent file
+      return new Response(null, {
+        status: 307,
+        headers: {
+          'Location': '/placeholder-logo.png'
+        },
+      });
+    }
+    
+    // For other relative paths, redirect to them
+    // But first check if the file might not exist - if it's a local path that doesn't start with known safe paths
     return new Response(null, {
       status: 307,
       headers: {
-        'Location': club.logo.startsWith('/') ? club.logo : `/${club.logo}`
+        'Location': logoPath
       },
     });
   } catch (error) {
