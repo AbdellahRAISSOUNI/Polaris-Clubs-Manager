@@ -44,6 +44,11 @@ const nextConfig = {
           source: '/default-club-image.png',
           destination: '/placeholder-logo.png',
         },
+        // Redirect spaces/default.jpg to placeholder to prevent 404 loops
+        {
+          source: '/spaces/default.jpg',
+          destination: '/placeholder.jpg',
+        },
         // Handle API routes dynamically
         {
           source: '/api/:path*',

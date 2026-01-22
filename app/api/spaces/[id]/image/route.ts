@@ -13,7 +13,8 @@ export async function GET(
     const space = await Space.findOne({ id: params.id }).select('image').lean();
 
     if (!space || !space.image) {
-      return NextResponse.redirect(new URL('/spaces/default.jpg', request.url));
+      // Redirect to placeholder instead of non-existent default.jpg
+      return NextResponse.redirect(new URL('/placeholder.jpg', request.url));
     }
 
     // If the space has a full URL for the image, redirect to it
@@ -21,13 +22,18 @@ export async function GET(
       return NextResponse.redirect(space.image);
     }
 
-    // If it's a relative path, redirect to it
-    // Note: For production, you may want to use a CDN or file storage service
-    const imagePath = space.image.startsWith('/') ? space.image : `/${space.image}`;
+    // If it's a relative path, check if it's the old default.jpg
+    const imagePath = space.image.startsWith('/') ? space.image : `/${space.image}`
+    if (imagePath === '/spaces/default.jpg' || imagePath.includes('spaces/default.jpg')) {
+      // Redirect to placeholder instead of the non-existent file
+      return NextResponse.redirect(new URL('/placeholder.jpg', request.url));
+    }
+    
+    // For other relative paths, redirect to them
     return NextResponse.redirect(new URL(imagePath, request.url));
   } catch (error) {
     console.error('Error fetching space image:', error);
-    return NextResponse.redirect(new URL('/spaces/default.jpg', request.url));
+    return NextResponse.redirect(new URL('/placeholder.jpg', request.url));
   }
 }
 

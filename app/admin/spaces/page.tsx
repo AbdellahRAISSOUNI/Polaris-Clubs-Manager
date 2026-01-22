@@ -16,7 +16,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Search, MoreHorizontal, Edit, Trash2, Plus, X, RefreshCw, CheckCircle, XCircle, Building } from "lucide-react"
+import { Search, MoreHorizontal, Edit, Trash2, Plus, X, RefreshCw, CheckCircle, XCircle, Building, ChevronDown } from "lucide-react"
+import { motion, AnimatePresence } from "framer-motion"
 import { Checkbox } from "@/components/ui/checkbox"
 import { AdminLayout } from "@/components/admin-layout"
 import { toast } from "@/components/ui/use-toast"
@@ -69,7 +70,7 @@ export default function SpacesPage() {
               name: "Non-specific",
               capacity: 0,
               features: [],
-              image: "/spaces/default.jpg"
+              image: "/placeholder.jpg"
             })
           })
           
@@ -145,7 +146,7 @@ export default function SpacesPage() {
       name: formData.get('space-name') as string,
       capacity: parseInt(formData.get('space-capacity') as string) || 0,
       features: features,
-      image: "/spaces/default.jpg", // Default image, will be updated after upload
+      image: "/placeholder.jpg", // Default image, will be updated after upload
     }
     
     try {
@@ -168,10 +169,40 @@ export default function SpacesPage() {
         
         const updatedSpace = await response.json()
         
-        // Update local state
-        setSpaces(spaces.map(space => 
-          space.id === selectedSpace.id ? updatedSpace : space
-        ))
+        // If there's an image to upload, do it now
+        if (spaceImage) {
+          const formData = new FormData()
+          formData.append('file', spaceImage)
+          
+          const uploadResponse = await fetch(`/api/spaces/${selectedSpace.id}/image`, {
+            method: 'POST',
+            body: formData,
+          })
+          
+          if (!uploadResponse.ok) {
+            console.error('Failed to upload space image')
+            toast({
+              title: "Warning",
+              description: "Space updated but image upload failed. You can try uploading the image again later.",
+              variant: "default",
+            })
+          } else {
+            const { url } = await uploadResponse.json()
+            updatedSpace.image = url
+          }
+        }
+        
+        // Refresh spaces list from API to get latest data including images
+        const refreshResponse = await fetch('/api/spaces')
+        if (refreshResponse.ok) {
+          const refreshedSpaces = await refreshResponse.json()
+          setSpaces(refreshedSpaces || [])
+        } else {
+          // Fallback to local state update if refresh fails
+          setSpaces(spaces.map(space => 
+            space.id === selectedSpace.id ? updatedSpace : space
+          ))
+        }
         
         toast({
           title: "Success",
@@ -215,8 +246,15 @@ export default function SpacesPage() {
           }
         }
         
-        // Update local state
-        setSpaces([...spaces, newSpace])
+        // Refresh spaces list from API to get latest data including images
+        const refreshResponse = await fetch('/api/spaces')
+        if (refreshResponse.ok) {
+          const refreshedSpaces = await refreshResponse.json()
+          setSpaces(refreshedSpaces || [])
+        } else {
+          // Fallback to local state update if refresh fails
+          setSpaces([...spaces, newSpace])
+        }
         
         toast({
           title: "Success",
@@ -253,8 +291,15 @@ export default function SpacesPage() {
         throw new Error(errorData.error || 'Failed to delete space')
       }
       
-      // Remove from local state
-      setSpaces(spaces.filter(space => space.id !== selectedSpace.id))
+      // Refresh spaces list from API to get latest data
+      const refreshResponse = await fetch('/api/spaces')
+      if (refreshResponse.ok) {
+        const refreshedSpaces = await refreshResponse.json()
+        setSpaces(refreshedSpaces || [])
+      } else {
+        // Fallback to local state update if refresh fails
+        setSpaces(spaces.filter(space => space.id !== selectedSpace.id))
+      }
       
       toast({
         title: "Success",
@@ -361,355 +406,562 @@ export default function SpacesPage() {
 
   return (
     <AdminLayout>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Space Management</h1>
-          <p className="text-muted-foreground">Manage reservable spaces and locations</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button 
-            variant="outline" 
-            size="icon"
-            onClick={async () => {
-              try {
-                setIsLoading(true);
-                const response = await fetch('/api/spaces');
-                if (!response.ok) throw new Error('Failed to fetch spaces');
-                const data = await response.json();
-                setSpaces(data);
-                toast({
-                  title: "Success",
-                  description: "Spaces list refreshed",
-                });
-              } catch (error) {
-                console.error('Error refreshing spaces:', error);
-                toast({
-                  title: "Error",
-                  description: "Failed to refresh spaces",
-                  variant: "destructive",
-                });
-              } finally {
-                setIsLoading(false);
-              }
-            }}
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 pb-8 sm:pb-12 overflow-x-hidden">
+        <div className="flex flex-col gap-4 sm:gap-6 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-6"
           >
-            <RefreshCw className="h-4 w-4" />
-            <span className="sr-only">Refresh spaces</span>
-          </Button>
-          <Button onClick={() => setShowAddSpace(true)} className="gap-2">
-            <Plus className="h-4 w-4" />
-            Add New Space
-          </Button>
-        </div>
-      </div>
-
-      {/* Bulk Actions Toolbar */}
-      {selectedSpaces.size > 0 && (
-        <Card className="mb-4 border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/20">
-          <CardContent className="p-4 flex flex-wrap items-center gap-3">
-            <div className="flex items-center gap-2 flex-1 min-w-0">
-              <Badge variant="secondary" className="text-sm">
-                {selectedSpaces.size} selected
-              </Badge>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setSelectedSpaces(new Set())}
-                className="h-8 text-xs"
-              >
-                Clear
-              </Button>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleBulkSpaceAction('activate')}
-                disabled={isBulkActionLoading}
-                className="h-8 text-xs sm:text-sm"
-              >
-                {isBulkActionLoading ? (
-                  <div className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />
-                ) : (
-                  <CheckCircle className="h-4 w-4 mr-2 text-green-600" />
-                )}
-                Activate
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleBulkSpaceAction('deactivate')}
-                disabled={isBulkActionLoading}
-                className="h-8 text-xs sm:text-sm"
-              >
-                {isBulkActionLoading ? (
-                  <div className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />
-                ) : (
-                  <XCircle className="h-4 w-4 mr-2 text-red-600" />
-                )}
-                Deactivate
-              </Button>
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={() => setShowBulkDeleteConfirm(true)}
-                disabled={isBulkActionLoading}
-                className="h-8 text-xs sm:text-sm"
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
             <div>
-              <CardTitle>Available Spaces</CardTitle>
-              <CardDescription>View and manage reservable spaces</CardDescription>
+              <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight bg-gradient-to-r from-gray-900 to-gray-600 dark:from-gray-100 dark:to-gray-400 bg-clip-text text-transparent">
+                Space Management
+              </h1>
+              <p className="text-sm sm:text-base text-muted-foreground mt-1 sm:mt-2">
+                Manage reservable spaces and locations
+              </p>
             </div>
-            <div className="relative w-64">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search spaces..."
-                className="pl-8"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
+            <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <Button 
+                  variant="outline" 
+                  size="icon"
+                  onClick={async () => {
+                    try {
+                      setIsLoading(true);
+                      const response = await fetch('/api/spaces');
+                      if (!response.ok) throw new Error('Failed to fetch spaces');
+                      const data = await response.json();
+                      setSpaces(data);
+                      toast({
+                        title: "Success",
+                        description: "Spaces list refreshed",
+                      });
+                    } catch (error) {
+                      console.error('Error refreshing spaces:', error);
+                      toast({
+                        title: "Error",
+                        description: "Failed to refresh spaces",
+                        variant: "destructive",
+                      });
+                    } finally {
+                      setIsLoading(false);
+                    }
+                  }}
+                  className="rounded-2xl glass border-0 shadow-apple hover:shadow-apple-lg transition-apple"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                  <span className="sr-only">Refresh spaces</span>
+                </Button>
+              </motion.div>
+              <motion.div 
+                whileHover={{ scale: 1.05 }} 
+                whileTap={{ scale: 0.95 }}
+                className="flex-1 sm:flex-none"
+              >
+                <Button 
+                  onClick={() => setShowAddSpace(true)} 
+                  className="w-full sm:w-auto gap-2 rounded-2xl bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-apple hover:shadow-apple-lg border-0 transition-apple text-sm sm:text-base font-semibold h-11 sm:h-10 px-6 sm:px-4"
+                >
+                  <Plus className="h-4 w-4 sm:h-5 sm:w-5" />
+                  <span>Add New Space</span>
+                </Button>
+              </motion.div>
             </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="flex justify-center items-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-gray-100"></div>
-            </div>
-          ) : (
-            <div className="rounded-md border">
-              <div className="grid grid-cols-6 gap-4 p-4 text-sm font-medium text-muted-foreground border-b">
-                <div className="w-10">
-                  <Checkbox
-                    checked={selectedSpaces.size > 0 && selectedSpaces.size === filteredSpaces.length}
-                    onCheckedChange={toggleSelectAllSpaces}
-                  />
+          </motion.div>
+
+          {/* Bulk Actions Toolbar */}
+          <AnimatePresence>
+            {selectedSpaces.size > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3 }}
+                className="mb-4 sm:mb-6"
+              >
+                <Card className="glass shadow-apple-lg border-0 rounded-3xl">
+                  <CardContent className="p-3 sm:p-4 flex flex-wrap items-center gap-2 sm:gap-3">
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <Badge variant="secondary" className="text-xs sm:text-sm glass border-0 shadow-apple">
+                        {selectedSpaces.size} selected
+                      </Badge>
+                      <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setSelectedSpaces(new Set())}
+                          className="h-7 sm:h-8 text-xs rounded-2xl"
+                        >
+                          Clear
+                        </Button>
+                      </motion.div>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleBulkSpaceAction('activate')}
+                          disabled={isBulkActionLoading}
+                          className="h-8 sm:h-9 text-xs sm:text-sm rounded-2xl glass border-0 shadow-apple hover:shadow-apple-lg transition-apple"
+                        >
+                          {isBulkActionLoading ? (
+                            <div className="h-3 w-3 sm:h-4 sm:w-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-1 sm:mr-2" />
+                          ) : (
+                            <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2 text-green-600" />
+                          )}
+                          Activate
+                        </Button>
+                      </motion.div>
+                      <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleBulkSpaceAction('deactivate')}
+                          disabled={isBulkActionLoading}
+                          className="h-8 sm:h-9 text-xs sm:text-sm rounded-2xl glass border-0 shadow-apple hover:shadow-apple-lg transition-apple"
+                        >
+                          {isBulkActionLoading ? (
+                            <div className="h-3 w-3 sm:h-4 sm:w-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-1 sm:mr-2" />
+                          ) : (
+                            <XCircle className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2 text-red-600" />
+                          )}
+                          Deactivate
+                        </Button>
+                      </motion.div>
+                      <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => setShowBulkDeleteConfirm(true)}
+                          disabled={isBulkActionLoading}
+                          className="h-8 sm:h-9 text-xs sm:text-sm rounded-2xl bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white shadow-apple hover:shadow-apple-lg border-0 transition-apple"
+                        >
+                          <Trash2 className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                          Delete
+                        </Button>
+                      </motion.div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <Card id="spaces-section" className="glass shadow-apple-lg border-0 rounded-3xl overflow-hidden">
+            <CardHeader className="border-b border-gray-200/50 dark:border-gray-700/50 bg-gradient-to-br from-gray-50/50 to-white/50 dark:from-gray-900/50 dark:to-gray-800/50 backdrop-blur-xl p-4 sm:p-6">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+                <div>
+                  <CardTitle className="text-xl sm:text-2xl font-semibold tracking-tight">Available Spaces</CardTitle>
+                  <CardDescription className="text-xs sm:text-sm mt-1">View and manage reservable spaces</CardDescription>
                 </div>
-                <div className="col-span-2">Space</div>
-                <div>Capacity</div>
-                <div>Features</div>
-                <div className="text-right">Actions</div>
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <div className="relative flex-1 sm:flex-none sm:w-64">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
+                    <Input
+                      placeholder="Search spaces..."
+                      className="pl-10 h-10 sm:h-11 rounded-2xl border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-apple transition-apple focus:bg-white dark:focus:bg-gray-900/90"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                  </div>
+                </div>
               </div>
-              <div className="divide-y">
-                {filteredSpaces.map((space) => {
-                  const isSelected = selectedSpaces.has(space.id)
-                  return (
-                    <div key={space.id} className={`grid grid-cols-6 gap-4 p-4 items-center ${isSelected ? 'bg-blue-50 dark:bg-blue-950/20' : ''}`}>
+            </CardHeader>
+            <CardContent className="p-0">
+              {isLoading ? (
+                <div className="flex justify-center items-center py-12 sm:py-16">
+                  <div className="animate-spin rounded-full h-8 w-8 border-2 border-gray-300 dark:border-gray-600 border-t-gray-900 dark:border-t-gray-100"></div>
+                </div>
+              ) : (
+                <div className="relative">
+                  {/* Desktop Table Header */}
+                  <div className="hidden md:block sticky top-0 border-b border-gray-200/50 dark:border-gray-700/50 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm z-10">
+                    <div className="grid grid-cols-6 gap-4 p-4 text-xs sm:text-sm font-medium text-muted-foreground">
                       <div className="w-10">
                         <Checkbox
-                          checked={isSelected}
-                          onCheckedChange={() => toggleSpaceSelection(space.id)}
-                          onClick={(e) => e.stopPropagation()}
+                          checked={selectedSpaces.size > 0 && selectedSpaces.size === filteredSpaces.length}
+                          onCheckedChange={toggleSelectAllSpaces}
                         />
                       </div>
-                      <div className="col-span-2 flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-md bg-gray-100 dark:bg-gray-800 overflow-hidden">
-                          <img 
-                            src={space.image || "/spaces/default.jpg"} 
-                            alt={space.name} 
-                            className="h-full w-full object-cover"
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).src = "/spaces/default.jpg"
-                            }}
-                          />
-                        </div>
-                        <div>
-                          <p className="font-medium text-foreground">{space.name}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {new Date(space.created_at).toLocaleDateString()}
-                          </p>
-                        </div>
-                      </div>
-                      <div>
-                        <Badge variant="outline" className="font-mono">
-                          {space.capacity || 0}
-                        </Badge>
-                      </div>
-                      <div className="flex flex-wrap gap-1">
-                        {space.features && space.features.length > 0 ? (
-                          space.features.slice(0, 3).map((feature, index) => (
-                            <Badge key={index} variant="secondary" className="text-xs">
-                              {feature}
-                            </Badge>
-                          ))
-                        ) : (
-                          <span className="text-sm text-muted-foreground">None</span>
-                        )}
-                        {space.features && space.features.length > 3 && (
-                          <Badge variant="outline" className="text-xs">
-                            +{space.features.length - 3} more
-                          </Badge>
-                        )}
-                      </div>
-                      <div className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                              <MoreHorizontal className="h-4 w-4" />
-                              <span className="sr-only">Open menu</span>
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem
-                              onClick={() => {
-                                setSelectedSpace(space)
-                                setShowAddSpace(true)
-                              }}
-                            >
-                              <Edit className="h-4 w-4 mr-2" />
-                              Edit Details
-                            </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              className="text-red-600 dark:text-red-400"
-                              onClick={() => {
-                                setSelectedSpace(space)
-                                setShowDeleteConfirm(true)
-                              }}
-                              disabled={space.name.toLowerCase() === "non-specific"}
-                            >
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Delete Space
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
+                      <div className="col-span-2">Space</div>
+                      <div>Capacity</div>
+                      <div>Features</div>
+                      <div className="text-right">Actions</div>
                     </div>
-                  )
-                })}
+                  </div>
+                  
+                  {/* Mobile/Desktop List */}
+                  <div className="divide-y divide-gray-200/50 dark:divide-gray-700/50">
+                    <AnimatePresence mode="popLayout">
+                      {filteredSpaces.map((space, index) => {
+                        const isSelected = selectedSpaces.has(space.id)
+                        return (
+                          <motion.div
+                            key={space.id}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -20 }}
+                            transition={{ duration: 0.3, delay: index * 0.05 }}
+                            className={`md:grid md:grid-cols-6 gap-3 sm:gap-4 p-3 sm:p-4 transition-apple rounded-2xl mx-2 sm:mx-0 mb-2 sm:mb-0 ${
+                              isSelected ? 'bg-blue-50/50 dark:bg-blue-950/20 ring-2 ring-blue-500/30 dark:ring-blue-400/30' : 'bg-white/50 dark:bg-gray-900/30 hover:bg-gray-50/50 dark:hover:bg-gray-900/40'
+                            }`}
+                          >
+                            {/* Desktop: Checkbox */}
+                            <div className="hidden md:flex w-10 items-center">
+                              <Checkbox
+                                checked={isSelected}
+                                onCheckedChange={() => toggleSpaceSelection(space.id)}
+                                onClick={(e) => e.stopPropagation()}
+                              />
+                            </div>
+                            
+                            {/* Mobile: Top row with checkbox and space info */}
+                            <div className="md:hidden flex items-center gap-3 mb-3">
+                              <Checkbox
+                                checked={isSelected}
+                                onCheckedChange={() => toggleSpaceSelection(space.id)}
+                                onClick={(e) => e.stopPropagation()}
+                              />
+                              <div className="h-12 w-12 rounded-2xl bg-gray-100 dark:bg-gray-800 overflow-hidden ring-2 ring-white/50 dark:ring-gray-800/50 flex-shrink-0">
+                                <img 
+                                  src={space.image ? `/api/spaces/${space.id}/image` : "/placeholder.jpg"} 
+                                  alt={space.name} 
+                                  className="h-full w-full object-cover"
+                                  onError={(e) => {
+                                    const target = e.target as HTMLImageElement
+                                    if (target.src && !target.src.includes('placeholder.jpg') && !target.src.includes('data:')) {
+                                      target.src = "/placeholder.jpg"
+                                    } else {
+                                      target.style.display = 'none'
+                                    }
+                                  }}
+                                />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="font-semibold text-base text-foreground truncate">{space.name}</p>
+                                <p className="text-xs text-muted-foreground mt-0.5">
+                                  {new Date(space.created_at).toLocaleDateString()}
+                                </p>
+                              </div>
+                            </div>
+                            
+                            {/* Desktop: Space info in columns 2-3 */}
+                            <div className="hidden md:flex col-span-2 items-center gap-3">
+                              <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-2xl bg-gray-100 dark:bg-gray-800 overflow-hidden ring-2 ring-white/50 dark:ring-gray-800/50">
+                                <img 
+                                  src={space.image ? `/api/spaces/${space.id}/image` : "/placeholder.jpg"} 
+                                  alt={space.name} 
+                                  className="h-full w-full object-cover"
+                                  onError={(e) => {
+                                    const target = e.target as HTMLImageElement
+                                    if (target.src && !target.src.includes('placeholder.jpg') && !target.src.includes('data:')) {
+                                      target.src = "/placeholder.jpg"
+                                    } else {
+                                      target.style.display = 'none'
+                                    }
+                                  }}
+                                />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="font-medium text-sm sm:text-base text-foreground truncate">{space.name}</p>
+                                <p className="text-xs sm:text-sm text-muted-foreground">
+                                  {new Date(space.created_at).toLocaleDateString()}
+                                </p>
+                              </div>
+                            </div>
+                            
+                            {/* Mobile: Capacity and Features row */}
+                            <div className="md:hidden flex items-center justify-between mb-2">
+                              <div>
+                                <Badge variant="outline" className="glass border-0 shadow-apple font-mono">
+                                  {space.capacity || 0}
+                                </Badge>
+                              </div>
+                              <div className="flex flex-wrap gap-1">
+                                {space.features && space.features.length > 0 ? (
+                                  space.features.slice(0, 2).map((feature, idx) => (
+                                    <Badge key={idx} variant="secondary" className="text-xs glass border-0 shadow-apple">
+                                      {feature}
+                                    </Badge>
+                                  ))
+                                ) : (
+                                  <span className="text-xs text-muted-foreground">No features</span>
+                                )}
+                              </div>
+                            </div>
+                            
+                            {/* Mobile: Actions row */}
+                            <div className="md:hidden flex items-center justify-end">
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+                                    <Button variant="ghost" size="icon" className="rounded-2xl glass border-0 shadow-apple hover:shadow-apple-lg transition-apple h-9 w-9">
+                                      <MoreHorizontal className="h-4 w-4" />
+                                      <span className="sr-only">Open menu</span>
+                                    </Button>
+                                  </motion.div>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-48 glass-strong border-0 shadow-apple-lg rounded-2xl">
+                                  <DropdownMenuItem
+                                    onClick={() => {
+                                      setSelectedSpace(space)
+                                      setShowAddSpace(true)
+                                    }}
+                                    className="gap-2 rounded-xl"
+                                  >
+                                    <Edit className="h-4 w-4" />
+                                    Edit Details
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem 
+                                    className="text-red-600 dark:text-red-400 gap-2 rounded-xl"
+                                    onClick={() => {
+                                      setSelectedSpace(space)
+                                      setShowDeleteConfirm(true)
+                                    }}
+                                    disabled={space.name.toLowerCase() === "non-specific"}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                    Delete Space
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
+                            
+                            {/* Desktop: Capacity column */}
+                            <div className="hidden md:block">
+                              <Badge variant="outline" className="glass border-0 shadow-apple font-mono">
+                                {space.capacity || 0}
+                              </Badge>
+                            </div>
+                            
+                            {/* Desktop: Features column */}
+                            <div className="hidden md:block flex flex-wrap gap-1">
+                              {space.features && space.features.length > 0 ? (
+                                <>
+                                  {space.features.slice(0, 3).map((feature, idx) => (
+                                    <Badge key={idx} variant="secondary" className="text-xs glass border-0 shadow-apple">
+                                      {feature}
+                                    </Badge>
+                                  ))}
+                                  {space.features.length > 3 && (
+                                    <Badge variant="outline" className="text-xs glass border-0 shadow-apple">
+                                      +{space.features.length - 3} more
+                                    </Badge>
+                                  )}
+                                </>
+                              ) : (
+                                <span className="text-xs text-muted-foreground">No features</span>
+                              )}
+                            </div>
+                            
+                            {/* Desktop: Actions column */}
+                            <div className="hidden md:block text-right">
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+                                    <Button variant="ghost" size="icon" className="rounded-2xl glass border-0 shadow-apple hover:shadow-apple-lg transition-apple">
+                                      <MoreHorizontal className="h-4 w-4" />
+                                      <span className="sr-only">Open menu</span>
+                                    </Button>
+                                  </motion.div>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-48 glass-strong border-0 shadow-apple-lg rounded-2xl">
+                                  <DropdownMenuItem
+                                    onClick={() => {
+                                      setSelectedSpace(space)
+                                      setShowAddSpace(true)
+                                    }}
+                                    className="gap-2 rounded-xl"
+                                  >
+                                    <Edit className="h-4 w-4" />
+                                    Edit Details
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem 
+                                    className="text-red-600 dark:text-red-400 gap-2 rounded-xl"
+                                    onClick={() => {
+                                      setSelectedSpace(space)
+                                      setShowDeleteConfirm(true)
+                                    }}
+                                    disabled={space.name.toLowerCase() === "non-specific"}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                    Delete Space
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
+                          </motion.div>
+                        )
+                      })}
+                    </AnimatePresence>
 
-                {filteredSpaces.length === 0 && (
-                  <div className="p-4 text-center text-muted-foreground">No spaces found matching your search.</div>
-                )}
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Add/Edit Space Dialog */}
-      <Dialog open={showAddSpace} onOpenChange={(open) => {
-        setShowAddSpace(open)
-        if (!open) {
-          setSelectedSpace(null)
-        }
-      }}>
-        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
-          <form onSubmit={handleAddSpace}>
-            <DialogHeader>
-              <DialogTitle>{selectedSpace ? "Edit Space" : "Add New Space"}</DialogTitle>
-              <DialogDescription>
-                {selectedSpace
-                  ? "Edit the space details below."
-                  : "Create a new reservable space."}
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="grid gap-3 py-3">
-              <div className="grid gap-2">
-                <Label htmlFor="space-name">Space Name</Label>
-                <Input 
-                  id="space-name" 
-                  name="space-name"
-                  defaultValue={selectedSpace?.name} 
-                  placeholder="Enter space name" 
-                  required 
-                />
-              </div>
-
-              <div className="grid gap-2">
-                <Label htmlFor="space-capacity">Capacity</Label>
-                <Input
-                  id="space-capacity"
-                  name="space-capacity"
-                  type="number"
-                  min="0"
-                  defaultValue={selectedSpace?.capacity || 0}
-                  placeholder="Maximum number of people"
-                  required
-                />
-              </div>
-
-              <div className="grid gap-2">
-                <Label>Features</Label>
-                <div className="flex flex-wrap gap-2 mb-2">
-                  {features.map((feature, index) => (
-                    <Badge key={index} variant="secondary" className="flex items-center gap-1">
-                      {feature}
-                      <X 
-                        className="h-3 w-3 cursor-pointer" 
-                        onClick={() => removeFeature(feature)}
-                      />
-                    </Badge>
-                  ))}
-                </div>
-                <div className="flex gap-2">
-                  <Input
-                    value={newFeature}
-                    onChange={(e) => setNewFeature(e.target.value)}
-                    placeholder="Add a feature"
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault()
-                        addFeature()
-                      }
-                    }}
-                  />
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    onClick={addFeature}
-                  >
-                    Add
-                  </Button>
-                </div>
-              </div>
-
-              <div className="grid gap-2">
-                <Label htmlFor="space-image">Space Image</Label>
-                <div className="flex items-center gap-4">
-                  <div className="h-24 w-24 rounded-lg border overflow-hidden bg-gray-100 dark:bg-gray-800">
-                    {selectedSpace?.image || spaceImage ? (
-                      <img
-                        src={spaceImage ? URL.createObjectURL(spaceImage) : (selectedSpace?.image || "/spaces/default.jpg")}
-                        alt="Space preview"
-                        className="h-full w-full object-cover"
-                        onError={(e) => {
-                          (e.currentTarget.src = "/spaces/default.jpg")
-                        }}
-                      />
-                    ) : (
-                      <div className="h-full w-full flex items-center justify-center text-muted-foreground">
-                        No image
-                      </div>
+                    {filteredSpaces.length === 0 && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3 }}
+                        className="p-8 sm:p-12 text-center"
+                      >
+                        <div className="mx-auto w-fit rounded-full bg-muted p-3 sm:p-4 mb-3 sm:mb-4">
+                          <Search className="h-6 w-6 sm:h-8 sm:w-8 text-muted-foreground" />
+                        </div>
+                        <p className="text-muted-foreground font-medium mb-1 text-sm sm:text-base">No spaces found</p>
+                        <p className="text-xs sm:text-sm text-muted-foreground">Try adjusting your search query</p>
+                      </motion.div>
                     )}
                   </div>
-                  <div className="flex-1 space-y-2">
-                    <Input
-                      id="space-image-upload"
-                      type="file"
-                      accept="image/*"
-                      onChange={async (e) => {
+                </div>
+              )}
+            </CardContent>
+      </Card>
+
+          {/* Add/Edit Space Dialog */}
+          <Dialog open={showAddSpace} onOpenChange={(open) => {
+            setShowAddSpace(open)
+            if (!open) {
+              setSelectedSpace(null)
+            }
+          }}>
+            <DialogContent className="max-w-md max-h-[90vh] p-0 glass-strong border-0 rounded-3xl shadow-apple-lg flex flex-col overflow-hidden">
+              <form onSubmit={handleAddSpace} className="flex flex-col h-full max-h-[90vh] overflow-hidden">
+                <DialogHeader className="relative bg-gradient-to-br from-gray-50 to-white dark:from-gray-900 dark:to-gray-800 backdrop-blur-xl p-5 sm:p-6 border-b border-gray-200/50 dark:border-gray-700/50 flex-shrink-0">
+                  <DialogTitle className="bg-gradient-to-r from-gray-900 to-gray-600 dark:from-gray-100 dark:to-gray-400 bg-clip-text text-transparent text-xl sm:text-2xl">
+                    {selectedSpace ? "Edit Space" : "Add New Space"}
+                  </DialogTitle>
+                  <DialogDescription className="text-xs sm:text-sm mt-2">
+                    {selectedSpace
+                      ? "Edit the space details below."
+                      : "Create a new reservable space."}
+                  </DialogDescription>
+                </DialogHeader>
+
+                <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent p-5 sm:p-6" style={{ WebkitOverflowScrolling: 'touch', scrollbarWidth: 'thin', maxHeight: 'calc(90vh - 200px)' }}>
+                  <div className="grid gap-4 sm:gap-5">
+                    <div className="grid gap-2">
+                      <Label htmlFor="space-name" className="text-xs sm:text-sm">Space Name</Label>
+                      <Input 
+                        id="space-name" 
+                        name="space-name"
+                        defaultValue={selectedSpace?.name} 
+                        placeholder="Enter space name"
+                        className="rounded-2xl glass border-0 shadow-apple h-10 sm:h-11"
+                        required 
+                      />
+                    </div>
+
+                    <div className="grid gap-2">
+                      <Label htmlFor="space-capacity" className="text-xs sm:text-sm">Capacity</Label>
+                      <Input
+                        id="space-capacity"
+                        name="space-capacity"
+                        type="number"
+                        min="0"
+                        defaultValue={selectedSpace?.capacity || 0}
+                        placeholder="Maximum number of people"
+                        className="rounded-2xl glass border-0 shadow-apple h-10 sm:h-11"
+                        required
+                      />
+                    </div>
+
+                    <div className="grid gap-2">
+                      <Label className="text-xs sm:text-sm">Features</Label>
+                      <div className="flex flex-wrap gap-2 mb-2">
+                        {features.map((feature, index) => (
+                          <Badge key={index} variant="secondary" className="flex items-center gap-1 glass border-0 shadow-apple">
+                            {feature}
+                            <X 
+                              className="h-3 w-3 cursor-pointer hover:text-red-500 transition-colors" 
+                              onClick={() => removeFeature(feature)}
+                            />
+                          </Badge>
+                        ))}
+                      </div>
+                      <div className="flex gap-2">
+                        <Input
+                          value={newFeature}
+                          onChange={(e) => setNewFeature(e.target.value)}
+                          placeholder="Add a feature"
+                          className="rounded-2xl glass border-0 shadow-apple h-10 sm:h-11 flex-1"
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault()
+                              addFeature()
+                            }
+                          }}
+                        />
+                        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                          <Button 
+                            type="button" 
+                            variant="outline" 
+                            onClick={addFeature}
+                            className="rounded-2xl glass border-0 shadow-apple hover:shadow-apple-lg transition-apple"
+                          >
+                            Add
+                          </Button>
+                        </motion.div>
+                      </div>
+                    </div>
+
+                    <div className="grid gap-2">
+                      <Label htmlFor="space-image" className="text-xs sm:text-sm">Space Image</Label>
+                      <div className="flex items-center gap-4">
+                        <div className="h-24 w-24 rounded-2xl border-0 overflow-hidden bg-gray-100 dark:bg-gray-800 ring-2 ring-white/50 dark:ring-gray-800/50 shadow-apple flex-shrink-0">
+                          {spaceImage ? (
+                            <img
+                              key={`preview-${spaceImage.name}-${spaceImage.lastModified}`}
+                              src={URL.createObjectURL(spaceImage)}
+                              alt="Space preview"
+                              className="h-full w-full object-cover"
+                              onError={(e) => {
+                                const target = e.currentTarget as HTMLImageElement
+                                if (target.src && !target.src.includes('placeholder.jpg') && !target.src.includes('data:')) {
+                                  target.src = "/placeholder.jpg"
+                                } else {
+                                  target.style.display = 'none'
+                                }
+                              }}
+                            />
+                          ) : selectedSpace?.image ? (
+                            <img
+                              src={`/api/spaces/${selectedSpace.id}/image`}
+                              alt="Space preview"
+                              className="h-full w-full object-cover"
+                              onError={(e) => {
+                                const target = e.currentTarget as HTMLImageElement
+                                if (target.src && !target.src.includes('placeholder.jpg') && !target.src.includes('data:')) {
+                                  target.src = "/placeholder.jpg"
+                                } else {
+                                  target.style.display = 'none'
+                                }
+                              }}
+                            />
+                          ) : (
+                            <div className="h-full w-full flex items-center justify-center text-muted-foreground text-xs">
+                              No image
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1 space-y-2">
+                          <Input
+                            id="space-image-upload"
+                            type="file"
+                            accept="image/*"
+                            className="rounded-2xl glass border-0 shadow-apple"
+                            onChange={async (e) => {
                         const file = e.target.files?.[0];
                         if (file) {
-                          if (file.size > 5 * 1024 * 1024) { // 5MB limit
+                          if (file.size > 10 * 1024 * 1024) { // 10MB limit
                             toast({
                               title: "Error",
-                              description: "Image file is too large. Maximum size is 5MB.",
+                              description: "Image file is too large. Maximum size is 10MB.",
                               variant: "destructive",
                             });
                             return;
                           }
+                          // Set the image file immediately for preview
                           setSpaceImage(file);
                           
                           // If we're editing an existing space, upload the image immediately
@@ -735,12 +987,19 @@ export default function SpacesPage() {
                                 image: url,
                               });
                               
-                              // Update the spaces list
-                              setSpaces(spaces.map(space => 
-                                space.id === selectedSpace.id 
-                                  ? { ...space, image: url }
-                                  : space
-                              ));
+                              // Refresh spaces list from API to get latest data including images
+                              const refreshResponse = await fetch('/api/spaces')
+                              if (refreshResponse.ok) {
+                                const refreshedSpaces = await refreshResponse.json()
+                                setSpaces(refreshedSpaces || [])
+                              } else {
+                                // Fallback to local state update if refresh fails
+                                setSpaces(spaces.map(space => 
+                                  space.id === selectedSpace.id 
+                                    ? { ...space, image: url }
+                                    : space
+                                ))
+                              }
                               
                               toast({
                                 title: "Success",
@@ -755,82 +1014,141 @@ export default function SpacesPage() {
                               });
                             }
                           }
+                        } else {
+                          setSpaceImage(null);
                         }
                       }}
                     />
-                    <p className="text-xs text-muted-foreground">
-                      Upload a photo of the space. Maximum file size: 5MB.
-                    </p>
+                          <p className="text-xs text-muted-foreground">
+                            Upload a photo of the space. Maximum file size: 10MB.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </div>
 
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  setSelectedSpace(null)
-                  setShowAddSpace(false)
-                }}
-              >
-                Cancel
-              </Button>
-              <Button type="submit">{selectedSpace ? "Save Changes" : "Create Space"}</Button>
-            </DialogFooter>
+                <DialogFooter className="p-5 sm:p-6 border-t border-gray-200/50 dark:border-gray-700/50 bg-gradient-to-br from-gray-50/50 to-white/50 dark:from-gray-900/50 dark:to-gray-800/50 backdrop-blur-xl">
+                  <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setSelectedSpace(null)
+                        setShowAddSpace(false)
+                      }}
+                      className="rounded-2xl glass border-0 shadow-apple hover:shadow-apple-lg transition-apple"
+                    >
+                      Cancel
+                    </Button>
+                  </motion.div>
+                  <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                    <Button 
+                      type="submit"
+                      className="rounded-2xl bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-apple hover:shadow-apple-lg border-0 transition-apple"
+                    >
+                      {selectedSpace ? "Save Changes" : "Create Space"}
+                    </Button>
+                  </motion.div>
+                </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will permanently delete the space "{selectedSpace?.name}".
-              This action cannot be undone. Spaces with existing reservations cannot be deleted.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setSelectedSpace(null)}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteSpace} className="bg-red-600 hover:bg-red-700">
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+          {/* Delete Confirmation Dialog */}
+          <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+            <AlertDialogContent className="glass-strong border-0 rounded-3xl shadow-apple-lg">
+              <AlertDialogHeader>
+                <AlertDialogTitle className="bg-gradient-to-r from-gray-900 to-gray-600 dark:from-gray-100 dark:to-gray-400 bg-clip-text text-transparent text-base sm:text-lg">
+                  Are you sure?
+                </AlertDialogTitle>
+                <AlertDialogDescription className="text-sm">
+                  This will permanently delete the space "{selectedSpace?.name}".
+                  This action cannot be undone. Spaces with existing reservations cannot be deleted.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+                <AlertDialogCancel 
+                  onClick={() => setSelectedSpace(null)}
+                  className="rounded-2xl glass border-0 shadow-apple mt-0"
+                >
+                  Cancel
+                </AlertDialogCancel>
+                <AlertDialogAction 
+                  onClick={handleDeleteSpace} 
+                  className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 rounded-2xl shadow-apple hover:shadow-apple-lg border-0 transition-apple"
+                >
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
 
-      {/* Bulk Delete Confirmation Dialog */}
-      <AlertDialog open={showBulkDeleteConfirm} onOpenChange={setShowBulkDeleteConfirm}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete {selectedSpaces.size} Space(s)?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete {selectedSpaces.size} space(s)? This action cannot be undone.
-              Spaces with existing reservations cannot be deleted. All associated data will be permanently removed.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isBulkActionLoading}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => handleBulkSpaceAction('delete')}
-              disabled={isBulkActionLoading}
-              className="bg-red-600 hover:bg-red-700"
+          {/* Bulk Delete Confirmation Dialog */}
+          <AlertDialog open={showBulkDeleteConfirm} onOpenChange={setShowBulkDeleteConfirm}>
+            <AlertDialogContent className="glass-strong border-0 rounded-3xl shadow-apple-lg">
+              <AlertDialogHeader>
+                <AlertDialogTitle className="bg-gradient-to-r from-gray-900 to-gray-600 dark:from-gray-100 dark:to-gray-400 bg-clip-text text-transparent text-base sm:text-lg">
+                  Delete {selectedSpaces.size} Space(s)?
+                </AlertDialogTitle>
+                <AlertDialogDescription className="text-sm">
+                  Are you sure you want to delete {selectedSpaces.size} space(s)? This action cannot be undone.
+                  Spaces with existing reservations cannot be deleted. All associated data will be permanently removed.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+                <AlertDialogCancel 
+                  disabled={isBulkActionLoading}
+                  className="rounded-2xl glass border-0 shadow-apple mt-0"
+                >
+                  Cancel
+                </AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => handleBulkSpaceAction('delete')}
+                  disabled={isBulkActionLoading}
+                  className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 rounded-2xl shadow-apple hover:shadow-apple-lg border-0 transition-apple"
+                >
+                  {isBulkActionLoading ? (
+                    <>
+                      <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                      Deleting...
+                    </>
+                  ) : (
+                    'Delete All'
+                  )}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+          
+          {/* Mobile Scroll to Spaces Button */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.5 }}
+            className="fixed bottom-6 right-4 sm:hidden z-50"
+          >
+            <motion.div
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
             >
-              {isBulkActionLoading ? (
-                <>
-                  <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                  Deleting...
-                </>
-              ) : (
-                'Delete All'
-              )}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+              <Button
+                onClick={() => {
+                  const spacesSection = document.getElementById('spaces-section')
+                  if (spacesSection) {
+                    spacesSection.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                  }
+                }}
+                className="h-14 w-14 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-apple-lg hover:shadow-apple-lg border-0 transition-apple flex items-center justify-center"
+                size="icon"
+              >
+                <ChevronDown className="h-6 w-6" />
+                <span className="sr-only">Scroll to spaces</span>
+              </Button>
+            </motion.div>
+          </motion.div>
+        </div>
+      </div>
     </AdminLayout>
   )
 } 
