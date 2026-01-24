@@ -19,13 +19,13 @@ import {
   BarChart3, 
   MessageSquare,
   CheckCircle2,
-  Sparkles,
+  Zap,
   Linkedin,
   Menu,
   X,
-  ArrowUp,
-  Star
+  ArrowUp
 } from "lucide-react"
+import { AtlasThunderCenterpiece } from "@/components/atlas-thunder-centerpiece"
 import { useEffect, useState, useRef } from "react"
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel"
 
@@ -361,7 +361,7 @@ export default function LandingPage() {
         </div>
 
         <div className="container mx-auto px-4 h-full relative z-10">
-          <nav className="flex justify-between items-center py-8 sticky top-0">
+          <nav className="flex justify-between items-center py-4 sticky top-0">
             <div className="flex items-center space-x-2 group cursor-pointer">
               <div className="relative">
                 <div className="absolute -inset-1 bg-gradient-to-r from-[#1B1464] to-[#FF6B00] rounded-full opacity-0 group-hover:opacity-70 blur-md transition-all duration-500 group-hover:duration-200"></div>
@@ -418,7 +418,7 @@ export default function LandingPage() {
             </div>
           </nav>
 
-          <div className="grid lg:grid-cols-2 gap-12 items-center py-20">
+          <div className="grid lg:grid-cols-2 gap-12 items-center pt-8 pb-16 lg:pt-10 lg:pb-20">
             <div className={`space-y-8 transition-all duration-1000 transform ${isVisible ? 'translate-x-0 opacity-100' : '-translate-x-10 opacity-0'}`}>
               <div className="flex flex-col sm:flex-row gap-4">
                 <Badge variant="outline" className="border-[#1B1464] text-[#1B1464] px-4 py-1 text-sm hover:bg-[#1B1464]/10 transition-colors cursor-default w-fit">
@@ -809,69 +809,126 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section id="pricing" ref={ctaRef} className="py-24 bg-gradient-to-br from-blue-50 via-indigo-50 to-white dark:from-blue-900 dark:via-indigo-900 dark:to-purple-900 text-gray-900 dark:text-white relative overflow-hidden">
+      {/* CTA Section - Atlas + Thunder themed */}
+      <section id="pricing" ref={ctaRef} className="py-24 bg-gradient-to-br from-slate-100 via-indigo-50 to-slate-100 dark:from-slate-950 dark:via-indigo-950/80 dark:to-slate-950 text-gray-900 dark:text-white relative overflow-hidden">
         <div className="absolute inset-0 overflow-hidden">
-          {/* Animated stars background - only visible in dark mode */}
+          {/* Cloudy mountain background — base layer */}
+          <div className="absolute inset-0 flex flex-col justify-end">
+            {/* Mountains — layered silhouettes (light mode) */}
+            <div className="absolute bottom-0 left-0 right-0 h-[50%] min-h-[280px] opacity-100 dark:opacity-0 transition-opacity duration-500">
+              <svg viewBox="0 0 1200 400" preserveAspectRatio="none" className="w-full h-full" style={{ opacity: 0.45 }} aria-hidden>
+                <defs>
+                  <linearGradient id="mtnGrad1" x1="0" y1="1" x2="0" y2="0">
+                    <stop offset="0%" stopColor="#475569" stopOpacity="0.9" />
+                    <stop offset="100%" stopColor="#64748b" stopOpacity="0.6" />
+                  </linearGradient>
+                  <linearGradient id="mtnGrad2" x1="0" y1="1" x2="0" y2="0">
+                    <stop offset="0%" stopColor="#334155" stopOpacity="0.85" />
+                    <stop offset="100%" stopColor="#475569" stopOpacity="0.5" />
+                  </linearGradient>
+                  <linearGradient id="mtnGrad3" x1="0" y1="1" x2="0" y2="0">
+                    <stop offset="0%" stopColor="#1e293b" stopOpacity="0.9" />
+                    <stop offset="100%" stopColor="#334155" stopOpacity="0.55" />
+                  </linearGradient>
+                </defs>
+                {/* Back layer — furthest, lightest */}
+                <path d="M 0 400 L 0 220 L 150 320 L 280 200 L 400 280 L 520 160 L 640 250 L 760 140 L 900 220 L 1050 120 L 1200 200 L 1200 400 Z" fill="url(#mtnGrad1)" />
+                {/* Middle layer */}
+                <path d="M 0 400 L 0 280 L 120 340 L 220 260 L 380 320 L 500 220 L 620 280 L 740 200 L 880 260 L 1000 180 L 1120 240 L 1200 200 L 1200 400 Z" fill="url(#mtnGrad2)" />
+                {/* Front layer — darkest */}
+                <path d="M 0 400 L 80 320 L 200 360 L 320 280 L 460 340 L 580 260 L 700 300 L 820 240 L 960 300 L 1080 260 L 1200 300 L 1200 400 Z" fill="url(#mtnGrad3)" />
+              </svg>
+            </div>
+            {/* Dark mode mountains — deeper */}
+            <div className="absolute bottom-0 left-0 right-0 h-[50%] min-h-[280px] opacity-0 dark:opacity-100 transition-opacity duration-500">
+              <svg viewBox="0 0 1200 400" preserveAspectRatio="none" className="w-full h-full" style={{ opacity: 0.55 }} aria-hidden>
+                <defs>
+                  <linearGradient id="mtnGradDark1" x1="0" y1="1" x2="0" y2="0">
+                    <stop offset="0%" stopColor="#1e293b" stopOpacity="0.8" />
+                    <stop offset="100%" stopColor="#334155" stopOpacity="0.4" />
+                  </linearGradient>
+                  <linearGradient id="mtnGradDark2" x1="0" y1="1" x2="0" y2="0">
+                    <stop offset="0%" stopColor="#0f172a" stopOpacity="0.85" />
+                    <stop offset="100%" stopColor="#1e293b" stopOpacity="0.45" />
+                  </linearGradient>
+                  <linearGradient id="mtnGradDark3" x1="0" y1="1" x2="0" y2="0">
+                    <stop offset="0%" stopColor="#020617" stopOpacity="0.9" />
+                    <stop offset="100%" stopColor="#0f172a" stopOpacity="0.5" />
+                  </linearGradient>
+                </defs>
+                <path d="M 0 400 L 0 220 L 150 320 L 280 200 L 400 280 L 520 160 L 640 250 L 760 140 L 900 220 L 1050 120 L 1200 200 L 1200 400 Z" fill="url(#mtnGradDark1)" />
+                <path d="M 0 400 L 0 280 L 120 340 L 220 260 L 380 320 L 500 220 L 620 280 L 740 200 L 880 260 L 1000 180 L 1120 240 L 1200 200 L 1200 400 Z" fill="url(#mtnGradDark2)" />
+                <path d="M 0 400 L 80 320 L 200 360 L 320 280 L 460 340 L 580 260 L 700 300 L 820 240 L 960 300 L 1080 260 L 1200 300 L 1200 400 Z" fill="url(#mtnGradDark3)" />
+              </svg>
+            </div>
+          </div>
+          {/* Clouds — soft blurred shapes */}
+          <div className="absolute inset-0 pointer-events-none">
+            <div className="absolute top-[15%] left-[5%] w-64 h-20 rounded-full bg-white/40 dark:bg-slate-400/20 blur-2xl transition-transform duration-700 ease-out" style={{ transform: `translate(${mousePosition.x * 8}px, ${mousePosition.y * 6}px)` }} />
+            <div className="absolute top-[25%] right-[10%] w-80 h-24 rounded-full bg-white/35 dark:bg-slate-400/15 blur-3xl transition-transform duration-700 ease-out" style={{ transform: `translate(${-mousePosition.x * 10}px, ${mousePosition.y * 8}px)` }} />
+            <div className="absolute top-[8%] left-[35%] w-72 h-16 rounded-full bg-white/30 dark:bg-slate-400/10 blur-2xl transition-transform duration-700 ease-out" style={{ transform: `translate(${mousePosition.x * 6}px, ${-mousePosition.y * 4}px)` }} />
+            <div className="absolute bottom-[35%] left-[15%] w-56 h-14 rounded-full bg-white/25 dark:bg-slate-400/12 blur-2xl transition-transform duration-700 ease-out" style={{ transform: `translate(${-mousePosition.x * 4}px, ${mousePosition.y * 5}px)` }} />
+            <div className="absolute bottom-[28%] right-[20%] w-60 h-18 rounded-full bg-white/30 dark:bg-slate-400/15 blur-2xl transition-transform duration-700 ease-out" style={{ transform: `translate(${mousePosition.x * 5}px, ${-mousePosition.y * 3}px)` }} />
+            <div className="absolute top-[18%] right-[40%] w-48 h-12 rounded-full bg-white/20 dark:bg-slate-400/10 blur-xl" />
+          </div>
+          {/* Lightning-style accent flashes - dark mode */}
           <div className="absolute inset-0 opacity-0 dark:opacity-100">
-            {[...Array(50)].map((_, i) => (
+            {[...Array(16)].map((_, i) => (
               <div 
                 key={i}
-                className="absolute rounded-full bg-white"
+                className="absolute w-0.5 h-8 bg-gradient-to-b from-amber-300/0 via-amber-400/40 to-amber-300/0"
                 style={{
-                  top: `${Math.random() * 100}%`,
-                  left: `${Math.random() * 100}%`,
-                  width: `${Math.random() * 3 + 1}px`,
-                  height: `${Math.random() * 3 + 1}px`,
-                  opacity: Math.random() * 0.5 + 0.2,
-                  animation: `twinkle ${Math.random() * 5 + 3}s ease-in-out infinite alternate`,
-                  animationDelay: `${Math.random() * 5}s`
+                  bottom: `${(i * 7) % 50}%`,
+                  left: `${(i * 6.5) % 100}%`,
+                  transform: `rotate(${(i * 23) % 360}deg)`,
+                  animation: `lightningFlash ${3 + (i % 4) * 0.5}s ease-in-out infinite`,
+                  animationDelay: `${(i * 0.15) % 2}s`
                 }}
-              ></div>
+              />
             ))}
           </div>
           
-          {/* Light mode background elements */}
+          {/* Light mode - stormy soft orbs */}
           <div className="absolute inset-0 dark:opacity-0">
             <div 
-              className="absolute top-20 left-20 w-[30rem] h-[30rem] bg-blue-200/30 rounded-full blur-3xl"
+              className="absolute top-20 left-20 w-[30rem] h-[30rem] bg-indigo-200/25 rounded-full blur-3xl"
               style={{
                 transform: `translate(${mousePosition.x * 10}px, ${mousePosition.y * 10}px)`,
                 transition: 'transform 1s ease-out',
               }}
-            ></div>
+            />
             <div 
-              className="absolute bottom-20 right-20 w-[25rem] h-[25rem] bg-indigo-200/30 rounded-full blur-3xl"
+              className="absolute bottom-20 right-20 w-[25rem] h-[25rem] bg-blue-200/30 rounded-full blur-3xl"
               style={{
                 transform: `translate(${-mousePosition.x * 15}px, ${-mousePosition.y * 15}px)`,
                 transition: 'transform 1.2s ease-out',
               }}
-            ></div>
+            />
           </div>
           
-          {/* Dark mode northern lights effect - only visible in dark mode */}
+          {/* Dark mode - thunderstorm gradients */}
           <div className="opacity-0 dark:opacity-100">
             <div 
-              className="absolute bottom-0 left-0 right-0 h-[60%] bg-gradient-to-t from-blue-500/10 to-transparent"
+              className="absolute bottom-0 left-0 right-0 h-[60%] bg-gradient-to-t from-blue-900/20 to-transparent"
               style={{
                 transform: `translateY(${mousePosition.y * 10}px) scale(${1 + mousePosition.x * 0.1})`,
                 transition: 'transform 1s ease-out',
               }}
-            ></div>
+            />
             <div 
-              className="absolute bottom-0 left-0 right-0 h-[40%] bg-gradient-to-t from-indigo-500/10 to-transparent"
+              className="absolute bottom-0 left-0 right-0 h-[40%] bg-gradient-to-t from-indigo-900/15 to-transparent"
               style={{
                 transform: `translateY(${mousePosition.y * 15}px) scale(${1 + mousePosition.x * 0.15})`,
                 transition: 'transform 1.2s ease-out',
               }}
-            ></div>
+            />
             <div 
-              className="absolute bottom-0 left-0 right-0 h-[20%] bg-gradient-to-t from-purple-500/10 to-transparent"
+              className="absolute bottom-0 left-0 right-0 h-[25%] bg-gradient-to-t from-amber-500/5 to-transparent"
               style={{
                 transform: `translateY(${mousePosition.y * 20}px) scale(${1 + mousePosition.x * 0.2})`,
                 transition: 'transform 1.4s ease-out',
               }}
-            ></div>
+            />
           </div>
         </div>
 
@@ -888,23 +945,23 @@ export default function LandingPage() {
                 >
                   <Badge 
                     variant="outline" 
-                    className="mb-4 border-blue-500 dark:border-blue-400/50 text-blue-600 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-all duration-300"
+                    className="mb-4 border-blue-700 dark:border-blue-400/50 text-blue-800 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-all duration-300"
                   >
-                    Your Journey Begins Here
+                    Bear the weight · Ride the storm
                   </Badge>
                   
                   <h2 className="text-3xl md:text-4xl font-extrabold mb-4 text-gray-900 dark:text-white">
                     Navigate Your Club's Future with <span className="text-[#FF6B00]">ENSA Tetouan</span>
                   </h2>
                   
-                  <p className="text-gray-700 dark:text-blue-200 mb-6">
-                    Like the North Star guides travelers, let ADE ENSA Tetouan guide your club to new heights of organization and success.
+                  <p className="text-gray-700 dark:text-indigo-200/90 mb-6">
+                    Like Atlas holds the heavens and thunder splits the sky, ADE ENSA Tetouan carries the weight of your club's vision—unshaken, electric, built to endure every storm.
                   </p>
                   
                   <div className="flex flex-col sm:flex-row gap-4">
                     <Button 
                       asChild 
-                      className="relative overflow-hidden group bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white transform hover:translate-y-[-2px] transition-all duration-300 shadow-lg shadow-blue-500/20 hover:shadow-xl hover:shadow-blue-500/30"
+                      className="relative overflow-hidden group bg-gradient-to-r from-blue-700 to-blue-900 hover:from-blue-800 hover:to-blue-950 text-white transform hover:translate-y-[-2px] transition-all duration-300 shadow-lg shadow-blue-900/30 hover:shadow-xl hover:shadow-blue-900/40"
                       onMouseEnter={handleButtonHover}
                       onMouseLeave={handleButtonLeave}
                     >
@@ -920,21 +977,21 @@ export default function LandingPage() {
                               transform: 'translateX(-100%)',
                               animation: 'shimmer 2.5s infinite',
                             }}
-                          ></span>
+                          />
                         </span>
                       </Link>
                     </Button>
                     
                     <Button 
                       variant="outline" 
-                      className="border-blue-500 dark:border-blue-400/50 text-blue-600 dark:text-blue-300 hover:text-white hover:border-transparent transition-all duration-300 group"
+                      className="border-blue-700 dark:border-blue-400/50 text-blue-800 dark:text-blue-300 hover:bg-blue-700 hover:text-white hover:border-transparent transition-all duration-300 group"
                       onClick={() => scrollToSection('features')}
                       onMouseEnter={handleButtonHover}
                       onMouseLeave={handleButtonLeave}
                     >
                       <span className="flex items-center gap-2">
-                        Explore the Stars
-                        <Sparkles className="h-4 w-4" />
+                        Feel the thunder
+                        <Zap className="h-4 w-4" />
                       </span>
                     </Button>
                   </div>
@@ -943,93 +1000,29 @@ export default function LandingPage() {
                 <div 
                   className="w-full md:w-1/2 relative"
                   style={{
-                    transform: `translateY(${mousePosition.y * -2}px) rotate(${mousePosition.x * 2}deg)`,
+                    transform: `translateY(${mousePosition.y * -2}px)`,
                     transition: 'transform 0.6s ease-out',
                   }}
                 >
-                  <div className="relative w-full aspect-square max-w-[300px] mx-auto">
-                    {/* Animated compass/star */}
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="relative w-full h-full">
-                        {/* Outer ring */}
-                        <div 
-                          className="absolute inset-0 border-2 border-blue-500/30 dark:border-blue-400/30 rounded-full"
-                          style={{
-                            animation: 'spin 20s linear infinite',
-                          }}
-                        ></div>
-                        
-                        {/* Middle ring */}
-                        <div 
-                          className="absolute inset-[15%] border border-indigo-500/40 dark:border-indigo-400/40 rounded-full"
-                          style={{
-                            animation: 'spin 15s linear infinite reverse',
-                          }}
-                        ></div>
-                        
-                        {/* Inner ring */}
-                        <div 
-                          className="absolute inset-[30%] border border-purple-500/50 dark:border-purple-400/50 rounded-full"
-                          style={{
-                            animation: 'spin 10s linear infinite',
-                          }}
-                        ></div>
-                        
-                        {/* Center star */}
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <Star 
-                            className="h-16 w-16 text-blue-500 dark:text-blue-300"
-                            style={{
-                              filter: 'drop-shadow(0 0 8px rgba(59, 130, 246, 0.5))',
-                              animation: 'pulse 3s ease-in-out infinite',
-                            }}
-                          />
-                        </div>
-                        
-                        {/* Cardinal points */}
-                        {['N', 'E', 'S', 'W'].map((direction, i) => (
-                          <div 
-                            key={direction}
-                            className="absolute flex items-center justify-center text-sm font-bold text-blue-600 dark:text-blue-200"
-                            style={{
-                              top: direction === 'N' ? '0' : direction === 'S' ? '100%' : '50%',
-                              left: direction === 'W' ? '0' : direction === 'E' ? '100%' : '50%',
-                              transform: 'translate(-50%, -50%)',
-                            }}
-                          >
-                            {direction}
-                          </div>
-                        ))}
-                        
-                        {/* Animated particles */}
-                        {[...Array(8)].map((_, i) => (
-                          <div 
-                            key={i}
-                            className="absolute w-1 h-1 bg-blue-500 dark:bg-white rounded-full"
-                            style={{
-                              top: '50%',
-                              left: '50%',
-                              transform: `rotate(${i * 45}deg) translateX(120px)`,
-                              animation: `orbit ${5 + i}s linear infinite`,
-                            }}
-                          ></div>
-                        ))}
-                      </div>
-                    </div>
+                  <div 
+                    className="relative w-full aspect-square max-w-[320px] mx-auto flex items-center justify-center"
+                    style={{ transform: `translateY(${mousePosition.y * 4}px)`, transition: 'transform 0.5s ease-out' }}
+                  >
+                    <AtlasThunderCenterpiece size={280} className="w-full max-w-[280px] h-auto" />
                   </div>
                 </div>
               </div>
               
               {/* Testimonial quote */}
               <div className="mt-10 pt-8 border-t border-gray-200/50 dark:border-white/10 text-center">
-                <p className="italic text-gray-700 dark:text-blue-200 text-lg">
-                  "ADE ENSA Tetouan guided our club through the chaos of scheduling and space management, just like the North Star has guided sailors for centuries."
+                <p className="italic text-gray-700 dark:text-indigo-200/90 text-lg">
+                  "Like Atlas bearing the sky, ADE ENSA Tetouan holds up our clubs through every storm. When thunder strikes, we're ready—organized, unshaken, and always moving forward."
                 </p>
                 <div className="mt-4 flex items-center justify-center">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-indigo-400 mr-3"></div>
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-600 to-blue-800 mr-3" />
                   <div>
-                    <div className="font-medium text-gray-900 dark:text-white">Abdellah ElBerkaoui</div>
-                    <div className="text-sm text-blue-600 dark:text-blue-300">Polaris clubs coordinator</div>
+                    <div className="font-medium text-gray-900 dark:text-white">Abdellah Raissouni</div>
+                    <div className="text-sm text-blue-700 dark:text-blue-400">Website creator</div>
                   </div>
                 </div>
               </div>
@@ -1045,24 +1038,46 @@ export default function LandingPage() {
             100% { opacity: 0.2; }
           }
           
-          @keyframes spin {
+          @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.05); opacity: 0.9; }
+          }
+          
+          @keyframes atlasGlow {
+            0%, 100% { opacity: 0.25; }
+            50% { opacity: 0.5; }
+          }
+          
+          @keyframes lightningFlash {
+            0%, 88%, 100% { opacity: 0.15; }
+            90%, 94% { opacity: 1; }
+            92% { opacity: 0.5; }
+          }
+          
+          @keyframes spherePulse {
+            0%, 100% { filter: brightness(1); }
+            50% { filter: brightness(1.12); }
+          }
+          
+          @keyframes ringSpin {
             from { transform: rotate(0deg); }
             to { transform: rotate(360deg); }
           }
           
-          @keyframes pulse {
-            0%, 100% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(1.05); opacity: 0.8; }
+          @keyframes ringSpinReverse {
+            from { transform: rotate(360deg); }
+            to { transform: rotate(0deg); }
           }
           
-          @keyframes orbit {
-            from { transform: rotate(0deg) translateX(120px) rotate(0deg); }
-            to { transform: rotate(360deg) translateX(120px) rotate(-360deg); }
+          @keyframes sparkle {
+            0%, 100% { opacity: 0.2; transform: scale(1); }
+            50% { opacity: 0.9; transform: scale(1.2); }
           }
           
-          @keyframes twinkle {
-            0%, 100% { opacity: 0.2; }
-            50% { opacity: 0.4; }
+          @keyframes drift {
+            0%, 100% { transform: translate(0, 0); }
+            33% { transform: translate(2px, -3px); }
+            66% { transform: translate(-2px, 2px); }
           }
         `}</style>
       </section>
